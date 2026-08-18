@@ -1,0 +1,58 @@
+html,
+body,
+#cesiumContainer {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(20, 28, 40, 0.85);
+  color: #eee;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font: 13px/1.8 system-ui, sans-serif;
+  width: 220px;
+}
+
+#panel label {
+  display: block;
+  margin: 6px 0;
+}
+
+#panel input[type="range"] {
+  width: 100%;
+}
+
+#panel button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+#status {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  color: #e8eef8;
+  background: rgba(13, 19, 33, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 12px 22px;
+  font: 14px system-ui, sans-serif;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.32);
+}
+
+#status.error {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
