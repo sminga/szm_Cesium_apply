@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.claude/
 cesium-wind-layer-3d/
 package-lock.json
 .DS_Store

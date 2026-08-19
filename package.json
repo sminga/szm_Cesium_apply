@@ -1,6 +1,6 @@
 {
   "name": "cesium-wind-layer-3d",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A WebGL2 GPU-accelerated 3D wind field layer for CesiumJS, using 3D textures and particle advection.",
   "type": "module",
   "main": "./dist/cesium-wind-layer-3d.cjs",
