@@ -34,6 +34,14 @@
     "particles",
     "gpgpu"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lby0101/cesium-wind-layer-3d.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lby0101/cesium-wind-layer-3d/issues"
+  },
+  "homepage": "https://github.com/lby0101/cesium-wind-layer-3d#readme",
   "license": "MIT",
   "peerDependencies": {
     "cesium": "^1.142.0"
