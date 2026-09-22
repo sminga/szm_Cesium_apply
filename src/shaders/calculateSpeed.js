@@ -1,3 +1,7 @@
+/**
+ * 风速采样与粒子位移计算着色器。
+ * 从三维风场纹理插值速度，使用二阶 Runge-Kutta 推进，并输出经纬高位移及原始速度幅值。
+ */
 export const calculateSpeedShader = `#version 300 es
 precision highp float;
 
@@ -11,6 +15,7 @@ uniform vec2 maximum;   // (east, north)
 uniform vec2 speedRange; // (min, max) speed magnitude, for color normalization
 uniform float minHeight;
 uniform float maxHeight;
+uniform bool fixedVertical;
 
 uniform float speedScaleFactor;
 uniform float frameRateAdjustment;
@@ -41,7 +46,7 @@ vec3 getWind(vec3 lonLatZ) {
 vec3 convertSpeedUnit(vec3 lonLatZ, vec3 speed) {
   vec2 len = lengthOfLonLat(lonLatZ.xy);
   float heightRange = maxHeight - minHeight;
-  float dz = speed.z / heightRange;
+  float dz = fixedVertical ? 0.0 : speed.z / max(heightRange, 0.000001);
   return vec3(speed.x / len.x, speed.y / len.y, dz);
 }
 

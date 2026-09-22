@@ -5,3 +5,13 @@ cesium-wind-layer-3d/
 package-lock.json
 .DS_Store
 *.log
+__pycache__/
+*.py[cod]
+example/config/serviceTokens.js
+tools/converted/*
+!tools/converted/README.md
+tools/uploads/*
+!tools/uploads/README.md
+tools/terrain-input/
+tools/terrain-output/*
+!tools/terrain-output/README.md

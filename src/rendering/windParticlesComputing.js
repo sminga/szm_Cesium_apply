@@ -1,3 +1,7 @@
+/**
+ * 风场粒子的 GPU 计算模块。
+ * 创建三维风场纹理和粒子状态纹理，依次执行速度采样、位置推进、越界检测及随机重生。
+ */
 import {
   PixelDatatype,
   PixelFormat,
@@ -10,9 +14,11 @@ import {
   Cartesian2,
   FrameRateMonitor,
 } from "cesium";
-import { ShaderManager } from "./shaderManager";
-import CustomPrimitive from "./customPrimitive";
-import { deepMerge } from "./utils";
+import { ShaderManager } from "../core/shaderManager";
+import CustomPrimitive from "../core/customPrimitive";
+import { deepMerge } from "../core/utils";
+import { resolveVerticalSelection } from "../core/verticalSelection.js";
+import { createParticlePositionData } from "../data/weightedParticleSampler.js";
 
 export class WindParticlesComputing {
   constructor(context, windData, options, viewerParameters, scene) {
@@ -125,18 +131,7 @@ export class WindParticlesComputing {
 
   createRandomParticlesData() {
     const size = this.options.particlesTextureSize;
-    const { bounds } = this.windData;
-    const data = new Float32Array(size * size * 4);
-    const lonSpan = bounds.east - bounds.west;
-    const latSpan = bounds.north - bounds.south;
-
-    for (let i = 0; i < size * size; i++) {
-      data[i * 4 + 0] = bounds.west + Math.random() * lonSpan; // lon（度）
-      data[i * 4 + 1] = bounds.south + Math.random() * latSpan; // lat（度）
-      data[i * 4 + 2] = Math.random(); // zNorm ∈ [0,1]，映射最低..最高层
-      data[i * 4 + 3] = 1.0; // fresh 标记：首帧作单点渲染，随后转为流线
-    }
-    return data;
+    return createParticlePositionData(this.windData, size * size, this.options);
   }
 
   destroyParticlesTextures() {
@@ -155,6 +150,7 @@ export class WindParticlesComputing {
           maximum: () => new Cartesian2(windData.bounds.east, windData.bounds.north),
           minHeight: () => windData.levels[0],
           maxHeight: () => windData.levels[windData.levels.length - 1],
+          fixedVertical: () => resolveVerticalSelection(windData, this.options).fixed,
           speedRange: () => new Cartesian2(windData.speed.min, windData.speed.max),
           speedScaleFactor: () => (this.viewerParameters.pixelSize + 50) * this.options.speedFactor,
           frameRateAdjustment: () => this.frameRateAdjustment,
@@ -194,6 +190,7 @@ export class WindParticlesComputing {
         uniformMap: {
           nextParticlesPosition: () => this.particlesTextures.nextParticlesPosition,
           particlesSpeed: () => this.particlesTextures.particlesSpeed,
+          windTexture: () => this.windTexture,
           lonRange: () => this.viewerParameters.lonRange,
           latRange: () => this.viewerParameters.latRange,
           dataLonRange: () => new Cartesian2(windData.bounds.west, windData.bounds.east),
@@ -203,6 +200,12 @@ export class WindParticlesComputing {
           dropRate: () => this.options.dropRate,
           dropRateBump: () => this.options.dropRateBump,
           useViewerBounds: () => this.options.useViewerBounds,
+          densityBySpeed: () => this.options.densityBySpeed,
+          densityExponent: () => this.options.densityExponent,
+          densityFloor: () => this.options.densityFloor,
+          verticalRange: () => resolveVerticalSelection(windData, this.options).normalizedRange,
+          fixedVertical: () => resolveVerticalSelection(windData, this.options).fixed,
+          fixedVerticalPosition: () => resolveVerticalSelection(windData, this.options).normalizedHeight,
         },
         fragmentShaderSource: ShaderManager.getPostProcessingPositionShader(),
         outputTexture: this.particlesTextures.postProcessingPosition,

@@ -22,6 +22,9 @@
     "build": "vite build && node build-package.js",
     "build:lib": "vite build",
     "dev": "vite --config example/vite.config.js",
+    "local:server": "py tools/server/local_service.py",
+    "convert:server": "py tools/server/local_service.py",
+    "terrain:build": "py tools/terrain/build_quantized_mesh.py",
     "test": "vitest run"
   },
   "keywords": [
@@ -48,8 +51,12 @@
   },
   "devDependencies": {
     "cesium": "^1.142.0",
+    "lucide": "^1.47.0",
     "vite": "^7.0.0",
     "vite-plugin-cesium": "^1.2.23",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "netcdfjs": "^4.0.0"
   }
 }

@@ -22,6 +22,12 @@
 - 速度自适应线宽/线长，色带映射
 - 运行时动态替换数据、调参、显隐
 - 2D / 3D 场景模式均支持
+- 浏览器本地加载 NetCDF-3，缺少垂直风速时可自动补零
+- 按风速连续着色，并支持高速区域粒子加权加密
+- 同时加载多个二维和三维风场，二维文件可按不同高度叠加
+- 三维风场支持全部高度、连续高度范围和离散单层显示
+- 网页默认列出 `tools/converted/` 中的风场文件
+- 使用 Docker CTB 处理并加载本地 quantized-mesh DEM 地形
 
 ## 安装
 
@@ -55,6 +61,35 @@ const layer = new WindLayer3D(viewer, windData, {
 
 layer.zoomTo(2);
 ```
+---
+## 项目目录
+src/
+  core/             公共图元、工具和着色器管理
+  wind-2d/          二维固定高度风场
+  wind-3d/          三维风场与高度范围
+  data/             NetCDF 读取和数据规范化
+  layers/           多风场图层管理
+  terrain/          本地 DEM 地形提供器
+  rendering/        GPU 计算与绘制
+  shaders/          GLSL 着色器
+
+example/
+  app/              页面入口
+  ui/               GUI 控件
+  services/         本地服务客户端
+  data/             示例数据
+
+tools/
+  server/           本地 HTTP 服务
+  netcdf/           NetCDF 转换工具
+  terrain/          DEM 处理工具
+  converted/        处理后的风场文件
+  terrain-output/   处理后的地形数据
+
+docs/
+  更新日志.md
+  项目结构.md
+  数据格式.md
 
 ## 数据契约
 
@@ -69,6 +104,57 @@ layer.zoomTo(2);
 | `levels` | `number[]` | 每层高度(米)，升序，长度 `nz` |
 
 数组布局：`index = (z * ny + y) * nx + x`，x=经度(西→东)，y=纬度(南→北)，z=层(低→高)。
+
+### 加载 NetCDF-3
+
+```js
+import { loadNetCDF3File, WindLayer3D } from "cesium-wind-layer-3d";
+
+const { windData, metadata } = await loadNetCDF3File(file);
+const layer = new WindLayer3D(viewer, windData);
+console.log(metadata.warnings);
+```
+
+加载器自动识别常见的 `lon/lat/lev` 与 `U/V/W` 变量名，将经纬度和高度统一为升序，
+并把数据重排为 `(lev, lat, lon)`。缺少 `W` 时使用 `0 m/s`；压力层必须先转换为米制高度。
+浏览器加载上限默认是 150 MB。
+
+NetCDF-4/HDF5 需先转换：
+
+```powershell
+py -m pip install xarray numpy netCDF4
+py tools\netcdf\convert_netcdf.py "D:\data\wind.nc"
+```
+
+转换器的变量名、时间索引等参数参见 [`tools/NETCDF.md`](tools/NETCDF.md)。
+
+### GUI 转换 NetCDF-4
+
+示例页面的“工具”页可以调用本地 Python 服务转换用户选择的 NC 文件：
+
+```powershell
+npm run local:server
+```
+
+服务仅监听 `127.0.0.1:8765`。转换后的文件保存在 `tools/converted/`，GUI 会显示处理结果和完整保存路径。
+浏览器客户端位于 `example/services/localServiceClient.js`，服务逻辑位于 `tools/server/local_service.py`。
+
+同一个服务还会列出 `tools/converted/` 中的文件，因此点击“加载二维风场”或“加载三维风场”时，网页会先显示该目录，再提供“浏览其他位置”入口。
+
+### 本地 DEM 地形
+
+DEM 使用 Docker 中的 Cesium Terrain Builder 转为标准 quantized-mesh：
+
+```powershell
+npm run local:server
+```
+
+在 GUI“工具”页选择 GeoTIFF、IMG、ASC 或 DEM 文件。服务会调用 GDAL 重投影到 EPSG:4326，再使用 `tumgis/ctb-quantized-mesh:latest` 生成地形。输出保存在 `tools/terrain-output/`，可在“图层”页加载。
+
+### Cesium 服务配置
+
+示例所需 token 集中保存在 `example/config/serviceTokens.js`。该文件已加入 `.gitignore`；
+可参考 `example/config/serviceTokens.example.js` 添加 Cesium ion、天地图或其他服务凭据。
 
 ## 选项 WindLayerOptions
 
@@ -86,6 +172,14 @@ layer.zoomTo(2);
 | `useViewerBounds` | `false` | 在视口范围播种粒子 |
 | `domain` | `undefined` | 色带映射域 |
 | `displayRange` | `undefined` | 显示范围 |
+| `lowSpeedOpacity` | `0.72` | 低速流线的最低透明度，越大越显眼 |
+| `densityBySpeed` | `true` | 是否把更多粒子播种到高速区域 |
+| `densityExponent` | `1.5` | 高速区域加密强度 |
+| `densityFloor` | `0.15` | 低速区域保留的最低采样权重 |
+| `verticalMode` | `"all"` | `all`、`range`、`level` 或二维内部使用的 `fixed` |
+| `heightRange` | `undefined` | 连续高度范围 `{ min, max }`，单位米 |
+| `selectedLevel` | `undefined` | 离散单层模式选择的真实高度，单位米 |
+| `fixedHeight` | `undefined` | 二维风场的固定显示高度，单位米 |
 | `dynamic` | `true` | 是否动态更新 |
 
 ## API
@@ -109,7 +203,7 @@ npm run build
 npm run dev
 ```
 
-浏览器打开 http://localhost:3000 可见 3D 风场粒子动画（示例使用印尼区域风场数据）。
+浏览器打开 Vite 输出的本地地址即可使用多层风场和地形 GUI。完整目录说明见 [`docs/项目结构.md`](docs/项目结构.md)，每次更新见 [`docs/更新日志.md`](docs/更新日志.md)。
 
 ## 浏览器要求
 

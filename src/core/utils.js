@@ -1,3 +1,7 @@
+/**
+ * 风场图层使用的通用数据工具。
+ * 提供配置对象深度合并，以及由三轴速度分量计算速度幅值和有效范围的能力。
+ */
 export function deepMerge(from, to) {
   if (!from) return to;
   if (!to) return from;
@@ -40,6 +44,10 @@ export function computeSpeedFromComponents(u, v, w) {
       min = Math.min(min, s);
       max = Math.max(max, s);
     }
+  }
+  if (min === Number.MAX_VALUE) {
+    min = 0;
+    max = 0;
   }
   return { array, min, max };
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deepMerge, computeSpeedFromComponents } from "../src/utils.js";
+import { deepMerge, computeSpeedFromComponents } from "../../src/core/utils.js";
 
 describe("deepMerge", () => {
   it("返回目标对象拷贝且不污染源", () => {
@@ -51,14 +51,14 @@ describe("computeSpeedFromComponents", () => {
     expect(max).toBeCloseTo(5);
   });
 
-  it("全零输入时 min/max 保持极值哨兵", () => {
+  it("全零输入时返回可用的零速度范围", () => {
     const u = new Float32Array([0, 0]);
     const v = new Float32Array([0, 0]);
     const w = new Float32Array([0, 0]);
     const { array, min, max } = computeSpeedFromComponents(u, v, w);
 
     expect(array[0]).toBe(0);
-    expect(min).toBe(Number.MAX_VALUE);
-    expect(max).toBe(Number.MIN_VALUE);
+    expect(min).toBe(0);
+    expect(max).toBe(0);
   });
 });

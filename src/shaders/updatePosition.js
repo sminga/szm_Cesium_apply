@@ -1,3 +1,7 @@
+/**
+ * 粒子位置推进计算着色器。
+ * 把当前经纬高归一化坐标与本帧位移相加，输出未经边界处理的下一位置。
+ */
 export const updatePositionShader = `#version 300 es
 precision highp float;
 

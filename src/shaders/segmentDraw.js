@@ -1,3 +1,7 @@
+/**
+ * 粒子流线的顶点和片元着色器。
+ * 将连续粒子位置扩展成屏幕空间线段，按速度映射长度、宽度和颜色，并结合地球深度完成遮挡。
+ */
 export const renderParticlesVertexShader = `#version 300 es
 precision highp float;
 
@@ -13,6 +17,8 @@ uniform float frameRateAdjustment;
 uniform float minHeight;
 uniform float maxHeight;
 uniform float heightScale;
+uniform bool fixedVertical;
+uniform float fixedDisplayHeight;
 uniform float aspect;
 uniform float pixelSize;
 uniform vec2 lineWidth;
@@ -38,7 +44,7 @@ vec3 convertCoordinate(vec3 lonLatZ) {
 
   float latitude = radians(lonLatZ.y);
   float longitude = radians(lonLatZ.x);
-  float h = mix(minHeight, maxHeight, lonLatZ.z) * heightScale;
+  float h = (fixedVertical ? fixedDisplayHeight : mix(minHeight, maxHeight, lonLatZ.z)) * heightScale;
 
   float cosLat = cos(latitude);
   float sinLat = sin(latitude);
@@ -68,7 +74,7 @@ vec4 calculateOffsetOnNormalDirection(vec4 pointA, vec4 pointB, float offsetSign
   vec2 normalVector = vec2(-direction.y, direction.x);
   normalVector.x = normalVector.x / aspect;
   // 线宽：像素 → NDC（NDC 全高 = 2，对应 czm_viewport.w 个像素）
-  float offsetLength = (widthFactor * lineWidth.y) / (czm_viewport.w * 0.5);
+  float offsetLength = widthFactor / (czm_viewport.w * 0.5);
   normalVector = offsetLength * normalVector;
   return vec4(offsetSign * normalVector, 0.0, 0.0);
 }
@@ -138,6 +144,7 @@ in vec2 textureCoordinate;
 
 uniform vec2 domain;
 uniform vec2 displayRange;
+uniform float lowSpeedOpacity;
 uniform sampler2D colorTable;
 uniform sampler2D segmentsDepthTexture;
 
@@ -149,11 +156,14 @@ void main() {
     float magnitude = clamp(speed.a, domain.x, domain.y);
     float normalizedSpeed = (magnitude - domain.x) / (domain.y - domain.x);
     vec4 baseColor = texture(colorTable, vec2(normalizedSpeed, zero));
+    float lowSpeedFactor = 1.0 - normalizedSpeed;
+    vec3 emphasizedColor = min(baseColor.rgb * 1.3 + vec3(0.08), vec3(1.0));
+    vec3 particleColor = mix(baseColor.rgb, emphasizedColor, lowSpeedFactor * 0.75);
 
     float alpha = smoothstep(0.0, 1.0, v_segmentPosition);
     alpha = pow(alpha, 1.5);
-    float speedAlpha = mix(0.3, 1.0, normalizedSpeed);
-    fragColor = vec4(baseColor.rgb, baseColor.a * alpha * speedAlpha);
+    float speedAlpha = mix(lowSpeedOpacity, 1.0, normalizedSpeed);
+    fragColor = vec4(particleColor, baseColor.a * alpha * speedAlpha);
   } else {
     fragColor = vec4(zero);
   }

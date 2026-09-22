@@ -1,3 +1,7 @@
+/**
+ * 风场粒子的可视化渲染模块。
+ * 根据粒子状态生成流线几何，配置颜色、宽度、长度和深度测试，并负责相关纹理及帧缓冲资源。
+ */
 import {
   Geometry,
   GeometryAttribute,
@@ -19,10 +23,10 @@ import {
   BufferUsage,
   Cartesian2,
 } from "cesium";
-import { WindParticlesComputing } from "./windParticlesComputing";
-import CustomPrimitive from "./customPrimitive";
-import { ShaderManager } from "./shaderManager";
-import { deepMerge } from "./utils";
+import CustomPrimitive from "../core/customPrimitive";
+import { ShaderManager } from "../core/shaderManager";
+import { deepMerge } from "../core/utils";
+import { resolveVerticalSelection } from "../core/verticalSelection.js";
 
 export class WindParticlesRendering {
   constructor(context, options, viewerParameters, computing) {
@@ -188,8 +192,11 @@ export class WindParticlesRendering {
           this.options.displayRange?.min ?? windData.speed.min,
           this.options.displayRange?.max ?? windData.speed.max
         ),
+        lowSpeedOpacity: () => this.options.lowSpeedOpacity ?? 0.72,
         minHeight: () => windData.levels[0],
         maxHeight: () => windData.levels[windData.levels.length - 1],
+        fixedVertical: () => resolveVerticalSelection(windData, this.options).fixed,
+        fixedDisplayHeight: () => resolveVerticalSelection(windData, this.options).displayHeight,
         heightScale: () => this.options.heightScale ?? 1,
         aspect: () => this.context.drawingBufferWidth / this.context.drawingBufferHeight,
         pixelSize: () => this.viewerParameters.pixelSize,

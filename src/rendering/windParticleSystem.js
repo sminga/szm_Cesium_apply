@@ -1,8 +1,11 @@
+/**
+ * 粒子系统的总调度器。
+ * 将 GPU 粒子位置计算与流线渲染串成 Cesium 图元执行序列，并统一处理配置变更和资源释放。
+ */
 import { WindParticlesComputing } from "./windParticlesComputing";
 import { WindParticlesRendering } from "./windParticlesRendering";
-import CustomPrimitive from "./customPrimitive";
 import { ClearCommand, Color, Pass } from "cesium";
-import { deepMerge } from "./utils";
+import { deepMerge } from "../core/utils";
 
 export class WindParticleSystem {
   constructor(context, windData, options, viewerParameters, scene) {
@@ -42,6 +45,8 @@ export class WindParticleSystem {
     if (options.particlesTextureSize && this.options.particlesTextureSize !== options.particlesTextureSize) {
       maxParticlesChanged = true;
     }
+    const verticalSelectionChanged = ["verticalMode", "heightRange", "selectedLevel", "fixedHeight"]
+      .some((key) => options[key] !== undefined);
 
     const newOptions = deepMerge(options, this.options);
     if (newOptions.particlesTextureSize < 1) {
@@ -51,7 +56,7 @@ export class WindParticleSystem {
 
     this.rendering.updateOptions(options);
     this.computing.updateOptions(options);
-    if (maxParticlesChanged) {
+    if (maxParticlesChanged || verticalSelectionChanged) {
       this.computing.destroyParticlesTextures();
       this.computing.createParticlesTextures();
       this.rendering.onParticlesTextureSizeChange();

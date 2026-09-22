@@ -1,3 +1,7 @@
+/**
+ * 对 Cesium 底层 DrawCommand 和 ComputeCommand 的轻量图元封装。
+ * 负责延迟创建命令、逐帧更新输出目标、按需清屏，并接入 Cesium 的图元生命周期。
+ */
 import {
   Geometry,
   ShaderProgram,

@@ -1,4 +1,4 @@
-import type { Viewer } from "cesium";
+import type { TerrainProvider, Viewer } from "cesium";
 
 export interface WindBounds {
   west: number;
@@ -47,8 +47,41 @@ export interface WindLayerOptions {
   useViewerBounds: boolean;
   domain?: NumberRange;
   displayRange?: NumberRange;
+  lowSpeedOpacity: number;
+  densityBySpeed: boolean;
+  densityExponent: number;
+  densityFloor: number;
+  verticalMode: "all" | "range" | "level" | "fixed";
+  heightRange?: NumberRange;
+  selectedLevel?: number;
+  fixedHeight?: number;
   dynamic: boolean;
 }
+
+export interface WindLayer2DOptions extends WindLayerOptions {
+  fixedHeight: number;
+  sourceLevelIndex?: number;
+}
+
+export interface NetCDFLoadOptions {
+  timeIndex?: number;
+  maxBytes?: number;
+  variables?: Partial<Record<"lon" | "lat" | "level" | "u" | "v" | "w", string>>;
+}
+
+export interface NetCDFLoadResult {
+  windData: WindData3D;
+  metadata: {
+    format: string;
+    variables: Record<string, string | undefined>;
+    timeIndex: number;
+    warnings: string[];
+  };
+}
+
+export function detectNetCDFFormat(data: ArrayBuffer | ArrayBufferView): "netcdf3" | "netcdf4" | "unknown";
+export function parseNetCDF3(data: ArrayBuffer | ArrayBufferView, options?: NetCDFLoadOptions): NetCDFLoadResult;
+export function loadNetCDF3File(file: File, options?: NetCDFLoadOptions): Promise<NetCDFLoadResult>;
 
 export const DefaultOptions: WindLayerOptions;
 
@@ -69,5 +102,38 @@ export class WindLayer3D {
   isDestroyed(): boolean;
   destroy(): void;
 }
+
+export class WindLayer2D extends WindLayer3D {
+  constructor(viewer: Viewer, windData: WindData3D, options?: Partial<WindLayer2DOptions>);
+  readonly kind: "2d";
+  setHeight(height: number): void;
+}
+
+export interface ManagedWindLayer {
+  id: string;
+  kind: "2d" | "3d";
+  name: string;
+  source?: string;
+  layer: WindLayer2D | WindLayer3D;
+}
+
+export class WindLayerManager {
+  constructor(viewer: Viewer);
+  add2D(windData: WindData3D, options?: Partial<WindLayer2DOptions>, metadata?: Partial<ManagedWindLayer>): ManagedWindLayer;
+  add3D(windData: WindData3D, options?: Partial<WindLayerOptions>, metadata?: Partial<ManagedWindLayer>): ManagedWindLayer;
+  get(id: string): ManagedWindLayer | undefined;
+  list(): ManagedWindLayer[];
+  setVisible(id: string, visible: boolean): void;
+  updateOptions(id: string, options: Partial<WindLayerOptions>): void;
+  remove(id: string): boolean;
+  clear(kind?: "2d" | "3d"): void;
+  destroy(): void;
+}
+
+export function createWindData2D(windData: WindData3D, sourceLevelIndex?: number): WindData3D;
+export function createLocalTerrainProvider(url: string, options?: {
+  requestVertexNormals?: boolean;
+  requestWaterMask?: boolean;
+}): Promise<TerrainProvider>;
 
 export default WindLayer3D;

@@ -11,6 +11,8 @@ A WebGL2-based 3D wind field layer for CesiumJS, using 3D textures and GPU parti
 - Speed-adaptive line width/length with color ramp mapping
 - Runtime dynamic data replacement, parameter adjustment, and visibility control
 - Supports both 2D and 3D scene modes
+- Local NetCDF-3 loading in the browser, with zero-filled W when it is missing
+- Continuous speed colors and speed-weighted particle density
 
 ## Installation
 
@@ -59,6 +61,48 @@ layer.zoomTo(2);
 
 Array layout: `index = (z * ny + y) * nx + x`, x=longitude (west→east), y=latitude (south→north), z=level (low→high).
 
+### Load NetCDF-3
+
+```js
+import { loadNetCDF3File, WindLayer3D } from "cesium-wind-layer-3d";
+
+const { windData, metadata } = await loadNetCDF3File(file);
+const layer = new WindLayer3D(viewer, windData);
+console.log(metadata.warnings);
+```
+
+The loader recognizes common `lon/lat/lev` and `U/V/W` names, sorts coordinates
+in ascending order, and rearranges data to `(lev, lat, lon)`. Missing W is filled
+with `0 m/s`; pressure levels must be converted to metric heights first. The
+default browser file limit is 150 MB. Convert NetCDF-4/HDF5 before loading:
+
+```powershell
+py -m pip install xarray numpy netCDF4
+py tools\convert_netcdf.py "D:\data\wind.nc"
+```
+
+See [`tools/NETCDF.md`](tools/NETCDF.md) for variable mapping and time options.
+
+### GUI NetCDF-4 conversion
+
+Start the localhost conversion service before using the converter on the
+example's Tools tab:
+
+```powershell
+npm run local:server
+```
+
+The service listens only on `127.0.0.1:8765`. Converted files are saved under
+`tools/converted/`, and the GUI reports the full output path. The browser client
+is `example/services/localServiceClient.js`; the reusable service is
+`tools/server/local_service.py`.
+
+### Cesium service configuration
+
+Example credentials are kept in the Git-ignored `example/config/serviceTokens.js`.
+Use `example/config/serviceTokens.example.js` as the template for Cesium ion,
+Tianditu, or other service tokens.
+
 ## Options (WindLayerOptions)
 
 | Field | Default | Description |
@@ -75,6 +119,10 @@ Array layout: `index = (z * ny + y) * nx + x`, x=longitude (west→east), y=lati
 | `useViewerBounds` | `false` | Seed particles in viewport bounds |
 | `domain` | `undefined` | Color ramp domain |
 | `displayRange` | `undefined` | Display range |
+| `lowSpeedOpacity` | `0.72` | Minimum opacity for low-speed streamlines |
+| `densityBySpeed` | `true` | Seed more particles in high-speed regions |
+| `densityExponent` | `1.5` | Strength of speed-weighted density |
+| `densityFloor` | `0.15` | Minimum sampling weight retained in low-speed regions |
 | `dynamic` | `true` | Enable dynamic updates |
 
 ## API
