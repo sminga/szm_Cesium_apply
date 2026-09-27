@@ -144,7 +144,13 @@ npm run local:server
 ### 本地 DEM 地形
 
 DEM 使用 Docker 中的 Cesium Terrain Builder 转为标准 quantized-mesh：
+#### 使用前需要下载Docker Desktop。
+1. 确认是否已安装 Docker
+在 Windows 上，推荐使用 Docker Desktop for Windows。
+检查开始菜单或 C:\Program Files\Docker 目录下是否有 Docker Desktop。
+如果未安装，请前往官网下载并安装：https://www.docker.com/products/docker-desktop/
 
+-----
 ```powershell
 npm run local:server
 ```
