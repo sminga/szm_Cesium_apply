@@ -1,19 +1,3 @@
-# cesium-wind-layer-3d
-
-基于 WebGL2 的 CesiumJS 三维风场图层，使用 3D 纹理 + GPU 粒子平流（GPGPU）实现高性能动态风场可视化。
-
-> 注意：这是 **3D 风场** 独立包，在 2D 风场包 [`cesium-wind-layer`](https://www.npmjs.com/package/cesium-wind-layer) 基础上增加了垂直 `w` 分量，实现真正的三维风场。本包数据为 `(u, v, w)` 三分量三维网格，粒子在三维空间平流。
-
-
-## 效果
-
-<table>
-  <tr>
-    <td><img src="assets/三维风场.gif" alt="3D Wind Field Visualization 1" /></td>
-    <td><img src="assets/三维风场1.gif" alt="3D Wind Field Visualization 2" /></td>
-  </tr>
-</table>
-
 
 ## 特性
 
@@ -29,13 +13,7 @@
 - 网页默认列出 `tools/converted/` 中的风场文件
 - 使用 Docker CTB 处理并加载本地 quantized-mesh DEM 地形
 
-## 安装
 
-```bash
-npm install cesium-wind-layer-3d
-```
-
-`cesium` 为 peer dependency，请确保已安装 CesiumJS（^1.142.0）。
 
 ## 快速开始
 
