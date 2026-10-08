@@ -137,8 +137,7 @@ npm run local:server
 
 ### Cesium 服务配置
 
-示例所需 token 集中保存在 `example/config/serviceTokens.js`。该文件已加入 `.gitignore`；
-可参考 `example/config/serviceTokens.example.js` 添加 Cesium ion、天地图或其他服务凭据。
+示例所需 token 通过环境变量配置：本地在 `example/.env`（已加入 `.gitignore`）中写入 `VITE_CESIUM_ION_TOKEN`；线上部署（Vercel）在项目 Environment Variables 中配置同名变量。天地图等其他凭据可按同样方式添加（如 `VITE_TIANDITU_TOKEN`）。
 
 ## 选项 WindLayerOptions
 
