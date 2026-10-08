@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cesium 多层风场与本地地形</title>
+  <link rel="stylesheet" href="./ui/index.css" />
+</head>
+
+<body>
+  <div id="cesiumContainer"></div>
+  <div id="status" role="status">正在加载示例风场</div>
+
+  <aside id="panel" aria-label="风场与地形控制">
+    <header class="panel-header">
+      <div>
+        <h1>风场实验台</h1>
+        <p id="data-summary">等待数据</p>
+      </div>
+      <button id="zoom" class="icon-button" type="button" title="定位当前图层" aria-label="定位当前图层">
+        <i data-lucide="locate-fixed"></i>
+      </button>
+    </header>
+
+    <nav class="panel-tabs" aria-label="控制面板页面">
+      <button class="panel-tab active" type="button" data-panel="wind" aria-selected="true">
+        <i data-lucide="wind"></i><span>风场</span>
+      </button>
+      <button class="panel-tab" type="button" data-panel="layers" aria-selected="false">
+        <i data-lucide="layers-3"></i><span>图层</span>
+      </button>
+      <button class="panel-tab" type="button" data-panel="tools" aria-selected="false">
+        <i data-lucide="wrench"></i><span>工具</span>
+      </button>
+
+      <button class="panel-tab" type="button" data-panel="terrain" aria-selected="false">
+        <i data-lucide="mountain-snow"></i><span>本地地形</span>
+      </button>
+    </nav>
+
+    <div class="panel-page active" data-page="wind">
+      <section class="panel-section">
+        <div class="command-grid">
+          <button id="open-2d-catalog" class="primary-command" type="button">
+            <i data-lucide="layers-2"></i><span>加载二维风场</span>
+          </button>
+          <button id="open-3d-catalog" class="primary-command" type="button">
+            <i data-lucide="box"></i><span>加载三维风场</span>
+          </button>
+        </div>
+        <input id="browse-2d-input" type="file" accept=".nc,.cdf,application/x-netcdf" multiple hidden />
+        <input id="browse-3d-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
+        <p class="tool-hint">默认列出 <code>tools/converted</code>；目录不可用时可浏览其他位置。</p>
+      </section>
+
+      <section class="panel-section legend-section" aria-labelledby="legend-title">
+        <div class="section-heading">
+          <h2 id="legend-title">当前图层风速</h2><span>m/s</span>
+        </div>
+        <div id="speed-gradient" class="speed-gradient"></div>
+        <div id="speed-ticks" class="speed-ticks"></div>
+      </section>
+
+
+      <section class="panel-section layer-stack-section">
+        <div class="section-heading">
+          <h2>风场图层</h2><span id="wind-layer-count">0 层</span>
+        </div>
+        <div id="wind-layer-list" class="wind-layer-list">
+          <p class="empty-message">尚未加载风场</p>
+        </div>
+      </section>
+
+      <section id="vertical-controls" class="panel-section" hidden>
+        <div class="section-heading">
+          <h2>三维高度</h2><span id="vertical-data-range">--</span>
+        </div>
+        <div class="segmented-control" role="radiogroup" aria-label="三维高度模式">
+          <button type="button" data-height-mode="all" class="active">全部</button>
+          <button type="button" data-height-mode="range">范围</button>
+          <button type="button" data-height-mode="level">单层</button>
+        </div>
+        <div id="height-range-controls" class="compact-grid" hidden>
+          <label>最低高度<input id="height-min" type="number" step="1" /></label>
+          <label>最高高度<input id="height-max" type="number" step="1" /></label>
+          <button id="apply-height-range" class="small-command" type="button">应用范围</button>
+        </div>
+        <label id="height-level-control" class="select-control" hidden>
+          <span>离散高度层</span><select id="height-level"></select>
+        </label>
+      </section>
+
+
+      <section class="panel-section controls-section">
+        <label class="range-control" for="particles"><span>粒子密度</span><output id="particles-value">256</output>
+          <input id="particles" type="range" min="64" max="512" step="64" value="256" />
+        </label>
+        <label class="range-control" for="speed"><span>流动速度</span><output id="speed-value">0.3</output>
+          <input id="speed" type="range" min="0.1" max="5" step="0.1" value="0.3" />
+        </label>
+        <label class="range-control" for="low-speed-opacity"><span>低速显眼度</span><output
+            id="low-speed-opacity-value">0.72</output>
+          <input id="low-speed-opacity" type="range" min="0.2" max="1" step="0.02" value="0.72" />
+        </label>
+        <label class="range-control" for="height"><span>高度拉伸</span><output id="height-value">10</output>
+          <input id="height" type="range" min="1" max="50" step="1" value="10" />
+        </label>
+        <label class="range-control" for="length"><span>最大线长</span><output id="length-value">400</output>
+          <input id="length" type="range" min="20" max="3000" step="20" value="400" />
+        </label>
+        <label class="range-control" for="density"><span>高速区密度</span><output id="density-value">1.5</output>
+          <input id="density" type="range" min="0.2" max="3" step="0.1" value="1.5" />
+        </label>
+        <div class="toggle-row">
+          <label><input id="density-enabled" type="checkbox" checked /><span>按风速加密</span></label>
+          <label><input id="dynamic" type="checkbox" checked /><span>动画</span></label>
+        </div>
+      </section>
+    </div>
+
+    <div class="panel-page" data-page="layers" hidden>
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>底图</h2><span id="basemap-status">Cesium 影像</span>
+        </div>
+        <div class="mode-list" role="radiogroup" aria-label="底图选择">
+          <button class="mode-button active" type="button" data-basemap="ion"><i
+              data-lucide="satellite"></i><span><b>Cesium 影像</b><small>全球卫星底图</small></span></button>
+          <button class="mode-button" type="button" data-basemap="osm"><i
+              data-lucide="map"></i><span><b>OpenStreetMap</b><small>街道与地名</small></span></button>
+          <button class="mode-button" type="button" data-basemap="none"><i
+              data-lucide="circle-off"></i><span><b>无底图</b><small>仅显示地球与风场</small></span></button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>三维叠加</h2><span>Cesium ion</span>
+        </div>
+        <label class="layer-switch"><span class="layer-copy"><i data-lucide="building-2"></i><span><b>OSM
+                建筑物</b><small>ion 资产 96188</small></span></span><input id="buildings-toggle" type="checkbox" /><span
+            class="switch-track"></span></label>
+        <label class="layer-switch"><span class="layer-copy"><i
+              data-lucide="mountain"></i><span><b>世界地形</b><small>Cesium World Terrain</small></span></span><input
+            id="terrain-toggle" type="checkbox" /><span class="switch-track"></span></label>
+        <p id="ion-layer-message" class="inline-message" role="status">在线图层待命</p>
+      </section>
+
+    </div>
+
+    <div class="panel-page" data-page="terrain" hidden>
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>本地 DEM 地形</h2><span>quantized-mesh</span>
+        </div>
+        <p class="tool-hint">处理后的地形默认存放在 <code>tools/terrain-output</code>，可直接从目录清单选择。</p>
+        <label class="select-control"><span>已处理地形</span><select id="local-terrain-select">
+            <option value="">暂无本地地形</option>
+          </select></label>
+        <div class="command-grid">
+          <button id="open-local-terrain-catalog" class="primary-command" type="button"><i
+              data-lucide="folder-open"></i><span>选择本地地形文件</span></button>
+          <button id="refresh-terrains" class="secondary-command" type="button"><i
+              data-lucide="refresh-cw"></i><span>刷新列表</span></button>
+          <button id="load-local-terrain" class="secondary-command" type="button"><i
+              data-lucide="mountain-snow"></i><span>加载地形</span></button>
+        </div>
+        <button id="disable-terrain" class="text-command" type="button">恢复椭球地形</button>
+        <p id="layer-message" class="inline-message" role="status">图层服务待命</p>
+      </section>
+    </div>
+
+    <div class="panel-page" data-page="tools" hidden>
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>NetCDF 转换</h2><span>本机 Python</span>
+        </div>
+        <input id="convert-file-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
+        <button id="convert-file" class="primary-command secondary-command" type="button"><i
+            data-lucide="folder-cog"></i><span>选择并转换 NC</span></button>
+        <div id="conversion-result" class="conversion-result" role="status"><b>本地服务待命</b><span>运行 npm run
+            local:server</span></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>DEM 转 quantized-mesh</h2><span>Docker CTB</span>
+        </div>
+        <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" hidden />
+        <button id="convert-dem" class="primary-command secondary-command" type="button"><i
+            data-lucide="file-up"></i><span>选择并处理 DEM</span></button>
+        <p class="tool-hint">需要安装并启动 Docker Desktop；参考项目使用 <code>tumgis/ctb-quantized-mesh</code>。</p>
+        <div id="dem-result" class="conversion-result" role="status"><b>DEM 工具待命</b><span>处理后保存到
+            tools/terrain-output</span></div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-heading">
+          <h2>服务配置</h2><span>本地文件</span>
+        </div>
+        <p class="tool-hint">服务 token 保存在 <code>example/config/serviceTokens.js</code>，该文件已加入 Git 忽略列表。</p>
+      </section>
+    </div>
+  </aside>
+
+  <dialog id="wind-catalog-dialog" class="catalog-dialog">
+    <form method="dialog">
+      <header>
+        <div>
+          <h2 id="catalog-title">选择风场文件</h2>
+          <p id="catalog-directory"></p>
+        </div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div id="catalog-options" class="catalog-options"></div>
+      <div id="catalog-files" class="catalog-files"></div>
+      <footer><button id="browse-other" class="secondary-command" value="browse" type="submit">浏览其他位置</button><button
+          id="load-selected-files" class="primary-command" value="load" type="submit">加载所选文件</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="terrain-catalog-dialog" class="catalog-dialog terrain-catalog-dialog">
+    <form method="dialog">
+      <header>
+        <div>
+          <h2>选择本地地形文件</h2>
+          <p id="terrain-catalog-directory"></p>
+        </div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div id="terrain-catalog-files" class="catalog-files"></div>
+      <footer><button id="refresh-terrain-catalog" class="secondary-command" type="button">刷新目录</button><button
+          id="load-selected-terrain" class="primary-command" value="load" type="submit">加载所选地形</button></footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app/main.js"></script>
+</body>
+
+</html>
