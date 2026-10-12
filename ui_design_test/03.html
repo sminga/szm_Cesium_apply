@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>uExtentMap - 预案标绘推演编辑器</title>
+
+  <!-- Cesium CDN -->
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.121/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <!-- 图标库 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- 字体 -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* =========================================
+       1. 设计令牌 (Design Tokens)
+       ========================================= */
+    :root {
+      --bg-base: #0f1115;
+      --bg-panel: rgba(22, 24, 30, 0.85);
+      --bg-header: rgba(26, 29, 36, 0.9);
+      --bg-hover: rgba(255, 255, 255, 0.06);
+      --bg-active: rgba(0, 122, 204, 0.2);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.15);
+      --text-primary: #e8eaed;
+      --text-secondary: #9aa0a6;
+      --text-disabled: #5f6368;
+      --accent-blue: #4da3ff;
+      --accent-blue-dim: rgba(77, 163, 255, 0.15);
+      --accent-orange: #f5a623;
+      --danger: #ff6b6b;
+      --header-height: 44px;
+      --panel-width: 280px;
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --glass-blur: blur(12px) saturate(1.2);
+      --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.4);
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* =========================================
+       2. 布局骨架
+       ========================================= */
+    .editor-app {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+    }
+
+    .editor-header {
+      height: var(--header-height);
+      background: var(--bg-header);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 100;
+    }
+
+    .editor-main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* =========================================
+       3. 顶部导航栏
+       ========================================= */
+    .logo {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: var(--text-primary);
+      margin-right: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo i {
+      color: var(--accent-blue);
+      font-size: 16px;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 2px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      margin-right: auto;
+    }
+
+    .mode-tab {
+      padding: 5px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+
+    .mode-tab.active {
+      background: var(--accent-blue);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(77, 163, 255, 0.3);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--border-strong);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-action:hover {
+      background: var(--bg-hover);
+      border-color: var(--text-secondary);
+      color: var(--text-primary);
+    }
+
+    .btn-action:active {
+      transform: scale(0.97);
+    }
+
+    .btn-action.primary {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    .btn-action.primary:hover {
+      background: #3d94f0;
+      box-shadow: 0 2px 8px rgba(77, 163, 255, 0.25);
+    }
+
+    /* =========================================
+       4. 侧边面板
+       ========================================= */
+    .side-panel {
+      width: var(--panel-width);
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+      z-index: 50;
+      box-shadow: var(--shadow-panel);
+    }
+
+    .side-panel.right {
+      border-right: none;
+      border-left: 1px solid var(--border-subtle);
+    }
+
+    .side-panel.collapsed {
+      width: 0;
+      opacity: 0;
+      overflow: hidden;
+      border: none;
+      pointer-events: none;
+    }
+
+    .panel-header {
+      height: 36px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+
+    .panel-header .actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .panel-header .actions i {
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 12px;
+      transition: all var(--transition-fast);
+    }
+
+    .panel-header .actions i:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+
+    /* 左侧资源树 */
+    .tree-group {
+      margin-bottom: 2px;
+    }
+
+    .tree-title {
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-title:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .tree-title i {
+      font-size: 9px;
+      transition: transform 0.2s ease;
+      width: 12px;
+      text-align: center;
+    }
+
+    .tree-group.open .tree-title i {
+      transform: rotate(90deg);
+    }
+
+    .tree-group.open .tree-title {
+      color: var(--text-primary);
+    }
+
+    .tree-items {
+      display: none;
+      padding-left: 12px;
+    }
+
+    .tree-group.open .tree-items {
+      display: block;
+    }
+
+    .tree-item {
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: grab;
+      border-radius: var(--radius-sm);
+      margin: 1px 6px;
+      border-left: 2px solid transparent;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-item:hover {
+      background: var(--bg-hover);
+      border-left-color: var(--accent-blue);
+    }
+
+    .tree-item:active {
+      cursor: grabbing;
+      background: var(--bg-active);
+    }
+
+    .tree-item .fallback-icon {
+      width: 18px;
+      text-align: center;
+      color: var(--accent-orange);
+      font-size: 12px;
+    }
+
+    /* =========================================
+       5. 右侧图层列表 (新增拖拽排序样式)
+       ========================================= */
+    .layer-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .layer-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin: 2px 6px;
+      border-radius: var(--radius-sm);
+      border-left: 2px solid transparent;
+      transition: all var(--transition-fast);
+      cursor: default;
+      position: relative;
+    }
+
+    .layer-item:hover {
+      background: var(--bg-hover);
+      border-left-color: var(--accent-blue);
+    }
+
+    .layer-item.selected {
+      background: var(--bg-active);
+      border-left-color: var(--accent-blue);
+    }
+
+    /* 拖拽手柄 */
+    .layer-drag-handle {
+      cursor: grab;
+      color: var(--text-disabled);
+      font-size: 12px;
+      padding: 2px;
+      border-radius: 2px;
+      transition: color var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .layer-drag-handle:hover {
+      color: var(--text-secondary);
+    }
+
+    .layer-drag-handle:active {
+      cursor: grabbing;
+    }
+
+    /* 图层名称 */
+    .layer-name {
+      flex: 1;
+      font-size: 12px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 图层操作按钮组 */
+    .layer-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .layer-item:hover .layer-actions {
+      opacity: 1;
+    }
+
+    .layer-btn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      transition: all var(--transition-fast);
+    }
+
+    .layer-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .layer-btn.active {
+      color: var(--accent-blue);
+    }
+
+    .layer-btn.danger:hover {
+      background: rgba(255, 107, 107, 0.15);
+      color: var(--danger);
+    }
+
+    /* 透明度滑块 (展开区域) */
+    .layer-opacity-row {
+      display: none;
+      padding: 4px 12px 8px 38px;
+      margin: 0 6px;
+    }
+
+    .layer-item.expanded .layer-opacity-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .opacity-slider {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.12);
+      outline: none;
+      cursor: pointer;
+    }
+
+    .opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(77, 163, 255, 0.4);
+    }
+
+    .opacity-value {
+      font-size: 11px;
+      color: var(--text-secondary);
+      min-width: 32px;
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 拖拽占位符 */
+    .layer-placeholder {
+      height: 36px;
+      margin: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px dashed var(--accent-blue);
+      background: var(--accent-blue-dim);
+      transition: all 0.2s ease;
+    }
+
+    /* 拖拽中的元素 */
+    .layer-item.dragging {
+      opacity: 0.4;
+      background: var(--bg-active);
+    }
+
+    /* 批量操作工具栏 */
+    .layer-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .layer-toolbar-btn {
+      padding: 3px 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .layer-toolbar-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .layer-toolbar-btn.danger:hover {
+      color: var(--danger);
+    }
+
+    /* 空状态 */
+    .empty-state {
+      padding: 48px 20px;
+      text-align: center;
+      color: var(--text-disabled);
+    }
+
+    .empty-state i {
+      font-size: 28px;
+      margin-bottom: 12px;
+      display: block;
+      opacity: 0.4;
+    }
+
+    .empty-state p {
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+
+    .btn-add {
+      padding: 6px 16px;
+      background: var(--accent-blue-dim);
+      color: var(--accent-blue);
+      border: 1px dashed var(--accent-blue);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-add:hover {
+      background: var(--accent-blue);
+      color: #fff;
+      border-style: solid;
+    }
+
+    /* =========================================
+       6. 中间地图区域
+       ========================================= */
+    .editor-center {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg-base);
+    }
+
+    #cesiumContainer {
+      width: 100%;
+      height: 100%;
+    }
+
+    .panel-toggle {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 48px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 60;
+      color: var(--text-secondary);
+      transition: all var(--transition-fast);
+    }
+
+    .panel-toggle:hover {
+      color: var(--accent-blue);
+      background: rgba(30, 33, 40, 0.95);
+      border-color: var(--accent-blue);
+    }
+
+    .toggle-left {
+      left: 0;
+      border-left: none;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .toggle-right {
+      right: 0;
+      border-right: none;
+      border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    }
+
+    .map-controls {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 40;
+    }
+
+    .map-ctrl-btn {
+      width: 34px;
+      height: 34px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .map-ctrl-btn:hover {
+      background: rgba(30, 33, 40, 0.95);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .map-ctrl-btn:active {
+      transform: scale(0.92);
+      background: var(--bg-active);
+    }
+
+    /* =========================================
+       7. 底部状态栏
+       ========================================= */
+    .editor-footer {
+      height: 26px;
+      background: var(--bg-header);
+      backdrop-filter: var(--glass-blur);
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      justify-content: flex-end;
+      z-index: 100;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .footer-right span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-right span::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      opacity: 0.6;
+    }
+
+    /* =========================================
+       8. Cesium 覆盖
+       ========================================= */
+    .cesium-viewer-animation,
+    .cesium-viewer-timeline,
+    .cesium-viewer-fullscreenContainer,
+    .cesium-viewer-bottom,
+    .cesium-viewer-toolbar,
+    .cesium-widget-credits {
+      display: none !important;
+    }
+
+    .cesium-widget canvas {
+      outline: none !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="editor-app">
+    <!-- ① 顶部导航栏 -->
+    <header class="editor-header">
+      <div class="logo">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <span>uExtentMap</span>
+      </div>
+      <!-- 大功能模式切换标签页 -->
+      <div class="mode-tabs">
+        <div class="mode-tab active"><i class="fa-solid fa-play"></i> 风场</div>
+        <div class="mode-tab"><i class="fa-solid fa-mountain-sun"></i> 地形</div>
+        <div class="mode-tab"><i class="fa-solid fa-robot"></i> 小工具</div>
+        <div class="mode-tab"><i class="fa-solid fa-book-open"></i> 教程</div>
+      </div>
+      
+    </header>
+
+    <!-- ② 主体工作区 -->
+    <div class="editor-main">
+      <!-- 左侧面板 ，随着上方的模式切换标签页变化，显示不同的内容， -->
+      <aside class="side-panel left" id="leftPanel">
+       
+      </aside>
+
+      <!-- 中间地图 -->
+      <main class="editor-center">
+        <div id="cesiumContainer"></div>
+        <div class="panel-toggle toggle-left" onclick="togglePanel('left')">
+          <i class="fa-solid fa-chevron-left" id="toggleLeftIcon"></i>
+        </div>
+        <div class="panel-toggle toggle-right" onclick="togglePanel('right')">
+          <i class="fa-solid fa-chevron-right" id="toggleRightIcon"></i>
+        </div>
+        <div class="map-controls">
+          <div class="map-ctrl-btn" title="重置视角" onclick="resetCamera()">
+            <i class="fa-solid fa-house"></i>
+          </div>
+          <div class="map-ctrl-btn" title="放大" onclick="zoomIn()">
+            <i class="fa-solid fa-plus"></i>
+          </div>
+          <div class="map-ctrl-btn" title="缩小" onclick="zoomOut()">
+            <i class="fa-solid fa-minus"></i>
+          </div>
+        </div>
+      </main>
+
+      <!-- 右侧图层管理面板 -->
+      <aside class="side-panel right" id="rightPanel">
+        <div class="panel-header">
+          <span>图层管理</span>
+          <div class="actions">
+            <i class="fa-solid fa-layer-group" title="全选" onclick="selectAllLayers()"></i>
+            <i class="fa-solid fa-ellipsis-vertical" title="更多"></i>
+          </div>
+        </div>
+
+        <!-- 批量操作工具栏 -->
+        <div class="layer-toolbar">
+          <button class="layer-toolbar-btn" onclick="toggleAllVisibility(true)">
+            <i class="fa-regular fa-eye"></i> 全部显示
+          </button>
+          <button class="layer-toolbar-btn" onclick="toggleAllVisibility(false)">
+            <i class="fa-regular fa-eye-slash"></i> 全部隐藏
+          </button>
+          <button class="layer-toolbar-btn danger" onclick="deleteSelectedLayers()" style="margin-left:auto;">
+            <i class="fa-regular fa-trash-can"></i> 删除选中
+          </button>
+        </div>
+
+        <div class="panel-content">
+          <ul class="layer-list" id="layerList">
+            <!-- 图层项由 JS 动态渲染 -->
+          </ul>
+
+          <div class="empty-state" id="emptyState" style="display:none;">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>暂无图层</p>
+            <button class="btn-add" onclick="addDemoLayer()">+ 添加示例图层</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ③ 底部状态栏 -->
+    <footer class="editor-footer">
+      <div class="footer-right">
+        <span id="coordLng">经度: --°</span>
+        <span id="coordLat">纬度: --°</span>
+        <span id="coordAlt">高度: --m</span>
+        <span id="fpsCounter">FPS: --</span>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. Cesium 初始化
+    // ==========================================
+    // ⚠️ 请替换为你自己的 Cesium Ion Access Token
+    Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwZjM0YzQyMi1kNzVkLTQxZDMtYjE5Ny02YzFhNmRhZjRlNzMiLCJpZCI6MjU5LCJpYXQiOjE3MjkzMTIwMDAsImV4cCI6MTcyOTM5ODQwMH0.placeholder';
+
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+      animation: false, timeline: false, fullscreenButton: false,
+      vrButton: false, geocoder: false, homeButton: false,
+      sceneModePicker: false, baseLayerPicker: false,
+      navigationHelpButton: false, infoBox: false,
+      selectionIndicator: false,
+      creditContainer: document.createElement('div'),
+    });
+
+    viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#0f1115');
+    viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#0f1115');
+
+    // 鼠标移动更新坐标
+    const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+    handler.setInputAction(function (movement) {
+      const cartesian = viewer.camera.pickEllipsoid(movement.endPosition, viewer.scene.globe.ellipsoid);
+      if (cartesian) {
+        const carto = Cesium.Cartographic.fromCartesian(cartesian);
+        document.getElementById('coordLng').textContent = `经度: ${Cesium.Math.toDegrees(carto.longitude).toFixed(4)}°`;
+        document.getElementById('coordLat').textContent = `纬度: ${Cesium.Math.toDegrees(carto.latitude).toFixed(4)}°`;
+        document.getElementById('coordAlt').textContent = `高度: ${Math.round(viewer.camera.positionCartographic.height).toLocaleString()}m`;
+      }
+    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+    // FPS 计数
+    let lastTime = performance.now(), frameCount = 0;
+    viewer.scene.postRender.addEventListener(() => {
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime >= 1000) {
+        document.getElementById('fpsCounter').textContent = `FPS: ${frameCount}`;
+        frameCount = 0; lastTime = now;
+      }
+    });
+
+    // 地图控件
+    function resetCamera() {
+      viewer.camera.flyHome(1);
+    }
+    function zoomIn() { viewer.camera.zoomIn(viewer.camera.positionCartographic.height * 0.5); }
+    function zoomOut() { viewer.camera.zoomOut(viewer.camera.positionCartographic.height * 0.5); }
+
+    // ==========================================
+    // 2. 面板折叠
+    // ==========================================
+    function togglePanel(side) {
+      const panel = document.getElementById(`${side}Panel`);
+      const icon = document.getElementById(`toggle${side.charAt(0).toUpperCase() + side.slice(1)}Icon`);
+      panel.classList.toggle('collapsed');
+      if (panel.classList.contains('collapsed')) {
+        icon.className = side === 'left' ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
+      } else {
+        icon.className = side === 'left' ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right';
+      }
+      setTimeout(() => viewer.resize(), 300);
+    }
+
+    // ==========================================
+    // 3. 图层管理系统 (含拖拽排序)
+    // ==========================================
+    const layerData = [
+      { id: 'l1', name: '风速矢量场', visible: true, opacity: 0.8, selected: false },
+      { id: 'l2', name: '温度热力图', visible: true, opacity: 0.6, selected: false },
+      { id: 'l3', name: '降水预报图层', visible: false, opacity: 1.0, selected: false },
+      { id: 'l4', name: '建筑物白模', visible: true, opacity: 0.9, selected: false },
+      { id: 'l5', name: '道路网络叠加', visible: true, opacity: 0.7, selected: false },
+    ];
+
+    const layerListEl = document.getElementById('layerList');
+    const emptyStateEl = document.getElementById('emptyState');
+
+    // 渲染图层列表
+    function renderLayers() {
+      layerListEl.innerHTML = '';
+      emptyStateEl.style.display = layerData.length === 0 ? 'block' : 'none';
+
+      layerData.forEach((layer, index) => {
+        const li = document.createElement('li');
+        li.className = `layer-item${layer.selected ? ' selected' : ''}`;
+        li.dataset.id = layer.id;
+        li.dataset.index = index;
+        li.draggable = true;
+
+        li.innerHTML = `
+          <i class="fa-solid fa-grip-vertical layer-drag-handle" title="拖拽排序"></i>
+          <span class="layer-name">${layer.name}</span>
+          <div class="layer-actions">
+            <button class="layer-btn ${layer.visible ? 'active' : ''}" data-action="visibility" title="${layer.visible ? '隐藏' : '显示'}">
+              <i class="fa-${layer.visible ? 'solid' : 'regular'} fa-eye${layer.visible ? '' : '-slash'}"></i>
+            </button>
+            <button class="layer-btn" data-action="opacity" title="透明度">
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+            <button class="layer-btn danger" data-action="delete" title="删除">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+          <div class="layer-opacity-row">
+            <input type="range" class="opacity-slider" min="0" max="1" step="0.05" value="${layer.opacity}" data-action="opacity-change">
+            <span class="opacity-value">${Math.round(layer.opacity * 100)}%</span>
+          </div>
+        `;
+
+        // 点击选中/取消选中
+        li.addEventListener('click', (e) => {
+          if (e.target.closest('.layer-btn') || e.target.closest('.opacity-slider') || e.target.closest('.layer-drag-handle')) return;
+          layer.selected = !layer.selected;
+          renderLayers();
+        });
+
+        // 按钮事件委托
+        li.querySelector('[data-action="visibility"]').addEventListener('click', () => {
+          layer.visible = !layer.visible;
+          renderLayers();
+        });
+
+        li.querySelector('[data-action="opacity"]').addEventListener('click', () => {
+          li.classList.toggle('expanded');
+        });
+
+        li.querySelector('[data-action="opacity-change"]').addEventListener('input', (e) => {
+          layer.opacity = parseFloat(e.target.value);
+          li.querySelector('.opacity-value').textContent = `${Math.round(layer.opacity * 100)}%`;
+        });
+
+        li.querySelector('[data-action="delete"]').addEventListener('click', () => {
+          layerData.splice(index, 1);
+          renderLayers();
+        });
+
+        layerListEl.appendChild(li);
+      });
+
+      initDragSort();
+    }
+
+    // ==========================================
+    // 4. 原生拖拽排序 (零依赖)
+    // ==========================================
+    let dragSrcEl = null;
+    let placeholder = null;
+
+    function initDragSort() {
+      const items = layerListEl.querySelectorAll('.layer-item');
+
+      items.forEach(item => {
+        const handle = item.querySelector('.layer-drag-handle');
+
+        // 仅手柄触发拖拽
+        handle.addEventListener('mousedown', () => {
+          item.setAttribute('draggable', 'true');
+        });
+
+        item.addEventListener('dragstart', (e) => {
+          dragSrcEl = item;
+          item.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', item.dataset.index);
+
+          // 创建占位符
+          placeholder = document.createElement('li');
+          placeholder.className = 'layer-placeholder';
+        });
+
+        item.addEventListener('dragend', () => {
+          item.classList.remove('dragging');
+          item.removeAttribute('draggable');
+          if (placeholder && placeholder.parentNode) {
+            placeholder.parentNode.removeChild(placeholder);
+          }
+          dragSrcEl = null;
+          placeholder = null;
+        });
+
+        item.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (!dragSrcEl || dragSrcEl === item) return;
+
+          // 插入占位符
+          const rect = item.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            layerListEl.insertBefore(placeholder, item);
+          } else {
+            layerListEl.insertBefore(placeholder, item.nextSibling);
+          }
+        });
+
+        item.addEventListener('drop', (e) => {
+          e.preventDefault();
+          if (!dragSrcEl || dragSrcEl === item) return;
+
+          const fromIndex = parseInt(dragSrcEl.dataset.index);
+          // 计算目标位置
+          const allItems = [...layerListEl.querySelectorAll('.layer-item:not(.dragging)')];
+          let toIndex = allItems.indexOf(item);
+          const rect = item.getBoundingClientRect();
+          if (e.clientY > rect.top + rect.height / 2) toIndex++;
+
+          // 调整数组顺序
+          const moved = layerData.splice(fromIndex, 1)[0];
+          layerData.splice(toIndex, 0, moved);
+          renderLayers();
+        });
+      });
+
+      // 处理拖到列表底部的情况
+      layerListEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (dragSrcEl && placeholder) {
+          layerListEl.appendChild(placeholder);
+        }
+      });
+    }
+
+    // ==========================================
+    // 5. 批量操作
+    // ==========================================
+    function selectAllLayers() {
+      const allSelected = layerData.every(l => l.selected);
+      layerData.forEach(l => l.selected = !allSelected);
+      renderLayers();
+    }
+
+    function toggleAllVisibility(visible) {
+      layerData.forEach(l => l.visible = visible);
+      renderLayers();
+    }
+
+    function deleteSelectedLayers() {
+      const count = layerData.filter(l => l.selected).length;
+      if (count === 0) return;
+      for (let i = layerData.length - 1; i >= 0; i--) {
+        if (layerData[i].selected) layerData.splice(i, 1);
+      }
+      renderLayers();
+    }
+
+    function addDemoLayer() {
+      layerData.push({
+        id: `l${Date.now()}`,
+        name: `新图层 ${layerData.length + 1}`,
+        visible: true, opacity: 1.0, selected: false
+      });
+      renderLayers();
+    }
+
+    // 初始渲染
+    renderLayers();
+  </script>
+</body>
+
+</html>

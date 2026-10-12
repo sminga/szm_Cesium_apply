@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- 引入 Tailwind CDN 快速构建 UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 核心毛玻璃样式 */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+      color: #e2e8f0;
+    }
+
+    /* 事件穿透核心 CSS */
+    .ui-overlay {
+      pointer-events: none;
+    }
+
+    .ui-overlay .interactive {
+      pointer-events: auto;
+    }
+  </style>
+</head>
+
+<body class="m-0 p-0 overflow-hidden bg-black">
+
+  <!-- 1. Cesium 3D 容器 (底层) -->
+  <div id="cesiumContainer" class="w-full h-full absolute inset-0"></div>
+
+  <!-- 2. UI 覆盖层 (顶层，默认鼠标穿透) -->
+  <div class="ui-overlay absolute inset-0 z-10 flex flex-col justify-between p-4">
+
+    <!-- 顶部工具栏 -->
+    <div class="flex justify-between items-start">
+      <!-- 左上：Logo和功能菜单 -->
+      <div class="glass-panel interactive p-3">
+        <h1 class="text-lg font-bold tracking-wider">🌍 GEO-HUD</h1>
+      </div>
+      <!-- 右上：工具按钮组 -->
+      <div class="glass-panel interactive flex flex-col gap-2 p-2">
+        <button class="hover:bg-white/10 p-2 rounded transition">📏 测量</button>
+        <button class="hover:bg-white/10 p-2 rounded transition">📷 截图</button>
+      </div>
+    </div>
+
+    <!-- 底部：信息/图表区 -->
+    <div class="flex justify-between items-end">
+      <!-- 左下：坐标/状态信息 -->
+      <div id="hud-info" class="glass-panel interactive p-3 font-mono text-sm">
+        <p>经度: <span id="lng">--</span></p>
+        <p>纬度: <span id="lat">--</span></p>
+        <p>高度: <span id="alt">--</span> km</p>
+      </div>
+      <!-- 右下：ECharts 图表容器 -->
+      <div id="chart-panel" class="glass-panel interactive w-80 h-60 p-2"></div>
+    </div>
+  </div>
+
+  <!-- 引入你的原生 JS 逻辑 -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
