@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import argparse
 import re
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
+
+from terrain_dataset import inspect_terrain_dataset
 
 DEFAULT_IMAGE = "tumgis/ctb-quantized-mesh:latest"
 SUPPORTED_EXTENSIONS = {".tif", ".tiff", ".img", ".asc", ".dem"}
@@ -49,10 +52,13 @@ def build_quantized_mesh(
     relative_input = input_copy.relative_to(work_root).as_posix()
     relative_output = output_dir.relative_to(work_root).as_posix()
     prepared_path = f"terrain-input/{prepared_name}"
+    source_arg = shlex.quote(f"/data/{relative_input}")
+    prepared_arg = shlex.quote(f"/data/{prepared_path}")
+    output_arg = shlex.quote(f"/data/{relative_output}")
     command = " && ".join([
-        f"gdalwarp -overwrite -t_srs EPSG:4326 -r bilinear -dstnodata -32767 '/data/{relative_input}' '/data/{prepared_path}'",
-        f"ctb-tile -f Mesh -C -N -o '/data/{relative_output}' '/data/{prepared_path}'",
-        f"ctb-tile -f Mesh -C -N -l -o '/data/{relative_output}' '/data/{prepared_path}'",
+        f"gdalwarp -overwrite -t_srs EPSG:4326 -r bilinear -dstnodata -32767 {source_arg} {prepared_arg}",
+        f"ctb-tile -f Mesh -C -N -o {output_arg} {prepared_arg}",
+        f"ctb-tile -f Mesh -C -N -l -o {output_arg} {prepared_arg}",
     ])
 
     try:
@@ -69,9 +75,10 @@ def build_quantized_mesh(
         (work_root / prepared_path).unlink(missing_ok=True)
         input_copy.unlink(missing_ok=True)
 
-    if not (output_dir / "layer.json").is_file():
+    inspection = inspect_terrain_dataset(output_dir)
+    if not inspection["valid"]:
         shutil.rmtree(output_dir, ignore_errors=True)
-        raise RuntimeError("CTB 未生成 layer.json，无法作为 Cesium 地形加载")
+        raise RuntimeError(f"CTB 输出校验失败: {inspection.get('error', '未知错误')}")
     return output_dir
 
 

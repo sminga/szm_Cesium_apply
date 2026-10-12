@@ -1,3 +1,19 @@
+# cesium-wind-layer-3d
+
+基于 WebGL2 的 CesiumJS 三维风场图层，使用 3D 纹理 + GPU 粒子平流（GPGPU）实现高性能动态风场可视化。
+
+> 注意：这是 **3D 风场** 独立包，在 2D 风场包 [`cesium-wind-layer`](https://www.npmjs.com/package/cesium-wind-layer) 基础上增加了垂直 `w` 分量，实现真正的三维风场。本包数据为 `(u, v, w)` 三分量三维网格，粒子在三维空间平流。
+
+
+## 效果
+
+<table>
+  <tr>
+    <td><img src="assets/三维风场.gif" alt="3D Wind Field Visualization 1" /></td>
+    <td><img src="assets/三维风场1.gif" alt="3D Wind Field Visualization 2" /></td>
+  </tr>
+</table>
+
 
 ## 特性
 
@@ -12,8 +28,41 @@
 - 三维风场支持全部高度、连续高度范围和离散单层显示
 - 网页默认列出 `tools/converted/` 中的风场文件
 - 使用 Docker CTB 处理并加载本地 quantized-mesh DEM 地形
+- 提供顶部模式栏、双侧工作面板、地图工具条和运行状态栏
+- 桌面端支持独立参数/图层面板，移动端自动切换为互斥抽屉
 
+## 示例工作台
 
+示例页面采用面向风场分析的 Cesium 工作台布局：
+
+- 顶部模式栏在“风场、场景、地形、工具”之间切换。
+- 左侧参数面板用于加载数据、选择场景资源、加载地形和执行转换。
+- 中央区域保持 Cesium 地图为主视图，并提供复位、缩放和定位当前风场按钮。
+- 右侧图层面板管理已加载的二维/三维风场，并显示底图、建筑物和地形状态。
+- 底部状态栏显示本地服务、WebGL、经纬度、相机高度和 FPS。
+
+当浏览器宽度小于 `900px` 时，左右面板会变为互斥抽屉；初始状态只显示地图，可以从地图左右边缘打开对应面板。
+
+```powershell
+npm run build
+npm run dev
+```
+
+需要使用项目风场目录、NetCDF 转换或本地地形时，另开一个终端运行：
+
+```powershell
+npm run local:server
+```
+
+详细界面操作见 [`example/README.md`](example/README.md)，布局设计和维护约束见 [`docs/UI布局改版方案.md`](docs/UI布局改版方案.md)。
+
+## 安装
+
+```bash
+npm install cesium-wind-layer-3d
+```
+
+`cesium` 为 peer dependency，请确保已安装 CesiumJS（^1.142.0）。
 
 ## 快速开始
 
@@ -52,8 +101,8 @@ src/
   shaders/          GLSL 着色器
 
 example/
-  app/              页面入口
-  ui/               GUI 控件
+  app/              Cesium、风场业务和工作台交互入口
+  ui/               双侧工作台、控件、弹窗和响应式样式
   services/         本地服务客户端
   data/             示例数据
 
@@ -67,6 +116,7 @@ tools/
 docs/
   更新日志.md
   项目结构.md
+  UI布局改版方案.md
   数据格式.md
 
 ## 数据契约
@@ -137,7 +187,8 @@ npm run local:server
 
 ### Cesium 服务配置
 
-示例所需 token 通过环境变量配置：本地在 `example/.env`（已加入 `.gitignore`）中写入 `VITE_CESIUM_ION_TOKEN`；线上部署（Vercel）在项目 Environment Variables 中配置同名变量。天地图等其他凭据可按同样方式添加（如 `VITE_TIANDITU_TOKEN`）。
+示例所需 token 集中保存在 `example/config/serviceTokens.js`。该文件已加入 `.gitignore`；
+可参考 `example/config/serviceTokens.example.js` 添加 Cesium ion、天地图或其他服务凭据。
 
 ## 选项 WindLayerOptions
 
@@ -186,7 +237,7 @@ npm run build
 npm run dev
 ```
 
-浏览器打开 Vite 输出的本地地址即可使用多层风场和地形 GUI。完整目录说明见 [`docs/项目结构.md`](docs/项目结构.md)，每次更新见 [`docs/更新日志.md`](docs/更新日志.md)。
+浏览器打开 Vite 输出的本地地址即可使用多层风场和地形工作台。完整目录说明见 [`docs/项目结构.md`](docs/项目结构.md)，每次更新见 [`docs/更新日志.md`](docs/更新日志.md)。
 
 ## 浏览器要求
 

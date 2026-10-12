@@ -7,6 +7,7 @@ export { WindLayer2D, createWindData2D } from "./wind-2d/WindLayer2D.js";
 export { WindLayerManager } from "./layers/WindLayerManager.js";
 export { resolveVerticalSelection } from "./core/verticalSelection.js";
 export { createLocalTerrainProvider } from "./terrain/createLocalTerrainProvider.js";
+export { TerrainController } from "./terrain/TerrainController.js";
 export {
   detectNetCDFFormat,
   normalizeNetCDFReader,

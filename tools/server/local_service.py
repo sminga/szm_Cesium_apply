@@ -7,6 +7,7 @@ import json
 import mimetypes
 import re
 import sys
+from email.utils import formatdate, parsedate_to_datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
@@ -17,6 +18,7 @@ sys.path.insert(0, str(TOOLS_DIR / "terrain"))
 
 from convert_netcdf import convert_netcdf  # noqa: E402
 from build_quantized_mesh import build_quantized_mesh  # noqa: E402
+from terrain_dataset import inspect_terrain_dataset  # noqa: E402
 
 MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 DEFAULT_HOST = "127.0.0.1"
@@ -60,7 +62,7 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
 
     def common_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
     def send_json(self, status: int, payload: dict[str, object]) -> None:
@@ -70,27 +72,56 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.common_headers()
         self.end_headers()
-        self.wfile.write(body)
+        if not getattr(self, "_head_only", False):
+            self.wfile.write(body)
 
     def send_file(self, path: Path) -> None:
         if not path.is_file():
             self.send_json(404, {"ok": False, "message": "文件不存在"})
             return
+        stat = path.stat()
+        suffix = path.suffix.lower()
         content_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
-        if path.suffix == ".terrain":
+        if suffix == ".terrain":
             content_type = "application/vnd.quantized-mesh"
+        etag = f'W/"{stat.st_mtime_ns:x}-{stat.st_size:x}"'
+        cache_control = "public, max-age=31536000, immutable" if suffix == ".terrain" else "public, max-age=60, must-revalidate"
+        not_modified = self.headers.get("If-None-Match") == etag
+        if not not_modified and not self.headers.get("If-None-Match"):
+            modified_since = self.headers.get("If-Modified-Since")
+            if modified_since:
+                try:
+                    not_modified = int(parsedate_to_datetime(modified_since).timestamp()) >= int(stat.st_mtime)
+                except (TypeError, ValueError, OverflowError):
+                    pass
+        if not_modified:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Last-Modified", formatdate(stat.st_mtime, usegmt=True))
+            self.send_header("Cache-Control", cache_control)
+            self.common_headers()
+            self.end_headers()
+            return
         self.send_response(200)
         self.send_header("Content-Type", content_type)
-        if path.suffix == ".terrain":
+        if suffix == ".terrain":
             with path.open("rb") as probe:
                 if probe.read(2) == b"\x1f\x8b":
                     self.send_header("Content-Encoding", "gzip")
-        self.send_header("Content-Length", str(path.stat().st_size))
+        self.send_header("Content-Length", str(stat.st_size))
+        self.send_header("ETag", etag)
+        self.send_header("Last-Modified", formatdate(stat.st_mtime, usegmt=True))
+        self.send_header("Cache-Control", cache_control)
         self.common_headers()
         self.end_headers()
+        if getattr(self, "_head_only", False):
+            return
         with path.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
-                self.wfile.write(chunk)
+            try:
+                while chunk := stream.read(1024 * 1024):
+                    self.wfile.write(chunk)
+            except (BrokenPipeError, ConnectionResetError):
+                return
 
     def do_OPTIONS(self) -> None:
         self.send_response(204)
@@ -98,7 +129,16 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        self._head_only = False
+        self.handle_get()
+
+    def do_HEAD(self) -> None:
+        self._head_only = True
+        self.handle_get()
+
+    def handle_get(self) -> None:
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/health":
             self.send_json(200, {
                 "ok": True,
@@ -116,11 +156,19 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
             self.send_json(200, {"ok": True, "directory": str(self.server.wind_dir), "files": files})
             return
         if path == "/api/terrains":
-            terrains = [{
-                "name": item.name,
-                "url": self.service_url(f"/terrain/{quote(item.name)}/"),
-            } for item in sorted(self.server.terrain_dir.iterdir())
-            if item.is_dir() and (item / "layer.json").is_file()]
+            include_invalid = parse_qs(parsed.query).get("includeInvalid", ["false"])[0].lower() == "true"
+            terrains = []
+            for item in sorted(self.server.terrain_dir.iterdir()):
+                if not item.is_dir():
+                    continue
+                inspection = inspect_terrain_dataset(item)
+                if not inspection["valid"] and not include_invalid:
+                    continue
+                terrains.append({
+                    "name": item.name,
+                    "url": self.service_url(f"/terrain/{quote(item.name, safe='')}/"),
+                    **inspection,
+                })
             self.send_json(200, {"ok": True, "directory": str(self.server.terrain_dir), "terrains": terrains})
             return
         try:
@@ -139,7 +187,14 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
         self.send_json(404, {"ok": False, "message": "接口不存在"})
 
     def service_url(self, path: str) -> str:
+        if self.server.public_url:
+            return f"{self.server.public_url}{path}"
+        request_host = self.headers.get("Host", "")
+        if request_host and re.fullmatch(r"[A-Za-z0-9.\-:\[\]]+", request_host):
+            return f"http://{request_host}{path}"
         host, port = self.server.server_address
+        if host in {"0.0.0.0", "::"}:
+            host = "127.0.0.1"
         return f"http://{host}:{port}{path}"
 
     def read_upload(self, directory: Path, filename: str) -> Path:
@@ -214,7 +269,15 @@ class LocalServiceHandler(BaseHTTPRequestHandler):
                 input_path.unlink(missing_ok=True)
 
 
-def run_server(host: str, port: int, wind_dir: Path, upload_dir: Path, terrain_dir: Path, terrain_image: str) -> None:
+def run_server(
+    host: str,
+    port: int,
+    wind_dir: Path,
+    upload_dir: Path,
+    terrain_dir: Path,
+    terrain_image: str,
+    public_url: str | None = None,
+) -> None:
     for directory in [wind_dir, upload_dir, terrain_dir]:
         directory.expanduser().resolve().mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((host, port), LocalServiceHandler)
@@ -222,6 +285,7 @@ def run_server(host: str, port: int, wind_dir: Path, upload_dir: Path, terrain_d
     server.upload_dir = upload_dir.expanduser().resolve()
     server.terrain_dir = terrain_dir.expanduser().resolve()
     server.terrain_image = terrain_image
+    server.public_url = public_url.rstrip("/") if public_url else None
     print(f"Local Cesium service: http://{host}:{port}")
     print(f"Wind files: {server.wind_dir}")
     print(f"Terrain files: {server.terrain_dir}")
@@ -241,8 +305,17 @@ def main() -> None:
     parser.add_argument("--upload-dir", type=Path, default=DEFAULT_UPLOAD_DIR)
     parser.add_argument("--terrain-dir", type=Path, default=DEFAULT_TERRAIN_DIR)
     parser.add_argument("--terrain-image", default="tumgis/ctb-quantized-mesh:latest")
+    parser.add_argument("--public-url", help="浏览器访问本地服务时使用的公开基础 URL")
     args = parser.parse_args()
-    run_server(args.host, args.port, args.wind_dir, args.upload_dir, args.terrain_dir, args.terrain_image)
+    run_server(
+        args.host,
+        args.port,
+        args.wind_dir,
+        args.upload_dir,
+        args.terrain_dir,
+        args.terrain_image,
+        args.public_url,
+    )
 
 
 if __name__ == "__main__":

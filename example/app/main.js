@@ -12,22 +12,30 @@ import {
   FileUp,
   FolderOpen,
   FolderCog,
+  Globe2,
+  Home,
   Layers2,
   Layers3,
   LocateFixed,
   Map,
   Mountain,
   MountainSnow,
+  PanelLeftClose,
+  PanelRightClose,
   RefreshCw,
   Satellite,
+  Server,
   Trash2,
   Wind,
   Wrench,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide";
 import {
   createLocalTerrainProvider,
   loadNetCDF3File,
+  TerrainController,
   WindLayerManager,
 } from "../../dist/cesium-wind-layer-3d.js";
 import {
@@ -44,9 +52,9 @@ Cesium.Ion.defaultAccessToken = SERVICE_TOKENS.cesiumIon;
 
 const viewer = new Cesium.Viewer("cesiumContainer", {
   infoBox: false,
-  geocoder: true,
-  homeButton: true,
-  sceneModePicker: true,
+  geocoder: false,
+  homeButton: false,
+  sceneModePicker: false,
   baseLayerPicker: false,
   navigationHelpButton: false,
   animation: false,
@@ -55,18 +63,23 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
 });
 
 viewer.cesiumWidget.creditContainer.style.display = "none";
-viewer.scene.debugShowFramesPerSecond = true;
+viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
 viewer.scene.fog.density = 0.00008;
 
 const ellipsoidTerrainProvider = new Cesium.EllipsoidTerrainProvider();
+const terrainController = new TerrainController(viewer, {
+  ellipsoidTerrainProvider,
+  createLocalTerrain: createLocalTerrainProvider,
+});
 const windLayers = new WindLayerManager(viewer);
 let activeLayerId = null;
 let buildingsTileset = null;
 let basemapRequestId = 0;
 let catalogMode = "3d";
 let catalogEntries = [];
+let terrainEntries = [];
 
 const WIND_COLORS = [
   "rgb(74, 152, 255)", "rgb(46, 184, 229)", "rgb(56, 205, 176)",
@@ -106,6 +119,53 @@ function setInlineMessage(element, message, state = "") {
   element.classList.remove("error", "success");
   if (state) element.classList.add(state);
 }
+
+function renderTerrainState(state) {
+  const worldToggle = document.getElementById("terrain-toggle");
+  const worldMessage = document.getElementById("ion-layer-message");
+  const localMessage = document.getElementById("layer-message");
+  const summary = document.getElementById("terrain-state");
+  const locateButton = document.getElementById("locate-terrain");
+  const sceneTerrainLabel = document.getElementById("scene-terrain-label");
+  const requestedWorld = state.status === "loading" && state.requestedType === "world";
+  worldToggle.checked = requestedWorld || (state.status !== "loading" && state.type === "world");
+  locateButton.disabled = !state.bounds || state.type !== "local";
+  summary.querySelector("b").textContent = `当前：${state.name}`;
+
+  let detail = "地形已就绪";
+  let messageState = "success";
+  if (state.status === "loading") {
+    detail = `正在加载${state.requestedName || "地形"}`;
+    messageState = "";
+  } else if (state.status === "error") {
+    detail = `${state.requestedName || "地形"}加载失败：${state.error?.message || state.error}`;
+    messageState = "error";
+  } else if (state.warning) {
+    detail = state.warning;
+    messageState = "error";
+  } else if (state.pendingTiles > 0) {
+    detail = `正在加载当前视野瓦片，剩余 ${state.pendingTiles}`;
+    messageState = "";
+  } else if (state.type === "ellipsoid") {
+    detail = "当前未启用高程地形";
+    messageState = "";
+  }
+  summary.querySelector("span").textContent = detail;
+  summary.className = `conversion-result${messageState ? ` ${messageState}` : ""}`;
+  sceneTerrainLabel.textContent = state.status === "loading"
+    ? "加载中"
+    : state.type === "ellipsoid" ? "椭球" : state.name;
+
+  const target = state.requestedType === "world" || state.type === "world"
+    ? worldMessage
+    : localMessage;
+  setInlineMessage(target, detail, messageState);
+  if (state.type !== "world" && state.requestedType !== "world") {
+    setInlineMessage(worldMessage, "世界地形已关闭");
+  }
+}
+
+terrainController.subscribe(renderTerrainState);
 
 function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -366,7 +426,88 @@ function bindPanelTabs() {
       page.classList.toggle("active", selected);
       page.hidden = !selected;
     });
+    if (window.matchMedia("(max-width: 900px)").matches) setPanelOpen("left", true);
   }));
+}
+
+function setPanelOpen(side, open) {
+  document.body.classList.toggle(`${side}-panel-closed`, !open);
+  if (open && window.matchMedia("(max-width: 900px)").matches) {
+    const otherSide = side === "left" ? "right" : "left";
+    document.body.classList.add(`${otherSide}-panel-closed`);
+  }
+  window.setTimeout(() => viewer.resize(), 220);
+}
+
+function togglePanel(side) {
+  const closed = document.body.classList.contains(`${side}-panel-closed`);
+  setPanelOpen(side, closed);
+}
+
+function bindWorkspaceChrome() {
+  if (window.matchMedia("(max-width: 900px)").matches) {
+    document.body.classList.add("left-panel-closed", "right-panel-closed");
+  }
+  document.getElementById("toggle-left-panel").addEventListener("click", () => togglePanel("left"));
+  document.getElementById("toggle-right-panel").addEventListener("click", () => togglePanel("right"));
+  document.getElementById("close-left-panel").addEventListener("click", () => setPanelOpen("left", false));
+  document.getElementById("close-right-panel").addEventListener("click", () => setPanelOpen("right", false));
+  document.getElementById("toggle-panels").addEventListener("click", () => {
+    const bothClosed = document.body.classList.contains("left-panel-closed")
+      && document.body.classList.contains("right-panel-closed");
+    setPanelOpen("left", bothClosed);
+    setPanelOpen("right", bothClosed);
+  });
+  window.addEventListener("resize", () => viewer.resize());
+}
+
+function bindMapControls() {
+  const locateActiveLayer = () => activeEntry()?.layer.zoomTo(1.2);
+  document.getElementById("map-locate").addEventListener("click", locateActiveLayer);
+  document.getElementById("home-view").addEventListener("click", () => viewer.camera.flyHome(0.8));
+  document.getElementById("zoom-in").addEventListener("click", () => {
+    viewer.camera.zoomIn(Math.max(100, viewer.camera.positionCartographic.height * 0.35));
+  });
+  document.getElementById("zoom-out").addEventListener("click", () => {
+    viewer.camera.zoomOut(Math.max(100, viewer.camera.positionCartographic.height * 0.35));
+  });
+}
+
+function bindStatusBar() {
+  const longitude = document.getElementById("coordLng");
+  const latitude = document.getElementById("coordLat");
+  const altitude = document.getElementById("coordAlt");
+  const fpsCounter = document.getElementById("fpsCounter");
+  const renderStatus = document.getElementById("render-status");
+  renderStatus.textContent = viewer.scene.context.webgl2 ? "WebGL2" : "WebGL1";
+
+  const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction((movement) => {
+    const cartesian = viewer.camera.pickEllipsoid(movement.endPosition, viewer.scene.globe.ellipsoid);
+    if (!cartesian) return;
+    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+    longitude.textContent = `经度 ${Cesium.Math.toDegrees(cartographic.longitude).toFixed(4)}°`;
+    latitude.textContent = `纬度 ${Cesium.Math.toDegrees(cartographic.latitude).toFixed(4)}°`;
+    altitude.textContent = `高度 ${Math.round(viewer.camera.positionCartographic.height).toLocaleString()}m`;
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+  let lastSample = performance.now();
+  let frameCount = 0;
+  const removePostRender = viewer.scene.postRender.addEventListener(() => {
+    frameCount += 1;
+    const now = performance.now();
+    const elapsed = now - lastSample;
+    if (elapsed < 1000) return;
+    fpsCounter.textContent = `FPS ${Math.round(frameCount * 1000 / elapsed)}`;
+    altitude.textContent = `高度 ${Math.round(viewer.camera.positionCartographic.height).toLocaleString()}m`;
+    frameCount = 0;
+    lastSample = now;
+  });
+
+  window.addEventListener("beforeunload", () => {
+    handler.destroy();
+    removePostRender();
+  }, { once: true });
 }
 
 function updateAllLayers(option) {
@@ -427,6 +568,7 @@ async function setBasemap(mode) {
     if (provider) viewer.imageryLayers.addImageryProvider(provider);
     document.querySelectorAll("[data-basemap]").forEach((button) => button.classList.toggle("active", button.dataset.basemap === mode));
     document.getElementById("basemap-status").textContent = label;
+    document.getElementById("scene-basemap-label").textContent = label;
     setInlineMessage(message, `${label} 已加载`, "success");
   } catch (error) {
     setInlineMessage(message, `底图切换失败：${error.message}`, "error");
@@ -444,9 +586,11 @@ async function toggleBuildings(enabled) {
       if (!viewer.scene.primitives.contains(buildingsTileset)) viewer.scene.primitives.add(buildingsTileset);
       buildingsTileset.show = true;
     } else if (buildingsTileset) buildingsTileset.show = false;
+    document.getElementById("scene-buildings-label").textContent = enabled ? "开启" : "关闭";
     setInlineMessage(message, enabled ? "OSM 建筑物已开启" : "OSM 建筑物已关闭", enabled ? "success" : "");
   } catch (error) {
     checkbox.checked = false;
+    document.getElementById("scene-buildings-label").textContent = "关闭";
     setInlineMessage(message, `建筑物加载失败：${error.message}`, "error");
   }
 }
@@ -457,13 +601,16 @@ async function toggleWorldTerrain(enabled) {
   try {
     if (enabled) {
       if (!SERVICE_TOKENS.cesiumIon) throw new Error("未配置 Cesium ion token");
-      setInlineMessage(message, "正在加载世界地形");
-      viewer.scene.terrainProvider = await Cesium.createWorldTerrainAsync({ requestVertexNormals: true, requestWaterMask: true });
-    } else viewer.scene.terrainProvider = ellipsoidTerrainProvider;
-    setInlineMessage(message, enabled ? "世界地形已开启" : "世界地形已关闭", enabled ? "success" : "");
+      await terrainController.loadWorld({
+        requestVertexNormals: viewer.scene.globe.enableLighting,
+        requestWaterMask: false,
+      });
+    } else if (terrainController.getState().type === "world"
+      || terrainController.getState().requestedType === "world") {
+      terrainController.useEllipsoid();
+    }
   } catch (error) {
     checkbox.checked = false;
-    viewer.scene.terrainProvider = ellipsoidTerrainProvider;
     setInlineMessage(message, `地形加载失败：${error.message}`, "error");
   }
 }
@@ -471,16 +618,19 @@ async function toggleWorldTerrain(enabled) {
 async function refreshTerrains() {
   const select = document.getElementById("local-terrain-select");
   const message = document.getElementById("layer-message");
+  const selectedUrl = select.value;
   try {
     const result = await listLocalTerrains();
-    select.replaceChildren(...result.terrains.map((terrain) => {
+    terrainEntries = result.terrains;
+    select.replaceChildren(...terrainEntries.map((terrain) => {
       const option = document.createElement("option");
       option.value = terrain.url;
       option.textContent = terrain.name;
       return option;
     }));
-    if (!result.terrains.length) select.innerHTML = '<option value="">暂无本地地形</option>';
-    setInlineMessage(message, `找到 ${result.terrains.length} 个本地地形`, "success");
+    if (!terrainEntries.length) select.innerHTML = '<option value="">暂无本地地形</option>';
+    else if (terrainEntries.some((terrain) => terrain.url === selectedUrl)) select.value = selectedUrl;
+    setInlineMessage(message, `找到 ${terrainEntries.length} 个本地地形`, "success");
   } catch (error) {
     setInlineMessage(message, error.message, "error");
   }
@@ -521,23 +671,35 @@ function loadTerrainFromCatalog() {
   const terrains = JSON.parse(terrainCatalogDialog.dataset.terrains || "[]");
   const terrain = terrains[Number(selected.value)];
   if (!terrain) throw new Error("所选地形目录已失效，请刷新列表");
-  document.getElementById("local-terrain-select").value = terrain.url;
-  return loadSelectedTerrain();
+  return loadSelectedTerrain(terrain);
 }
 
-async function loadSelectedTerrain() {
-  const url = document.getElementById("local-terrain-select").value;
+function ensureTerrainOption(terrain) {
+  const select = document.getElementById("local-terrain-select");
+  let option = Array.from(select.options).find((item) => item.value === terrain.url);
+  if (!option) {
+    option = document.createElement("option");
+    option.value = terrain.url;
+    option.textContent = terrain.name || "本地地形";
+    select.append(option);
+  }
+  select.value = terrain.url;
+}
+
+async function loadSelectedTerrain(selectedTerrain) {
+  const select = document.getElementById("local-terrain-select");
+  const url = selectedTerrain?.url || select.value;
   const message = document.getElementById("layer-message");
   if (!url) return setInlineMessage(message, "请先选择本地地形", "error");
-  try {
-    setInlineMessage(message, "正在加载本地 quantized-mesh 地形");
-    viewer.scene.terrainProvider = await createLocalTerrainProvider(url);
-    document.getElementById("terrain-toggle").checked = false;
-    setInlineMessage(message, "本地地形已加载", "success");
-  } catch (error) {
-    viewer.scene.terrainProvider = ellipsoidTerrainProvider;
-    setInlineMessage(message, `本地地形加载失败：${error.message}`, "error");
-  }
+  const terrain = selectedTerrain
+    || terrainEntries.find((entry) => entry.url === url)
+    || { name: select.selectedOptions[0]?.textContent || "本地地形", url };
+  const result = await terrainController.loadLocal(terrain, {
+    requestVertexNormals: viewer.scene.globe.enableLighting,
+    requestWaterMask: false,
+  });
+  if (result.applied) ensureTerrainOption(terrain);
+  return result;
 }
 
 function bindLayerControls() {
@@ -557,9 +719,12 @@ function bindLayerControls() {
     }
   });
   document.getElementById("disable-terrain").addEventListener("click", () => {
-    viewer.scene.terrainProvider = ellipsoidTerrainProvider;
-    document.getElementById("terrain-toggle").checked = false;
-    setInlineMessage(document.getElementById("layer-message"), "已恢复椭球地形");
+    terrainController.useEllipsoid();
+  });
+  document.getElementById("locate-terrain").addEventListener("click", () => {
+    if (!terrainController.flyToCurrentTerrain()) {
+      setInlineMessage(document.getElementById("layer-message"), "当前地形未提供有效覆盖范围", "error");
+    }
   });
 }
 
@@ -603,6 +768,7 @@ function bindTools() {
   });
   document.querySelector('[data-panel="tools"]').addEventListener("click", async () => {
     const health = await checkLocalService();
+    document.getElementById("service-status").textContent = health ? "本地服务已连接" : "本地服务未启动";
     updateToolResult("conversion-result", health ? "本地服务已连接" : "本地服务未启动", health ? health.windDirectory : "请运行 npm run local:server", health ? "success" : "error");
   });
 }
@@ -626,6 +792,9 @@ async function loadExample() {
 
 async function main() {
   bindPanelTabs();
+  bindWorkspaceChrome();
+  bindMapControls();
+  bindStatusBar();
   bindCatalog();
   bindHeightControls();
   bindWindControls();
@@ -633,8 +802,9 @@ async function main() {
   bindTools();
   createIcons({
     icons: {
-      Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Layers2, Layers3, LocateFixed,
-      Map, Mountain, MountainSnow, RefreshCw, Satellite, Wind, Wrench, X,
+      Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Layers2, Layers3,
+      LocateFixed, Map, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
+      Satellite, Server, Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
@@ -645,4 +815,5 @@ async function main() {
   }
 }
 
+window.addEventListener("beforeunload", () => terrainController.destroy(), { once: true });
 main();

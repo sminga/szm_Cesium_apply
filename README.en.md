@@ -99,10 +99,9 @@ is `example/services/localServiceClient.js`; the reusable service is
 
 ### Cesium service configuration
 
-Example credentials are provided via environment variables: put `VITE_CESIUM_ION_TOKEN`
-in a Git-ignored `example/.env` for local development, and set the same variable in
-Vercel Project Settings -> Environment Variables for deployment. Additional services
-(Tianditu, etc.) follow the same pattern, e.g. `VITE_TIANDITU_TOKEN`.
+Example credentials are kept in the Git-ignored `example/config/serviceTokens.js`.
+Use `example/config/serviceTokens.example.js` as the template for Cesium ion,
+Tianditu, or other service tokens.
 
 ## Options (WindLayerOptions)
 

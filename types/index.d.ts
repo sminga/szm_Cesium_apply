@@ -136,4 +136,62 @@ export function createLocalTerrainProvider(url: string, options?: {
   requestWaterMask?: boolean;
 }): Promise<TerrainProvider>;
 
+export interface TerrainBounds {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+export interface TerrainEntry {
+  name?: string;
+  url: string;
+  bounds?: TerrainBounds | [number, number, number, number];
+}
+
+export interface TerrainControllerState {
+  status: "loading" | "ready" | "error";
+  type: "ellipsoid" | "world" | "local";
+  name: string;
+  url?: string;
+  bounds?: TerrainBounds;
+  requestedType?: "world" | "local";
+  requestedName?: string;
+  pendingTiles: number;
+  tileErrorCount: number;
+  warning?: string;
+  error?: Error;
+}
+
+export class TerrainController {
+  constructor(viewer: Viewer, options?: {
+    ellipsoidTerrainProvider?: TerrainProvider;
+    createWorldTerrain?: (options: {
+      requestVertexNormals?: boolean;
+      requestWaterMask?: boolean;
+    }) => Promise<TerrainProvider>;
+    createLocalTerrain?: (url: string, options?: {
+      requestVertexNormals?: boolean;
+      requestWaterMask?: boolean;
+    }) => Promise<TerrainProvider>;
+    onStateChange?: (state: TerrainControllerState) => void;
+  });
+
+  getState(): TerrainControllerState;
+  subscribe(listener: (state: TerrainControllerState) => void): () => void;
+  loadWorld(options?: {
+    name?: string;
+    bounds?: TerrainBounds | [number, number, number, number];
+    requestVertexNormals?: boolean;
+    requestWaterMask?: boolean;
+  }): Promise<{ applied: boolean; reason?: "superseded" | "error"; error?: Error }>;
+  loadLocal(terrain: string | TerrainEntry, options?: {
+    requestVertexNormals?: boolean;
+    requestWaterMask?: boolean;
+  }): Promise<{ applied: boolean; reason?: "superseded" | "error"; error?: Error }>;
+  useEllipsoid(): TerrainControllerState;
+  flyToCurrentTerrain(options?: { duration?: number }): boolean;
+  destroy(): void;
+}
+
 export default WindLayer3D;

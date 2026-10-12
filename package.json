@@ -21,12 +21,12 @@
   "scripts": {
     "build": "vite build && node build-package.js",
     "build:lib": "vite build",
-    "build:example": "vite build --config example/vite.config.js",
     "dev": "vite --config example/vite.config.js",
     "local:server": "py tools/server/local_service.py",
     "convert:server": "py tools/server/local_service.py",
     "terrain:build": "py tools/terrain/build_quantized_mesh.py",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:python": "py -m unittest discover -s tests/tools -p \"test_*.py\""
   },
   "keywords": [
     "cesium",
