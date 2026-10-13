@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>风场实验台 | Cesium 多层风场与本地地形</title>
+  <title>风场实验台 | Cesium 多层风场与公开地形</title>
   <link rel="stylesheet" href="./ui/index.css" />
 </head>
 
@@ -44,7 +44,7 @@
               </div>
               <input id="browse-2d-input" type="file" accept=".nc,.cdf,application/x-netcdf" multiple hidden />
               <input id="browse-3d-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
-              <p class="tool-hint">默认读取 <code>tools/converted</code>，也可浏览本地 NC 文件。</p>
+              <p class="tool-hint">公开站点可浏览本机 NC 文件；开发环境还可读取 <code>tools/converted</code>。</p>
             </section>
             <section class="panel-section legend-section" aria-labelledby="legend-title">
               <div class="section-heading"><div><span class="section-kicker">FIELD SCALE</span><h2 id="legend-title">当前风速</h2></div><span>m/s</span></div>
@@ -71,10 +71,10 @@
 
           <div class="panel-page" data-page="layers" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">BASEMAP</span><h2>底图</h2></div><span id="basemap-status">Cesium 影像</span></div>
+              <div class="section-heading"><div><span class="section-kicker">BASEMAP</span><h2>底图</h2></div><span id="basemap-status">OpenStreetMap</span></div>
               <div class="mode-list" role="radiogroup" aria-label="底图选择">
-                <button class="mode-button active" type="button" data-basemap="ion"><i data-lucide="satellite"></i><span><b>Cesium 影像</b><small>全球卫星底图</small></span></button>
-                <button class="mode-button" type="button" data-basemap="osm"><i data-lucide="map"></i><span><b>OpenStreetMap</b><small>街道与地名</small></span></button>
+                <button class="mode-button" type="button" data-basemap="ion"><i data-lucide="satellite"></i><span><b>Cesium 影像</b><small>需要 Cesium ion Token</small></span></button>
+                <button class="mode-button active" type="button" data-basemap="osm"><i data-lucide="map"></i><span><b>OpenStreetMap</b><small>无需项目 Token</small></span></button>
                 <button class="mode-button" type="button" data-basemap="none"><i data-lucide="circle-off"></i><span><b>无底图</b><small>仅显示地球与风场</small></span></button>
               </div>
             </section>
@@ -88,9 +88,9 @@
 
           <div class="panel-page" data-page="terrain" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">LOCAL TERRAIN</span><h2>本地 DEM 地形</h2></div><span>quantized-mesh</span></div>
-              <p class="tool-hint">处理后的地形默认存放在 <code>tools/terrain-output</code>，可直接从目录清单选择。</p>
-              <label class="select-control"><span>已处理地形</span><select id="local-terrain-select"><option value="">暂无本地地形</option></select></label>
+              <div class="section-heading"><div><span class="section-kicker">TERRAIN CATALOG</span><h2>可用地形</h2></div><span>quantized-mesh</span></div>
+              <p class="tool-hint">优先读取随网站发布的地形目录；开发环境可同时读取 <code>tools/terrain-output</code>。</p>
+              <label class="select-control"><span>已发布或本地地形</span><select id="local-terrain-select"><option value="">暂无已发布地形</option></select></label>
               <div id="terrain-state" class="conversion-result" role="status"><b>当前：椭球地形</b><span>当前未启用高程地形</span></div>
               <div class="command-grid">
                 <button id="open-local-terrain-catalog" class="primary-command" type="button"><i data-lucide="folder-open"></i><span>选择地形</span></button>
@@ -99,25 +99,25 @@
                 <button id="locate-terrain" class="secondary-command" type="button" disabled><i data-lucide="locate-fixed"></i><span>定位</span></button>
               </div>
               <button id="disable-terrain" class="text-command" type="button">恢复椭球地形</button>
-              <p id="layer-message" class="inline-message" role="status">图层服务待命</p>
+              <p id="layer-message" class="inline-message" role="status">公开地形目录待命</p>
             </section>
           </div>
 
           <div class="panel-page" data-page="tools" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">CONVERTER</span><h2>NetCDF 转换</h2></div><span>本机 Python</span></div>
+              <div class="section-heading"><div><span class="section-kicker">DEVELOPER TOOL</span><h2>NetCDF 转换</h2></div><span>本机 Python</span></div>
               <input id="convert-file-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
               <button id="convert-file" class="primary-command secondary-command" type="button"><i data-lucide="folder-cog"></i><span>选择并转换 NC</span></button>
               <div id="conversion-result" class="conversion-result" role="status"><b>本地服务待命</b><span>运行 npm run local:server</span></div>
             </section>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">TERRAIN PIPELINE</span><h2>DEM 转地形</h2></div><span>Docker CTB</span></div>
+              <div class="section-heading"><div><span class="section-kicker">DEVELOPER TOOL</span><h2>DEM 转地形</h2></div><span>Docker CTB</span></div>
               <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" hidden />
               <button id="convert-dem" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并处理 DEM</span></button>
-              <p class="tool-hint">需要启动 Docker Desktop；处理结果保存到 <code>tools/terrain-output</code>。</p>
+              <p class="tool-hint">仅供开发者离线预处理。结果需发布到 <code>example/public/terrain</code> 或对象存储后，公开用户才能加载。</p>
               <div id="dem-result" class="conversion-result" role="status"><b>DEM 工具待命</b><span>等待输入文件</span></div>
             </section>
-            <section class="panel-section"><div class="section-heading"><div><span class="section-kicker">RUNTIME</span><h2>服务状态</h2></div><span>本地文件</span></div><p class="tool-hint">服务 token 位于 <code>example/config/serviceTokens.js</code>。点击工具页签会刷新服务状态。</p></section>
+            <section class="panel-section"><div class="section-heading"><div><span class="section-kicker">RUNTIME</span><h2>服务状态</h2></div><span>开发环境</span></div><p class="tool-hint">本地转换需运行 <code>npm run local:server</code>。Cesium ion 使用 <code>VITE_CESIUM_ION_TOKEN</code>，公开站点默认不会连接访客的 localhost。</p></section>
           </div>
         </div>
       </aside>
@@ -144,7 +144,7 @@
         <div id="wind-layer-list" class="wind-layer-list"><p class="empty-message">尚未加载风场</p></div>
         <div class="scene-stack">
           <div class="section-heading"><div><span class="section-kicker">SCENE</span><h2>场景状态</h2></div><span class="scene-state-dot">READY</span></div>
-          <div class="scene-state-row"><i data-lucide="satellite"></i><span>底图</span><b id="scene-basemap-label">Cesium 影像</b></div>
+          <div class="scene-state-row"><i data-lucide="satellite"></i><span>底图</span><b id="scene-basemap-label">OpenStreetMap</b></div>
           <div class="scene-state-row"><i data-lucide="building-2"></i><span>建筑物</span><b id="scene-buildings-label">关闭</b></div>
           <div class="scene-state-row"><i data-lucide="mountain"></i><span>地形</span><b id="scene-terrain-label">椭球</b></div>
         </div>
@@ -152,7 +152,7 @@
     </div>
 
     <footer class="app-statusbar">
-      <div class="statusbar-left"><span><i data-lucide="server"></i><b id="service-status">本地服务待命</b></span><span><i data-lucide="globe-2"></i><b id="render-status">WebGL2</b></span></div>
+      <div class="statusbar-left"><span><i data-lucide="server"></i><b id="service-status">运行环境待命</b></span><span><i data-lucide="globe-2"></i><b id="render-status">WebGL2</b></span></div>
       <div class="statusbar-right"><span id="coordLng">经度 --°</span><span id="coordLat">纬度 --°</span><span id="coordAlt">高度 --m</span><span id="fpsCounter">FPS --</span></div>
     </footer>
   </div>
@@ -161,7 +161,7 @@
     <form method="dialog"><header><div><h2 id="catalog-title">选择风场文件</h2><p id="catalog-directory"></p></div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button></header><div id="catalog-options" class="catalog-options"></div><div id="catalog-files" class="catalog-files"></div><footer><button id="browse-other" class="secondary-command" value="browse" type="submit">浏览其他位置</button><button id="load-selected-files" class="primary-command" value="load" type="submit">加载所选文件</button></footer></form>
   </dialog>
   <dialog id="terrain-catalog-dialog" class="catalog-dialog terrain-catalog-dialog">
-    <form method="dialog"><header><div><h2>选择本地地形文件</h2><p id="terrain-catalog-directory"></p></div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button></header><div id="terrain-catalog-files" class="catalog-files"></div><footer><button id="refresh-terrain-catalog" class="secondary-command" type="button">刷新目录</button><button id="load-selected-terrain" class="primary-command" value="load" type="submit">加载所选地形</button></footer></form>
+    <form method="dialog"><header><div><h2>选择可用地形</h2><p id="terrain-catalog-directory"></p></div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button></header><div id="terrain-catalog-files" class="catalog-files"></div><footer><button id="refresh-terrain-catalog" class="secondary-command" type="button">刷新目录</button><button id="load-selected-terrain" class="primary-command" value="load" type="submit">加载所选地形</button></footer></form>
   </dialog>
 
   <script type="module" src="./app/main.js"></script>

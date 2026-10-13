@@ -44,11 +44,10 @@
 当浏览器宽度小于 `900px` 时，左右面板会变为互斥抽屉；初始状态只显示地图，可以从地图左右边缘打开对应面板。
 
 ```powershell
-npm run build
 npm run dev
 ```
 
-需要使用项目风场目录、NetCDF 转换或本地地形时，另开一个终端运行：
+需要使用项目风场目录、NetCDF 转换或开发者本地地形时，另开一个终端运行：
 
 ```powershell
 npm run local:server
@@ -103,7 +102,8 @@ src/
 example/
   app/              Cesium、风场业务和工作台交互入口
   ui/               双侧工作台、控件、弹窗和响应式样式
-  services/         本地服务客户端
+  services/         公开目录与本地服务客户端
+  public/terrain/   随网站发布的地形目录与小型数据
   data/             示例数据
 
 tools/
@@ -183,12 +183,21 @@ DEM 使用 Docker 中的 Cesium Terrain Builder 转为标准 quantized-mesh：
 npm run local:server
 ```
 
-在 GUI“工具”页选择 GeoTIFF、IMG、ASC 或 DEM 文件。服务会调用 GDAL 重投影到 EPSG:4326，再使用 `tumgis/ctb-quantized-mesh:latest` 生成地形。输出保存在 `tools/terrain-output/`，可在“图层”页加载。
+在 GUI“工具”页选择 GeoTIFF、IMG、ASC 或 DEM 文件。服务会调用 GDAL 重投影到 EPSG:4326，再使用 `tumgis/ctb-quantized-mesh:latest` 生成地形。输出保存在 `tools/terrain-output/`，可在开发环境检查。公开用户需要的数据还必须发布到 `example/public/terrain` 或对象存储/CDN，并加入公开地形目录。
 
 ### Cesium 服务配置
 
-示例所需 token 集中保存在 `example/config/serviceTokens.js`。该文件已加入 `.gitignore`；
-可参考 `example/config/serviceTokens.example.js` 添加 Cesium ion、天地图或其他服务凭据。
+复制 `example/.env.example` 为 `example/.env.local`，通过 `VITE_CESIUM_ION_TOKEN` 配置 Cesium ion。未配置时示例默认使用 OpenStreetMap。
+
+`VITE_*` 会进入浏览器包，只能保存面向浏览器的公开 Token。请在 Cesium ion 后台限制允许域名，不能放置私密服务端密钥。旧 `example/config/serviceTokens.js` 已不再由示例入口依赖。
+
+### Vercel 公开部署
+
+```powershell
+npm run build:vercel
+```
+
+该命令把示例网站构建到 `site-dist`。`vercel.json` 已配置对应构建命令和输出目录。公开站点默认不会请求访客的 localhost，Python/Docker 转换按钮会禁用；公开地形来自 `example/public/terrain/catalog.json` 或目录中配置的 HTTPS 对象存储/CDN。详见 [`docs/公开地形与Vercel部署.md`](docs/公开地形与Vercel部署.md)。
 
 ## 选项 WindLayerOptions
 

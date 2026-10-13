@@ -21,6 +21,8 @@
   "scripts": {
     "build": "vite build && node build-package.js",
     "build:lib": "vite build",
+    "build:site": "vite build --config vite.example.config.js",
+    "build:vercel": "npm run build:site",
     "dev": "vite --config example/vite.config.js",
     "local:server": "py tools/server/local_service.py",
     "convert:server": "py tools/server/local_service.py",

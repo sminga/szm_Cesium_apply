@@ -1,6 +1,6 @@
 /**
- * Service token template.
- * Copy this file to serviceTokens.js and fill only the services used locally.
+ * Legacy token field reference. The current example uses example/.env.local
+ * and VITE_CESIUM_ION_TOKEN instead of importing this module.
  */
 export const SERVICE_TOKENS = Object.freeze({
   cesiumIon: "",

@@ -442,6 +442,14 @@ body.right-panel-closed .panel-right {
   border-color: var(--border-strong);
 }
 
+button:disabled {
+  color: var(--text-3);
+  background: var(--surface-2);
+  border-color: var(--border-soft);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .primary-command svg,
 .secondary-command svg {
   width: 16px;
@@ -763,6 +771,30 @@ body.right-panel-closed .panel-right {
 #cesiumContainer {
   position: absolute;
   inset: 0;
+}
+
+#cesiumContainer .cesium-viewer-bottom {
+  right: 8px !important;
+  bottom: 8px !important;
+  left: auto !important;
+  display: block;
+  width: auto;
+}
+
+#cesiumContainer .cesium-widget-credits {
+  right: 8px;
+  bottom: 8px;
+  left: auto;
+  display: inline-block;
+  max-width: calc(100% - 160px);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 9px;
+  text-align: right;
+  text-shadow: 0 1px 2px #000;
+}
+
+#cesiumContainer .cesium-widget-credits a {
+  color: inherit;
 }
 
 .map-vignette {
@@ -1262,8 +1294,7 @@ body.right-panel-closed .panel-right {
 .cesium-viewer-toolbar,
 .cesium-viewer-animationContainer,
 .cesium-viewer-timelineContainer,
-.cesium-viewer-fullscreenContainer,
-.cesium-viewer-bottom {
+.cesium-viewer-fullscreenContainer {
   display: none !important;
 }
 

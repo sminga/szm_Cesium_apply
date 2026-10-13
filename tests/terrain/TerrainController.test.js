@@ -108,6 +108,38 @@ describe("TerrainController", () => {
     controller.destroy();
   });
 
+  it("失败提示期间的瓦片进度不会污染稳定状态", async () => {
+    const ellipsoid = provider("ellipsoid");
+    const stable = provider("stable");
+    const viewer = createViewer(ellipsoid);
+    let failureCount = 0;
+    const controller = new TerrainController(viewer, {
+      ellipsoidTerrainProvider: ellipsoid,
+      createLocalTerrain: async (url) => {
+        if (url === "stable") return stable;
+        failureCount += 1;
+        throw new Error(`失败 ${failureCount}`);
+      },
+    });
+
+    await controller.loadLocal({ name: "stable", url: "stable" });
+    await controller.loadLocal({ name: "failed-1", url: "failed-1" });
+    viewer.scene.globe.tileLoadProgressEvent.raise(8);
+    stable.errorEvent.raise(new Error("旧地形瓦片失败"));
+    await controller.loadLocal({ name: "failed-2", url: "failed-2" });
+
+    expect(controller.getState()).toMatchObject({
+      status: "error",
+      type: "local",
+      name: "stable",
+      requestedName: "failed-2",
+      pendingTiles: 0,
+      tileErrorCount: 0,
+      warning: undefined,
+    });
+    controller.destroy();
+  });
+
   it("恢复椭球会取消在途请求", async () => {
     const ellipsoid = provider("ellipsoid");
     const local = deferred();

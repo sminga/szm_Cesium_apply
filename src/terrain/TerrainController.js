@@ -207,7 +207,7 @@ export class TerrainController {
         tileErrorCount: count,
         warning: `地形瓦片加载异常（${count}）：${errorMessage(error)}`,
       };
-      if (this.state.status !== "loading") this.activeState = this.state;
+      if (this.state.status === "ready") this.activeState = this.state;
       this.emit();
     });
   }
@@ -222,7 +222,7 @@ export class TerrainController {
     const normalized = Math.max(0, Number(pendingTiles) || 0);
     if (normalized === this.state.pendingTiles) return;
     this.state = { ...this.state, pendingTiles: normalized };
-    if (this.state.status !== "loading") this.activeState = this.state;
+    if (this.state.status === "ready") this.activeState = this.state;
     this.emit();
   }
 

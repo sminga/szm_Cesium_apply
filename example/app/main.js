@@ -33,11 +33,10 @@ import {
   ZoomOut,
 } from "lucide";
 import {
-  createLocalTerrainProvider,
   loadNetCDF3File,
   TerrainController,
   WindLayerManager,
-} from "../../dist/cesium-wind-layer-3d.js";
+} from "../../src/index.js";
 import {
   checkLocalService,
   convertDEMFile,
@@ -46,9 +45,17 @@ import {
   listConvertedWindFiles,
   listLocalTerrains,
 } from "../services/localServiceClient.js";
-import { SERVICE_TOKENS } from "../config/serviceTokens.js";
+import { listAvailableTerrains } from "../services/terrainCatalogClient.js";
 
-Cesium.Ion.defaultAccessToken = SERVICE_TOKENS.cesiumIon;
+const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim() ?? "";
+const LOCAL_TOOLS_ENABLED = import.meta.env.DEV
+  || import.meta.env.VITE_ENABLE_LOCAL_TOOLS === "true";
+const LOCAL_SERVICE_URL = import.meta.env.VITE_LOCAL_SERVICE_URL?.trim()
+  || "http://127.0.0.1:8765";
+const LOCAL_SERVICE_OPTIONS = { serviceUrl: LOCAL_SERVICE_URL };
+const EXAMPLE_WIND_URL = new URL("../data/wind_3d.json", import.meta.url).href;
+
+if (CESIUM_ION_TOKEN) Cesium.Ion.defaultAccessToken = CESIUM_ION_TOKEN;
 
 const viewer = new Cesium.Viewer("cesiumContainer", {
   infoBox: false,
@@ -60,9 +67,9 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   animation: false,
   timeline: false,
   fullscreenButton: false,
+  baseLayer: false,
 });
 
-viewer.cesiumWidget.creditContainer.style.display = "none";
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -71,7 +78,6 @@ viewer.scene.fog.density = 0.00008;
 const ellipsoidTerrainProvider = new Cesium.EllipsoidTerrainProvider();
 const terrainController = new TerrainController(viewer, {
   ellipsoidTerrainProvider,
-  createLocalTerrain: createLocalTerrainProvider,
 });
 const windLayers = new WindLayerManager(viewer);
 let activeLayerId = null;
@@ -331,10 +337,17 @@ async function openWindCatalog(mode) {
   document.getElementById("catalog-title").textContent = mode === "2d" ? "加载二维风场" : "加载三维风场";
   document.getElementById("catalog-options").innerHTML = catalogOptionsHtml(mode);
   const filesContainer = document.getElementById("catalog-files");
-  filesContainer.innerHTML = '<p class="empty-message">正在读取 tools/converted</p>';
+  filesContainer.innerHTML = LOCAL_TOOLS_ENABLED
+    ? '<p class="empty-message">正在读取开发者本地风场目录</p>'
+    : '<p class="empty-message">公开站点不连接本机目录，请浏览并选择本机 NC 文件</p>';
   catalogDialog.showModal();
+  if (!LOCAL_TOOLS_ENABLED) {
+    catalogEntries = [];
+    document.getElementById("catalog-directory").textContent = "浏览器本地文件";
+    return;
+  }
   try {
-    const result = await listConvertedWindFiles();
+    const result = await listConvertedWindFiles(LOCAL_SERVICE_OPTIONS);
     catalogEntries = result.files;
     document.getElementById("catalog-directory").textContent = result.directory;
     filesContainer.replaceChildren(...result.files.map((entry, index) => {
@@ -345,7 +358,7 @@ async function openWindCatalog(mode) {
       label.querySelector("small").textContent = formatBytes(entry.size);
       return label;
     }));
-    if (!result.files.length) filesContainer.innerHTML = '<p class="empty-message">tools/converted 中没有 NC 文件</p>';
+    if (!result.files.length) filesContainer.innerHTML = '<p class="empty-message">开发者本地目录中没有 NC 文件</p>';
   } catch (error) {
     catalogEntries = [];
     document.getElementById("catalog-directory").textContent = "本地服务未连接";
@@ -556,7 +569,7 @@ async function setBasemap(mode) {
     let provider = null;
     let label = "无底图";
     if (mode === "ion") {
-      if (!SERVICE_TOKENS.cesiumIon) throw new Error("未配置 Cesium ion token");
+      if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
       provider = await Cesium.createWorldImageryAsync({ style: Cesium.IonWorldImageryStyle.AERIAL });
       label = "Cesium 影像";
     } else if (mode === "osm") {
@@ -580,7 +593,7 @@ async function toggleBuildings(enabled) {
   const message = document.getElementById("ion-layer-message");
   try {
     if (enabled) {
-      if (!SERVICE_TOKENS.cesiumIon) throw new Error("未配置 Cesium ion token");
+      if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
       setInlineMessage(message, "正在加载 OSM 建筑物");
       buildingsTileset ??= await Cesium.Cesium3DTileset.fromIonAssetId(96188);
       if (!viewer.scene.primitives.contains(buildingsTileset)) viewer.scene.primitives.add(buildingsTileset);
@@ -600,7 +613,7 @@ async function toggleWorldTerrain(enabled) {
   const message = document.getElementById("ion-layer-message");
   try {
     if (enabled) {
-      if (!SERVICE_TOKENS.cesiumIon) throw new Error("未配置 Cesium ion token");
+      if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
       await terrainController.loadWorld({
         requestVertexNormals: viewer.scene.globe.enableLighting,
         requestWaterMask: false,
@@ -620,7 +633,11 @@ async function refreshTerrains() {
   const message = document.getElementById("layer-message");
   const selectedUrl = select.value;
   try {
-    const result = await listLocalTerrains();
+    const result = await listAvailableTerrains({
+      localEnabled: LOCAL_TOOLS_ENABLED,
+      localLoader: listLocalTerrains,
+      localOptions: LOCAL_SERVICE_OPTIONS,
+    });
     terrainEntries = result.terrains;
     select.replaceChildren(...terrainEntries.map((terrain) => {
       const option = document.createElement("option");
@@ -628,9 +645,12 @@ async function refreshTerrains() {
       option.textContent = terrain.name;
       return option;
     }));
-    if (!terrainEntries.length) select.innerHTML = '<option value="">暂无本地地形</option>';
+    if (!terrainEntries.length) select.innerHTML = '<option value="">暂无已发布地形</option>';
     else if (terrainEntries.some((terrain) => terrain.url === selectedUrl)) select.value = selectedUrl;
-    setInlineMessage(message, `找到 ${terrainEntries.length} 个本地地形`, "success");
+    const detail = result.localWarning
+      ? `找到 ${terrainEntries.length} 个公开地形；本地目录不可用`
+      : `找到 ${terrainEntries.length} 个可用地形`;
+    setInlineMessage(message, detail, terrainEntries.length ? "success" : "");
   } catch (error) {
     setInlineMessage(message, error.message, "error");
   }
@@ -638,7 +658,7 @@ async function refreshTerrains() {
 
 async function openTerrainCatalog() {
   const filesContainer = document.getElementById("terrain-catalog-files");
-  filesContainer.innerHTML = '<p class="empty-message">正在读取 tools/terrain-output</p>';
+  filesContainer.innerHTML = '<p class="empty-message">正在读取公开地形目录</p>';
   document.getElementById("terrain-catalog-directory").textContent = "正在读取目录";
   terrainCatalogDialog.showModal();
   await refreshTerrainCatalog();
@@ -647,7 +667,11 @@ async function openTerrainCatalog() {
 async function refreshTerrainCatalog() {
   const filesContainer = document.getElementById("terrain-catalog-files");
   try {
-    const result = await listLocalTerrains();
+    const result = await listAvailableTerrains({
+      localEnabled: LOCAL_TOOLS_ENABLED,
+      localLoader: listLocalTerrains,
+      localOptions: LOCAL_SERVICE_OPTIONS,
+    });
     document.getElementById("terrain-catalog-directory").textContent = result.directory;
     filesContainer.replaceChildren(...result.terrains.map((terrain, index) => {
       const label = document.createElement("label");
@@ -657,17 +681,17 @@ async function refreshTerrainCatalog() {
       label.querySelector("input").dataset.url = terrain.url;
       return label;
     }));
-    if (!result.terrains.length) filesContainer.innerHTML = '<p class="empty-message">tools/terrain-output 中暂无已处理地形</p>';
+    if (!result.terrains.length) filesContainer.innerHTML = '<p class="empty-message">暂无已发布地形；开发者可离线处理后更新公开目录</p>';
     terrainCatalogDialog.dataset.terrains = JSON.stringify(result.terrains);
   } catch (error) {
-    document.getElementById("terrain-catalog-directory").textContent = "本地服务未连接";
+    document.getElementById("terrain-catalog-directory").textContent = "公开地形目录不可用";
     filesContainer.innerHTML = `<p class="empty-message error-text">${error.message}</p>`;
   }
 }
 
 function loadTerrainFromCatalog() {
   const selected = document.querySelector('input[name="terrain-catalog-file"]:checked');
-  if (!selected) throw new Error("请先选择一个本地地形");
+  if (!selected) throw new Error("请先选择一个地形");
   const terrains = JSON.parse(terrainCatalogDialog.dataset.terrains || "[]");
   const terrain = terrains[Number(selected.value)];
   if (!terrain) throw new Error("所选地形目录已失效，请刷新列表");
@@ -680,7 +704,7 @@ function ensureTerrainOption(terrain) {
   if (!option) {
     option = document.createElement("option");
     option.value = terrain.url;
-    option.textContent = terrain.name || "本地地形";
+    option.textContent = terrain.name || "地形";
     select.append(option);
   }
   select.value = terrain.url;
@@ -690,10 +714,10 @@ async function loadSelectedTerrain(selectedTerrain) {
   const select = document.getElementById("local-terrain-select");
   const url = selectedTerrain?.url || select.value;
   const message = document.getElementById("layer-message");
-  if (!url) return setInlineMessage(message, "请先选择本地地形", "error");
+  if (!url) return setInlineMessage(message, "请先选择地形", "error");
   const terrain = selectedTerrain
     || terrainEntries.find((entry) => entry.url === url)
-    || { name: select.selectedOptions[0]?.textContent || "本地地形", url };
+    || { name: select.selectedOptions[0]?.textContent || "地形", url };
   const result = await terrainController.loadLocal(terrain, {
     requestVertexNormals: viewer.scene.globe.enableLighting,
     requestWaterMask: false,
@@ -741,14 +765,24 @@ function updateToolResult(id, title, detail, state = "") {
 function bindTools() {
   const ncInput = document.getElementById("convert-file-input");
   const demInput = document.getElementById("dem-file-input");
-  document.getElementById("convert-file").addEventListener("click", () => ncInput.click());
-  document.getElementById("convert-dem").addEventListener("click", () => demInput.click());
+  const convertButton = document.getElementById("convert-file");
+  const demButton = document.getElementById("convert-dem");
+  if (!LOCAL_TOOLS_ENABLED) {
+    convertButton.disabled = true;
+    demButton.disabled = true;
+    document.getElementById("service-status").textContent = "公开站点";
+    updateToolResult("conversion-result", "开发者离线工具", "请在开发环境运行 npm run local:server");
+    updateToolResult("dem-result", "开发者离线工具", "DEM 需在本地处理，再发布为网站可访问资源");
+    return;
+  }
+  convertButton.addEventListener("click", () => ncInput.click());
+  demButton.addEventListener("click", () => demInput.click());
   ncInput.addEventListener("change", async () => {
     const file = ncInput.files?.[0];
     if (!file) return;
     updateToolResult("conversion-result", "正在处理", file.name, "processing");
     try {
-      const result = await convertNetCDFFile(file);
+      const result = await convertNetCDFFile(file, LOCAL_SERVICE_OPTIONS);
       updateToolResult("conversion-result", "转换成功", `文件已保存到：${result.outputPath}`, "success");
     } catch (error) {
       updateToolResult("conversion-result", "转换失败", error.message, "error");
@@ -759,7 +793,7 @@ function bindTools() {
     if (!file) return;
     updateToolResult("dem-result", "正在处理 DEM", "Docker CTB 处理可能需要较长时间", "processing");
     try {
-      const result = await convertDEMFile(file);
+      const result = await convertDEMFile(file, LOCAL_SERVICE_OPTIONS);
       updateToolResult("dem-result", "DEM 处理成功", `地形已保存到：${result.outputPath}`, "success");
       await refreshTerrains();
     } catch (error) {
@@ -767,14 +801,14 @@ function bindTools() {
     } finally { demInput.value = ""; }
   });
   document.querySelector('[data-panel="tools"]').addEventListener("click", async () => {
-    const health = await checkLocalService();
+    const health = await checkLocalService(LOCAL_SERVICE_URL);
     document.getElementById("service-status").textContent = health ? "本地服务已连接" : "本地服务未启动";
     updateToolResult("conversion-result", health ? "本地服务已连接" : "本地服务未启动", health ? health.windDirectory : "请运行 npm run local:server", health ? "success" : "error");
   });
 }
 
 async function loadExample() {
-  const response = await fetch("./data/wind_3d.json");
+  const response = await fetch(EXAMPLE_WIND_URL);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const raw = await response.json();
   const windData = {
@@ -808,6 +842,7 @@ async function main() {
     },
   });
   try {
+    await setBasemap(CESIUM_ION_TOKEN ? "ion" : "osm");
     await loadExample();
     setStatus("");
   } catch (error) {

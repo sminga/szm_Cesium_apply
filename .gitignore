@@ -1,5 +1,6 @@
 node_modules/
 dist/
+site-dist/
 .claude/
 cesium-wind-layer-3d/
 package-lock.json
@@ -8,6 +9,8 @@ package-lock.json
 __pycache__/
 *.py[cod]
 example/config/serviceTokens.js
+example/.env.local
+.env*.local
 tools/converted/*
 !tools/converted/README.md
 tools/uploads/*

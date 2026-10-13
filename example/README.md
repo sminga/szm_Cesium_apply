@@ -7,13 +7,12 @@
 在项目根目录运行：
 
 ```powershell
-npm run build
 npm run dev
 ```
 
 浏览器打开 Vite 输出的地址。页面启动后会自动加载 `data/wind_3d.json` 作为示例三维风场。
 
-需要访问 `tools/converted`、转换 NetCDF 或加载本地地形时，再启动本地服务：
+需要访问 `tools/converted`、转换 NetCDF 或合并开发者本地地形时，再启动本地服务：
 
 ```powershell
 npm run local:server
@@ -27,8 +26,8 @@ npm run local:server
 
 - **风场**：加载二维/三维风场，设置高度范围和渲染参数。
 - **场景**：切换 Cesium 影像、OpenStreetMap、无底图、OSM 建筑物和世界地形。
-- **地形**：读取并加载 `tools/terrain-output` 中的 quantized-mesh 地形。
-- **工具**：转换 NetCDF 和 DEM，并检查本地服务状态。
+- **地形**：读取公开地形目录；开发环境还会合并 `tools/terrain-output` 中的 quantized-mesh 地形。
+- **工具**：开发环境可转换 NetCDF 和 DEM；公开部署中会明确禁用这些离线按钮。
 
 顶部右侧显示当前二维/三维风场数量，并提供定位当前图层和同时开合两侧面板的快捷按钮。
 
@@ -64,14 +63,22 @@ npm run local:server
 - 宽度不大于 `560px` 时，顶部模式栏只显示图标，状态栏隐藏次要坐标信息。
 - 触屏设备始终显示图层操作按钮，不依赖鼠标悬停。
 
-## 本地地形流程
+## 地形发布流程
 
 1. 在“工具”模式中选择并处理 DEM。
-2. 切换到“地形”模式并刷新本地地形目录。
-3. 选择生成的数据集并加载。
-4. 使用“定位”飞到地形覆盖范围，或使用“恢复椭球地形”关闭高程地形。
+2. 在开发环境切换到“地形”模式，确认本地数据可以加载和定位。
+3. 将小型数据发布到 `example/public/terrain`，或将大型数据上传到对象存储/CDN。
+4. 更新 `example/public/terrain/catalog.json`，再执行 `npm run build:vercel`。
+5. 公开用户从“地形”模式选择已发布数据并加载。
 
-DEM 处理需要 Docker Desktop。更完整的转换说明见 `tools/terrain/README.md`。
+DEM 处理需要 Docker Desktop，属于开发者离线流程。更完整的部署边界见 `docs/公开地形与Vercel部署.md`，转换说明见 `tools/terrain/README.md`。
+
+## 环境变量与生产构建
+
+- 复制 `example/.env.example` 为 `example/.env.local`，可配置 `VITE_CESIUM_ION_TOKEN` 和本地服务地址。
+- 未配置 ion Token 时默认使用 OpenStreetMap，世界地形和 OSM 建筑物保持关闭并提供错误提示。
+- `VITE_*` 会进入浏览器包，Cesium ion Token 必须限制允许域名，不能放置私密服务端密钥。
+- `npm run build:vercel` 构建公开工作台到 `site-dist`；`npm run build` 仍负责 npm 库产物。
 
 ## 维护约束
 
