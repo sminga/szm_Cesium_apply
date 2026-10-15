@@ -118,8 +118,8 @@ export class WindParticlesRendering {
     for (let s = 0; s < textureSize; s++) {
       for (let t = 0; t < textureSize; t++) {
         for (let i = 0; i < repeatVertex; i++) {
-          st.push(s / textureSize);
-          st.push(t / textureSize);
+          st.push((s + 0.5) / textureSize);
+          st.push((t + 0.5) / textureSize);
         }
       }
     }
@@ -199,7 +199,6 @@ export class WindParticlesRendering {
         fixedDisplayHeight: () => resolveVerticalSelection(windData, this.options).displayHeight,
         heightScale: () => this.options.heightScale ?? 1,
         aspect: () => this.context.drawingBufferWidth / this.context.drawingBufferHeight,
-        pixelSize: () => this.viewerParameters.pixelSize,
         lineWidth: () => new Cartesian2(
           this.options.lineWidth?.min ?? 1,
           this.options.lineWidth?.max ?? 2

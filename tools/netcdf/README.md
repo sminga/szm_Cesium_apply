@@ -16,6 +16,22 @@ py tools\netcdf\convert_netcdf.py input.nc `
 
 输出变量的维度顺序为 `(lev, lat, lon)`。若缺少 W 分量，将自动用零填充。如果 W/omega 字段的单位是 Pa/s（垂直气压速度），转换器会拒绝处理，因为它不是以 m/s 为单位的垂直速度，需要先做物理量纲转换。
 
+单层数据有时会把 `9.96921e+36` 一类缺测哨兵值写进 `height`，却没有声明 `_FillValue`。转换器会把这种单层高度按 `0 m` 处理，也可以显式指定显示高度：
+
+```bash
+py tools\netcdf\convert_netcdf.py input.nc --single-level-height 200
+```
+
+如果源数据包含“跨越全部经度、U/V/W 每个分量在整行完全恒定，并且与上下相邻纬度行发生大幅突变”的异常条带，可以显式启用插值修复。该选项不会默认开启，避免把真实的均匀风场误判为坏数据：
+
+```bash
+py tools\netcdf\convert_netcdf.py input.nc `
+  --repair-constant-latitude-stripes `
+  --stripe-jump-threshold 5
+```
+
+修复会在控制台逐条报告处理的高度索引和纬度索引。应先检查原始数据和转换日志，再决定是否使用该选项。
+
 **浏览器 GUI 服务**
 在项目根目录下运行可复用的本地服务：
 

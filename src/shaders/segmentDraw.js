@@ -20,7 +20,6 @@ uniform float heightScale;
 uniform bool fixedVertical;
 uniform float fixedDisplayHeight;
 uniform float aspect;
-uniform float pixelSize;
 uniform vec2 lineWidth;
 uniform vec2 lineLength;
 uniform vec2 domain;
@@ -70,13 +69,31 @@ vec4 calculateOffsetOnNormalDirection(vec4 pointA, vec4 pointB, float offsetSign
   vec2 aspectVec2 = vec2(aspect, 1.0);
   vec2 pointA_XY = (pointA.xy / pointA.w) * aspectVec2;
   vec2 pointB_XY = (pointB.xy / pointB.w) * aspectVec2;
-  vec2 direction = normalize(pointB_XY - pointA_XY);
+  vec2 delta = pointB_XY - pointA_XY;
+  float deltaLength = length(delta);
+  if (deltaLength < 0.000001) return vec4(0.0);
+  vec2 direction = delta / deltaLength;
   vec2 normalVector = vec2(-direction.y, direction.x);
   normalVector.x = normalVector.x / aspect;
   // 线宽：像素 → NDC（NDC 全高 = 2，对应 czm_viewport.w 个像素）
   float offsetLength = widthFactor / (czm_viewport.w * 0.5);
   normalVector = offsetLength * normalVector;
   return vec4(offsetSign * normalVector, 0.0, 0.0);
+}
+
+vec4 extendInScreenPixels(vec4 pointA, vec4 pointB, float pixelLength) {
+  vec2 aspectVec2 = vec2(aspect, 1.0);
+  vec2 pointA_NDC = pointA.xy / pointA.w;
+  vec2 pointB_NDC = pointB.xy / pointB.w;
+  vec2 delta = (pointB_NDC - pointA_NDC) * aspectVec2;
+  float deltaLength = length(delta);
+  if (deltaLength < 0.000001) return pointA;
+
+  vec2 direction = delta / deltaLength;
+  vec2 ndcDirection = vec2(direction.x / aspect, direction.y);
+  float ndcPerPixel = 2.0 / max(czm_viewport.w, 1.0);
+  vec2 extendedNDC = pointA_NDC + ndcDirection * max(pixelLength, 0.0) * ndcPerPixel;
+  return vec4(extendedNDC * pointA.w, pointA.z, pointA.w);
 }
 
 void main() {
@@ -109,12 +126,12 @@ void main() {
 
   // speed.a stores speed magnitude (m/s); derive normalized speed for width/length
   float magnitude = clamp(speed.a, domain.x, domain.y);
-  float normalizedSpeed = (magnitude - domain.x) / (domain.y - domain.x);
+  float normalizedSpeed = (magnitude - domain.x) / max(domain.y - domain.x, 0.000001);
 
   float widthFactor = mix(lineWidth.x, lineWidth.y, normalizedSpeed);
   widthFactor *= (pointToUse < 0 ? 1.0 : 0.5);
 
-  float lengthFactor = mix(lineLength.x, lineLength.y, normalizedSpeed) * pixelSize;
+  float lengthPixels = mix(lineLength.x, lineLength.y, normalizedSpeed);
 
   if (pointToUse == 1) {
     offset = calculateOffsetOnNormalDirection(
@@ -123,8 +140,8 @@ void main() {
     gl_Position = projectedCoordinates.previous + projectedCoordinates.previous.w * offset;
     v_segmentPosition = 0.0;
   } else if (pointToUse == -1) {
-    vec4 direction = normalize(projectedCoordinates.next - projectedCoordinates.current);
-    vec4 extendedPosition = projectedCoordinates.current + direction * lengthFactor;
+    vec4 extendedPosition = extendInScreenPixels(
+      projectedCoordinates.current, projectedCoordinates.next, lengthPixels);
     offset = calculateOffsetOnNormalDirection(
       projectedCoordinates.current, extendedPosition, offsetSign, widthFactor);
     gl_Position = extendedPosition + extendedPosition.w * offset;

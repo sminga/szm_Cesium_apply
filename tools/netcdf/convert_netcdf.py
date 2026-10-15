@@ -16,6 +16,7 @@ LON_CANDIDATES = ("lon", "longitude", "x")
 LAT_CANDIDATES = ("lat", "latitude", "y")
 LEV_CANDIDATES = ("lev", "level", "height", "altitude", "z")
 TIME_NAMES = {"time", "valid_time", "forecast_time", "datetime"}
+INVALID_HEIGHT_ABS_LIMIT = 1e30
 
 
 def find_name(names: Iterable[str], candidates: Iterable[str], label: str, required: bool = True) -> str | None:
@@ -31,12 +32,21 @@ def find_name(names: Iterable[str], candidates: Iterable[str], label: str, requi
     return None
 
 
-def prepare_coordinate(ds: xr.Dataset, name: str, target: str) -> xr.DataArray:
+def prepare_coordinate(
+    ds: xr.Dataset, name: str, target: str, *, single_level_height: float = 0.0,
+) -> tuple[xr.DataArray, np.ndarray, str | None]:
     coordinate = ds[name]
     if coordinate.ndim != 1:
         raise ValueError(f"{name} 必须是一维坐标，当前维度为 {coordinate.dims}")
     values = np.asarray(coordinate.values, dtype=np.float64)
-    if values.size == 0 or not np.isfinite(values).all():
+    if values.size == 0:
+        raise ValueError(f"{name} 坐标为空")
+    note = None
+    invalid_height = target == "lev" and np.any(np.abs(values) >= INVALID_HEIGHT_ABS_LIMIT)
+    if target == "lev" and values.size == 1 and (not np.isfinite(values).all() or invalid_height):
+        values = np.array([single_level_height], dtype=np.float64)
+        note = f"单层高度 {name} 是缺测哨兵值，已按 {single_level_height:g} m 处理"
+    elif not np.isfinite(values).all() or invalid_height:
         raise ValueError(f"{name} 包含空值、NaN 或无穷值")
     units = str(coordinate.attrs.get("units", "")).strip().lower()
     if target == "lev" and units in {"pa", "hpa", "mbar", "millibar", "bar"}:
@@ -49,7 +59,67 @@ def prepare_coordinate(ds: xr.Dataset, name: str, target: str) -> xr.DataArray:
         steps = np.diff(values)
         if not np.allclose(steps, steps[0], rtol=1e-2, atol=1e-6):
             raise ValueError(f"{name} 必须是规则等间距网格")
-    return xr.DataArray(values.astype(np.float32), dims=(target,), name=target), order
+    return xr.DataArray(values.astype(np.float32), dims=(target,), name=target), order, note
+
+
+def repair_constant_latitude_stripes(
+    components: list[xr.DataArray], *, jump_threshold: float = 5.0, tolerance: float = 1e-6,
+) -> list[tuple[int, int, int]]:
+    """Interpolate suspicious full-width constant latitude runs.
+
+    The repair is intentionally opt-in. A run is repaired only when every supplied
+    component is constant across longitude and its vector jump from the two adjacent
+    latitude rows is at least ``jump_threshold`` m/s.
+    """
+    arrays = [np.asarray(component.values).copy() for component in components]
+    nz, ny, nx = arrays[0].shape
+    if nx < 2 or ny < 3:
+        return []
+    repairs: list[tuple[int, int, int]] = []
+
+    for z_index in range(nz):
+        constant_rows = np.ones(ny, dtype=bool)
+        for values in arrays:
+            spans = np.ptp(values[z_index], axis=1)
+            constant_rows &= spans <= tolerance
+
+        row = 0
+        while row < ny:
+            if not constant_rows[row]:
+                row += 1
+                continue
+            start = row
+            while row + 1 < ny and constant_rows[row + 1]:
+                row += 1
+            end = row
+            row += 1
+            if start == 0 or end == ny - 1:
+                continue
+
+            run_vector = np.array([
+                values[z_index, start:end + 1].mean() for values in arrays
+            ])
+            neighbor_vector = np.array([
+                (values[z_index, start - 1].mean() + values[z_index, end + 1].mean()) * 0.5
+                for values in arrays
+            ])
+            if np.linalg.norm(run_vector - neighbor_vector) < jump_threshold:
+                continue
+
+            run_length = end - start + 1
+            for values in arrays:
+                lower = values[z_index, start - 1].copy()
+                upper = values[z_index, end + 1].copy()
+                for offset, latitude_index in enumerate(range(start, end + 1), start=1):
+                    weight = offset / (run_length + 1)
+                    values[z_index, latitude_index] = lower * (1.0 - weight) + upper * weight
+            repairs.append((z_index, start, end))
+
+    for component, values in zip(components, arrays, strict=True):
+        component.values[:] = values
+        component.attrs["min"] = np.float32(values.min())
+        component.attrs["max"] = np.float32(values.max())
+    return repairs
 
 
 def select_slice(data: xr.DataArray, spatial_dims: set[str], time_index: int) -> xr.DataArray:
@@ -105,6 +175,8 @@ def convert_netcdf(
     input_path: Path, output_path: Path | None = None, *, u_name: str | None = None,
     v_name: str | None = None, w_name: str | None = None, lon_name: str | None = None,
     lat_name: str | None = None, lev_name: str | None = None, time_index: int = 0,
+    single_level_height: float = 0.0, repair_latitude_stripes: bool = False,
+    stripe_jump_threshold: float = 5.0,
 ) -> Path:
     input_path = input_path.expanduser().resolve()
     if not input_path.is_file():
@@ -123,13 +195,16 @@ def convert_netcdf(
         lat_name = lat_name or find_name(all_names, LAT_CANDIDATES, "纬度坐标")
         lev_name = lev_name or find_name(all_names, LEV_CANDIDATES, "高度坐标", required=False)
 
-        lon, lon_order = prepare_coordinate(source, lon_name, "lon")
-        lat, lat_order = prepare_coordinate(source, lat_name, "lat")
+        lon, lon_order, _ = prepare_coordinate(source, lon_name, "lon")
+        lat, lat_order, _ = prepare_coordinate(source, lat_name, "lat")
         if lev_name:
-            lev, lev_order = prepare_coordinate(source, lev_name, "lev")
+            lev, lev_order, height_note = prepare_coordinate(
+                source, lev_name, "lev", single_level_height=single_level_height,
+            )
         else:
             lev = xr.DataArray(np.array([0.0], dtype=np.float32), dims=("lev",), name="lev")
             lev_order = np.array([0])
+            height_note = "源文件没有高度坐标，已按 0 m 处理"
 
         common = {
             "lon_name": lon_name, "lat_name": lat_name, "lev_name": lev_name,
@@ -144,6 +219,12 @@ def convert_netcdf(
             w = xr.zeros_like(u).rename("W")
             w.attrs = {"units": "m s-1", "min": np.float32(0), "max": np.float32(0), "source": "missing W filled with zero"}
 
+        repairs = []
+        if repair_latitude_stripes:
+            repairs = repair_constant_latitude_stripes(
+                [u, v, w], jump_threshold=stripe_jump_threshold,
+            )
+
         if u.shape != v.shape or u.shape != w.shape:
             raise ValueError(f"U/V/W 网格尺寸不一致: U={u.shape}, V={v.shape}, W={w.shape}")
         result = xr.Dataset({"U": u, "V": v, "W": w}, coords={"lon": lon, "lat": lat, "lev": lev})
@@ -155,8 +236,12 @@ def convert_netcdf(
 
     print(f"[OK] {output_path}")
     print(f"     grid: lev={u.sizes['lev']}, lat={u.sizes['lat']}, lon={u.sizes['lon']}")
+    if height_note:
+        print(f"     height: {height_note}")
     if not w_name:
         print("     W: source missing, filled with 0 m/s")
+    for z_index, start, end in repairs:
+        print(f"     repaired latitude stripe: lev index {z_index}, lat indices {start}..{end}")
     return output_path
 
 
@@ -171,11 +256,26 @@ def main() -> None:
     parser.add_argument("--lat", dest="lat_name", help="纬度变量名")
     parser.add_argument("--lev", dest="lev_name", help="高度变量名")
     parser.add_argument("--time-index", type=int, default=0, help="多时次数据的时间索引，默认 0")
+    parser.add_argument(
+        "--single-level-height", type=float, default=0.0,
+        help="单层高度为缺测哨兵值时使用的米制高度，默认 0",
+    )
+    parser.add_argument(
+        "--repair-constant-latitude-stripes", action="store_true",
+        help="插值修复跨越全部经度、各分量恒定且与相邻行突变的纬向异常条带",
+    )
+    parser.add_argument(
+        "--stripe-jump-threshold", type=float, default=5.0,
+        help="异常条带相对相邻行的最小矢量突变量（m/s），默认 5",
+    )
     args = parser.parse_args()
     try:
         convert_netcdf(
             args.input, args.output, u_name=args.u_name, v_name=args.v_name, w_name=args.w_name,
             lon_name=args.lon_name, lat_name=args.lat_name, lev_name=args.lev_name, time_index=args.time_index,
+            single_level_height=args.single_level_height,
+            repair_latitude_stripes=args.repair_constant_latitude_stripes,
+            stripe_jump_threshold=args.stripe_jump_threshold,
         )
     except (OSError, ValueError, IndexError) as error:
         parser.error(str(error))

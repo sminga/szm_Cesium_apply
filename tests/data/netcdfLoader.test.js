@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { detectNetCDFFormat, normalizeNetCDFReader } from "../../src/data/netcdfLoader.js";
 
-function createReader({ includeW = false, levelUnits = "m" } = {}) {
+function createReader({ includeW = false, levelUnits = "m", heightValues = [1000, 100] } = {}) {
   const dimensions = [
     { name: "time", size: 1 },
-    { name: "height", size: 2 },
+    { name: "height", size: heightValues.length },
     { name: "latitude", size: 2 },
     { name: "longitude", size: 2 },
   ];
@@ -24,10 +24,10 @@ function createReader({ includeW = false, levelUnits = "m" } = {}) {
   const data = {
     longitude: [181, 180],
     latitude: [1, 0],
-    height: [1000, 100],
-    eastward_wind: [1, 2, 3, 4, 5, 6, 7, 8],
-    northward_wind: new Array(8).fill(0),
-    upward_air_velocity: new Array(8).fill(0.5),
+    height: heightValues,
+    eastward_wind: Array.from({ length: heightValues.length * 4 }, (_, index) => index + 1),
+    northward_wind: new Array(heightValues.length * 4).fill(0),
+    upward_air_velocity: new Array(heightValues.length * 4).fill(0.5),
   };
   return {
     dimensions,
@@ -67,5 +67,12 @@ describe("normalizeNetCDFReader", () => {
 
   it("拒绝把压力层当成米制高度", () => {
     expect(() => normalizeNetCDFReader(createReader({ levelUnits: "hPa" }))).toThrow(/转换为米制高度/);
+  });
+
+  it("把未标注的单层高度缺测哨兵值回退为 0 m", () => {
+    const reader = createReader({ heightValues: [9.969209968386869e36] });
+    const { windData, metadata } = normalizeNetCDFReader(reader);
+    expect(windData.levels).toEqual([0, 1]);
+    expect(metadata.warnings).toContain("单层高度是缺测哨兵值，已按 0 m 处理");
   });
 });

@@ -69,7 +69,7 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   fullscreenButton: false,
   baseLayer: false,
 });
-
+viewer.cesiumWidget.creditContainer.style.display = "none";
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -97,7 +97,7 @@ const sharedOptions = {
   colors: WIND_COLORS,
   particlesTextureSize: 256,
   lineWidth: { min: 0.9, max: 1.6 },
-  lineLength: { min: 20, max: 400 },
+  lineLength: { min: 8, max: 80 },
   heightScale: 10,
   speedFactor: 0.3,
   dropRate: 0.003,
@@ -547,7 +547,7 @@ function bindWindControls() {
   document.getElementById("length").addEventListener("input", (event) => {
     const value = Number(event.target.value);
     document.getElementById("length-value").value = String(value);
-    sharedOptions.lineLength = { min: 20, max: value };
+    sharedOptions.lineLength = { min: 8, max: value };
     updateAllLayers({ lineLength: sharedOptions.lineLength });
   });
   document.getElementById("dynamic").addEventListener("change", (event) => {

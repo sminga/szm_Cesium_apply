@@ -25,6 +25,8 @@ const STANDARD_NAMES = {
   w: ["upward_air_velocity"],
 };
 
+const INVALID_HEIGHT_ABS_LIMIT = 1e30;
+
 function flatten(values, result = []) {
   for (const value of values ?? []) {
     if (Array.isArray(value) || ArrayBuffer.isView(value)) flatten(value, result);
@@ -107,6 +109,16 @@ function dimensionNames(reader, variable) {
 function assertCoordinate(values, label) {
   if (values.length === 0) throw new Error(`${label}坐标为空`);
   if (!values.every(Number.isFinite)) throw new Error(`${label}坐标包含缺测值`);
+}
+
+function normalizeLevelValues(values, warnings) {
+  const invalid = values.some((value) => !Number.isFinite(value) || Math.abs(value) >= INVALID_HEIGHT_ABS_LIMIT);
+  if (!invalid) return values;
+  if (values.length === 1) {
+    warnings.push("单层高度是缺测哨兵值，已按 0 m 处理");
+    return [0];
+  }
+  throw new Error("高度坐标包含缺测值或异常哨兵值，请先清洗数据");
 }
 
 function sortedIndices(values, transform = (value) => value) {
@@ -209,6 +221,7 @@ export function detectNetCDFFormat(data) {
 
 export function normalizeNetCDFReader(reader, options = {}) {
   const timeIndex = options.timeIndex ?? 0;
+  const warnings = [];
   const variables = {
     lon: findVariable(reader, "lon", options.variables?.lon),
     lat: findVariable(reader, "lat", options.variables?.lat),
@@ -225,12 +238,12 @@ export function normalizeNetCDFReader(reader, options = {}) {
 
   const lonValues = Array.from(readNumericVariable(reader, variables.lon));
   const latValues = Array.from(readNumericVariable(reader, variables.lat));
-  const levelValues = variables.level
+  const rawLevelValues = variables.level
     ? Array.from(readNumericVariable(reader, variables.level))
     : [0];
   assertCoordinate(lonValues, "经度");
   assertCoordinate(latValues, "纬度");
-  assertCoordinate(levelValues, "高度");
+  const levelValues = normalizeLevelValues(rawLevelValues, warnings);
 
   const longitudeOrder = sortedIndices(lonValues, (value) => ((value + 180) % 360 + 360) % 360 - 180);
   const latitudeOrder = sortedIndices(latValues);
@@ -262,7 +275,6 @@ export function normalizeNetCDFReader(reader, options = {}) {
 
   let levels = levelOrder.map((entry) => entry.value);
   let nz = levels.length;
-  const warnings = [];
   if (nz === 1) {
     u = duplicateSingleLevel(u);
     v = duplicateSingleLevel(v);
