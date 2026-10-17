@@ -46,6 +46,7 @@ import {
   listLocalTerrains,
 } from "../services/localServiceClient.js";
 import { listAvailableTerrains } from "../services/terrainCatalogClient.js";
+import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim() ?? "";
 const LOCAL_TOOLS_ENABLED = import.meta.env.DEV
@@ -86,6 +87,7 @@ let basemapRequestId = 0;
 let catalogMode = "3d";
 let catalogEntries = [];
 let terrainEntries = [];
+let localTerrainSession = null;
 
 const WIND_COLORS = [
   "rgb(74, 152, 255)", "rgb(46, 184, 229)", "rgb(56, 205, 176)",
@@ -614,10 +616,11 @@ async function toggleWorldTerrain(enabled) {
   try {
     if (enabled) {
       if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
-      await terrainController.loadWorld({
+      const result = await terrainController.loadWorld({
         requestVertexNormals: viewer.scene.globe.enableLighting,
         requestWaterMask: false,
       });
+      if (result.applied) await releaseLocalTerrainSession();
     } else if (terrainController.getState().type === "world"
       || terrainController.getState().requestedType === "world") {
       terrainController.useEllipsoid();
@@ -707,7 +710,17 @@ function ensureTerrainOption(terrain) {
     option.textContent = terrain.name || "地形";
     select.append(option);
   }
+  option.dataset.source = terrain.source || "catalog";
   select.value = terrain.url;
+}
+
+async function releaseLocalTerrainSession(exceptUrl) {
+  if (!localTerrainSession || localTerrainSession.url === exceptUrl) return;
+  const session = localTerrainSession;
+  localTerrainSession = null;
+  const select = document.getElementById("local-terrain-select");
+  Array.from(select.options).find((option) => option.value === session.url)?.remove();
+  await session.dispose();
 }
 
 async function loadSelectedTerrain(selectedTerrain) {
@@ -722,7 +735,10 @@ async function loadSelectedTerrain(selectedTerrain) {
     requestVertexNormals: viewer.scene.globe.enableLighting,
     requestWaterMask: false,
   });
-  if (result.applied) ensureTerrainOption(terrain);
+  if (result.applied) {
+    ensureTerrainOption(terrain);
+    await releaseLocalTerrainSession(terrain.url);
+  }
   return result;
 }
 
@@ -742,8 +758,9 @@ function bindLayerControls() {
       setInlineMessage(document.getElementById("layer-message"), error.message, "error");
     }
   });
-  document.getElementById("disable-terrain").addEventListener("click", () => {
+  document.getElementById("disable-terrain").addEventListener("click", async () => {
     terrainController.useEllipsoid();
+    await releaseLocalTerrainSession();
   });
   document.getElementById("locate-terrain").addEventListener("click", () => {
     if (!terrainController.flyToCurrentTerrain()) {
@@ -762,11 +779,76 @@ function updateToolResult(id, title, detail, state = "") {
   result.replaceChildren(heading, description);
 }
 
+async function loadTerrainFolder(fileList) {
+  updateToolResult("local-terrain-folder-result", "正在查询文件夹", "正在检查 layer.json 和地形瓦片", "processing");
+  let session;
+  try {
+    session = await createLocalTerrainSession(fileList);
+    updateToolResult(
+      "local-terrain-folder-result",
+      "目录检查通过，正在加载",
+      `${session.tileCount} 个瓦片，${formatBytes(session.totalBytes)}`,
+      "processing",
+    );
+    const terrain = {
+      name: session.name,
+      url: session.url,
+      bounds: session.bounds,
+      source: "browser-folder",
+    };
+    const result = await terrainController.loadLocal(terrain, {
+      requestVertexNormals: viewer.scene.globe.enableLighting,
+      requestWaterMask: false,
+    });
+    if (!result.applied) throw result.error || new Error("地形加载请求已取消");
+
+    const previousSession = localTerrainSession;
+    localTerrainSession = session;
+    ensureTerrainOption(terrain);
+    if (previousSession && previousSession.url !== session.url) await previousSession.dispose();
+    const levelText = Number.isFinite(session.minLevel) && Number.isFinite(session.maxLevel)
+      ? `，层级 ${session.minLevel}-${session.maxLevel}`
+      : "";
+    updateToolResult(
+      "local-terrain-folder-result",
+      "本地地形已加载",
+      `${session.folderName}：${session.tileCount} 个瓦片${levelText}，文件未上传`,
+      "success",
+    );
+  } catch (error) {
+    if (session && session !== localTerrainSession) await session.dispose();
+    updateToolResult("local-terrain-folder-result", "本地地形加载失败", error.message || String(error), "error");
+  }
+}
+
 function bindTools() {
   const ncInput = document.getElementById("convert-file-input");
   const demInput = document.getElementById("dem-file-input");
+  const terrainFolderInput = document.getElementById("local-terrain-folder-input");
   const convertButton = document.getElementById("convert-file");
   const demButton = document.getElementById("convert-dem");
+  const terrainFolderButton = document.getElementById("load-local-terrain-folder");
+
+  const folderLoadingSupported = window.isSecureContext
+    && Boolean(navigator.serviceWorker)
+    && "webkitdirectory" in terrainFolderInput;
+  if (folderLoadingSupported) {
+    terrainFolderButton.addEventListener("click", () => terrainFolderInput.click());
+    terrainFolderInput.addEventListener("change", async () => {
+      const files = terrainFolderInput.files;
+      if (files?.length) await loadTerrainFolder(files);
+      terrainFolderInput.value = "";
+    });
+  } else {
+    terrainFolderButton.disabled = true;
+    updateToolResult(
+      "local-terrain-folder-result",
+      "当前浏览器不支持",
+      "请使用支持文件夹选择和 Service Worker 的 HTTPS 浏览器",
+      "error",
+    );
+  }
+
   if (!LOCAL_TOOLS_ENABLED) {
     convertButton.disabled = true;
     demButton.disabled = true;
@@ -850,5 +932,8 @@ async function main() {
   }
 }
 
-window.addEventListener("beforeunload", () => terrainController.destroy(), { once: true });
+window.addEventListener("beforeunload", () => {
+  localTerrainSession?.dispose();
+  terrainController.destroy();
+}, { once: true });
 main();

@@ -105,6 +105,13 @@
 
           <div class="panel-page" data-page="tools" hidden>
             <section class="panel-section">
+              <div class="section-heading"><div><span class="section-kicker">BROWSER TERRAIN</span><h2>本地地形文件夹</h2></div><span>quantized-mesh</span></div>
+              <input id="local-terrain-folder-input" type="file" webkitdirectory directory multiple hidden />
+              <button id="load-local-terrain-folder" class="primary-command secondary-command" type="button"><i data-lucide="folder-open"></i><span>查询并加载地形文件夹</span></button>
+              <p class="tool-hint">选择包含 <code>layer.json</code> 和 <code>.terrain</code> 瓦片的处理结果。文件只在当前浏览器中读取，不会上传。</p>
+              <div id="local-terrain-folder-result" class="conversion-result" role="status"><b>等待选择文件夹</b><span>支持已处理完成的 Cesium quantized-mesh 地形</span></div>
+            </section>
+            <section class="panel-section">
               <div class="section-heading"><div><span class="section-kicker">DEVELOPER TOOL</span><h2>NetCDF 转换</h2></div><span>本机 Python</span></div>
               <input id="convert-file-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
               <button id="convert-file" class="primary-command secondary-command" type="button"><i data-lucide="folder-cog"></i><span>选择并转换 NC</span></button>
