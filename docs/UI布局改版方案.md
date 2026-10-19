@@ -29,10 +29,10 @@
 
 | 模式 | 面板内容 |
 | --- | --- |
-| 风场 | 加载二维/三维风场、风速图例、三维高度、粒子参数、NetCDF 转换 |
-| 场景 | 底图、OSM 建筑、世界地形开关 |
-| 地形 | 本地地形目录、加载地形、恢复椭球地形、DEM 转换 |
-| 工具 | 服务状态 |
+| 风场 | 顶部先放 NC 处理、加载二维/三维风场、风速图例、三维高度、粒子参数 |
+| 场景 | 底图单选、Cesium ion 公共影像、Google/OSM 3D Tiles 和世界地形开关 |
+| 地形 | 顶部先放 DEM 处理；下方放本地文件夹加载、地形目录、刷新、应用、定位和恢复椭球地形 |
+| 工具 | 保留导航位置，当前不显示说明内容 |
 
 风场页内部建议使用可折叠分组，默认展开“加载数据”和“渲染参数”，加载三维风场后再显示“三维高度”。
 
@@ -50,7 +50,7 @@
 宽度建议为 `288px`，负责“查看和管理结果”：
 
 - 风场图层列表，保留选择、显隐、定位、删除和三维层高度输入。
-- 场景图层列表，包括底图、建筑、世界地形、本地地形。
+- 场景图层列表，包括底图、ion 影像数量、3D Tiles 数量、世界地形和本地地形。
 - 每项保持一行主信息和一行次信息；操作按钮只在悬停、键盘聚焦或选中时完整显示。
 - 空状态直接提供“加载二维风场”和“加载三维风场”两个动作。
 
@@ -148,9 +148,11 @@ FPS 建议由自定义计数器更新，不直接使用 Cesium 默认调试浮�
 | 左侧风场/三维高度 | `#vertical-controls`、`#height-min`、`#height-max`、`#height-level`、`#apply-height-range` |
 | 左侧风场/渲染参数 | `#particles`、`#speed`、`#low-speed-opacity`、`#height`、`#length`、`#density`、`#density-enabled`、`#dynamic` |
 | 右侧图层 | `#wind-layer-list`、`#wind-layer-count` |
-| 左侧场景 | `#basemap-status`、`[data-basemap]`、`#buildings-toggle`、`#terrain-toggle`、`#ion-layer-message` |
+| 左侧场景 | `#basemap-status`、`[data-basemap]`、`[data-ion-imagery]`、`[data-ion-tileset]`、`#buildings-toggle`、`#terrain-toggle`、`#ion-layer-message` |
 | 左侧地形 | `#local-terrain-select`、`#open-local-terrain-catalog`、`#refresh-terrains`、`#load-local-terrain`、`#disable-terrain`、`#layer-message` |
-| 左侧工具 | `#convert-file`、`#convert-dem`、`#conversion-result`、`#dem-result` |
+| 左侧风场顶部 | `#convert-file`、`#convert-file-input`、`#conversion-result` |
+| 左侧地形顶部 | `#convert-dem`、`#dem-file-input`、`#dem-result` |
+| 左侧地形管理 | `#load-local-terrain-folder`、`#local-terrain-folder-input`、`#local-terrain-folder-result`、`#local-terrain-select`、`#open-local-terrain-catalog`、`#refresh-terrains`、`#load-local-terrain`、`#locate-terrain`、`#disable-terrain`、`#layer-message` |
 | 全局 | `#cesiumContainer`、`#status`、两个现有 `dialog` |
 
 现有 `.panel-tab` / `.panel-page` 可以继续使用，但建议把顶部模式按钮命名为 `.workspace-tab`，将左侧内容页命名为 `.workspace-page`。如果更名，需要同步修改 `bindTabs()` 中的选择器；其他业务代码无需变化。

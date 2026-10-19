@@ -24,10 +24,10 @@ npm run local:server
 
 ### 顶部模式栏
 
-- **风场**：加载二维/三维风场，设置高度范围和渲染参数。
-- **场景**：切换 Cesium 影像、OpenStreetMap、无底图、OSM 建筑物和世界地形。
-- **地形**：读取公开地形目录；开发环境还会合并 `tools/terrain-output` 中的 quantized-mesh 地形。
-- **工具**：开发环境可转换 NetCDF 和 DEM；公开部署中会明确禁用这些离线按钮。
+- **风场**：在页面顶部选择并处理 NC 文件，加载二维/三维风场，设置高度范围和渲染参数。
+- **场景**：切换基础底图，并按需打开 10 个 Cesium ion 公共影像、Google Photorealistic 3D Tiles、Cesium OSM Buildings 和 Cesium World Terrain。
+- **地形**：在页面顶部选择并处理 DEM，或从电脑文件夹直接加载处理后的 quantized-mesh 地形；同时管理公开地形目录、刷新、应用、定位和恢复椭球地形。
+- **工具**：保留导航位置，当前不显示说明文字；NC 和 DEM 处理入口分别位于“风场”和“地形”页顶部。
 
 顶部右侧显示当前二维/三维风场数量，并提供定位当前图层和同时开合两侧面板的快捷按钮。
 
@@ -50,7 +50,7 @@ npm run local:server
 
 - 风场图层支持选择、显隐、定位和删除。
 - 二维风场可以直接修改固定显示高度。
-- 场景状态显示当前底图、OSM 建筑物和地形。
+- 场景状态显示当前底图、已开启的 ion 影像数量、3D Tiles 数量和地形。
 
 ### 底部状态栏
 
@@ -65,19 +65,21 @@ npm run local:server
 
 ## 地形发布流程
 
-1. 在“工具”模式中选择并处理 DEM。
-2. 在开发环境切换到“地形”模式，确认本地数据可以加载和定位。
-3. 将小型数据发布到 `example/public/terrain`，或将大型数据上传到对象存储/CDN。
-4. 更新 `example/public/terrain/catalog.json`，再执行 `npm run build:vercel`。
-5. 公开用户从“地形”模式选择已发布数据并加载。
+1. 在“地形”模式顶部选择并处理 DEM。
+2. 在“地形”模式的“地形管理”区域，点击“加载本地文件夹”，选择包含 `layer.json` 和 `.terrain` 瓦片的处理结果；文件只在当前浏览器中读取，不会上传。
+3. 在开发环境切换到“地形”模式，确认本地数据可以加载和定位。
+4. 将小型数据发布到 `example/public/terrain`，或将大型数据上传到对象存储/CDN。
+5. 更新 `example/public/terrain/catalog.json`，再执行 `npm run build:vercel`。
+6. 公开用户从“地形”模式选择已发布数据并加载。
 
 DEM 处理需要 Docker Desktop，属于开发者离线流程。更完整的部署边界见 `docs/公开地形与Vercel部署.md`，转换说明见 `tools/terrain/README.md`。
 
 ## 环境变量与生产构建
 
 - 复制 `example/.env.example` 为 `example/.env.local`，可配置 `VITE_CESIUM_ION_TOKEN` 和本地服务地址。
-- 未配置 ion Token 时默认使用 OpenStreetMap，世界地形和 OSM 建筑物保持关闭并提供错误提示。
+- 未配置 ion Token 时默认使用 OpenStreetMap，并禁用场景页全部 ion 公共资产和世界地形开关，同时提供可见错误提示。
 - `VITE_*` 会进入浏览器包，Cesium ion Token 必须限制允许域名，不能放置私密服务端密钥。
+- Cesium credit 容器必须保持可见，以显示 Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据提供者署名。
 - `npm run build:vercel` 构建公开工作台到 `site-dist`；`npm run build` 仍负责 npm 库产物。
 
 ## 维护约束

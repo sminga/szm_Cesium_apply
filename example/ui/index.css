@@ -460,6 +460,10 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.terrain-wide-command {
+  grid-column: 1 / -1;
+}
+
 .text-command {
   width: 100%;
   margin-top: 8px;
@@ -674,6 +678,15 @@ button:disabled {
   font-size: 9px;
 }
 
+.ion-asset-list {
+  display: grid;
+  gap: 6px;
+}
+
+.ion-asset-list .layer-switch {
+  margin-bottom: 0;
+}
+
 .layer-switch {
   display: flex;
   min-height: 52px;
@@ -737,6 +750,15 @@ button:disabled {
 .layer-switch input:checked + .switch-track::after {
   background: #fff;
   transform: translateX(15px);
+}
+
+.layer-switch:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.layer-switch input:disabled + .switch-track {
+  background: #26373f;
 }
 
 .conversion-result {
@@ -896,7 +918,9 @@ button:disabled {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 1000;
+  /* 地图状态应高于地图内容、低于移动端抽屉（z-index: 30），避免加载提示
+     遮挡地形选择控件，同时继续覆盖 Cesium 画布和地图装饰层。 */
+  z-index: 20;
   max-width: min(520px, calc(100vw - 32px));
   padding: 11px 16px;
   color: var(--text-1);

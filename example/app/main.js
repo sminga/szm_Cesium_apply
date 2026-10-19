@@ -14,10 +14,14 @@ import {
   FolderCog,
   Globe2,
   Home,
+  Image as ImageIcon,
+  Landmark,
   Layers2,
   Layers3,
+  ListChecks,
   LocateFixed,
   Map,
+  MoonStar,
   Mountain,
   MountainSnow,
   PanelLeftClose,
@@ -25,6 +29,7 @@ import {
   RefreshCw,
   Satellite,
   Server,
+  Tags,
   Trash2,
   Wind,
   Wrench,
@@ -47,6 +52,7 @@ import {
 } from "../services/localServiceClient.js";
 import { listAvailableTerrains } from "../services/terrainCatalogClient.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
+import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
 
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim() ?? "";
 const LOCAL_TOOLS_ENABLED = import.meta.env.DEV
@@ -70,7 +76,9 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   fullscreenButton: false,
   baseLayer: false,
 });
-viewer.cesiumWidget.creditContainer.style.display = "none";
+// Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据都带有署名要求。
+// 公开 Vercel 页面必须保留 Cesium credit 容器，具体位置由页面 CSS 调整到地图右下角。
+viewer.cesiumWidget.creditContainer.style.removeProperty("display");
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -81,8 +89,11 @@ const terrainController = new TerrainController(viewer, {
   ellipsoidTerrainProvider,
 });
 const windLayers = new WindLayerManager(viewer);
+const ionAssetLayers = new IonAssetLayerManager(viewer, Cesium, {
+  accessTokenAvailable: Boolean(CESIUM_ION_TOKEN),
+});
 let activeLayerId = null;
-let buildingsTileset = null;
+let basemapLayer = null;
 let basemapRequestId = 0;
 let catalogMode = "3d";
 let catalogEntries = [];
@@ -174,6 +185,16 @@ function renderTerrainState(state) {
 }
 
 terrainController.subscribe(renderTerrainState);
+
+/**
+ * 同步地形管理按钮的可用状态。
+ * 下拉框没有候选项时禁用“应用所选地形”，当前地形没有有效 bounds 时由
+ * renderTerrainState() 单独禁用定位按钮，避免用户点击后才收到可提前判断的错误。
+ */
+function syncTerrainActions() {
+  const select = document.getElementById("local-terrain-select");
+  document.getElementById("load-local-terrain").disabled = !select.value;
+}
 
 function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -579,8 +600,16 @@ async function setBasemap(mode) {
       label = "OpenStreetMap";
     }
     if (requestId !== basemapRequestId) return;
-    viewer.imageryLayers.removeAll();
-    if (provider) viewer.imageryLayers.addImageryProvider(provider);
+
+    // 底图固定插入影像栈最底层，只移除上一次底图。不能使用 removeAll()，否则
+    // 用户在“公共影像”中打开的 ion 叠加层也会被一并销毁，开关状态将与场景脱节。
+    const nextBasemapLayer = provider
+      ? viewer.imageryLayers.addImageryProvider(provider, 0)
+      : null;
+    if (basemapLayer && viewer.imageryLayers.contains(basemapLayer)) {
+      viewer.imageryLayers.remove(basemapLayer, true);
+    }
+    basemapLayer = nextBasemapLayer;
     document.querySelectorAll("[data-basemap]").forEach((button) => button.classList.toggle("active", button.dataset.basemap === mode));
     document.getElementById("basemap-status").textContent = label;
     document.getElementById("scene-basemap-label").textContent = label;
@@ -590,24 +619,77 @@ async function setBasemap(mode) {
   }
 }
 
-async function toggleBuildings(enabled) {
-  const checkbox = document.getElementById("buildings-toggle");
+function updateIonAssetSummary() {
+  document.getElementById("scene-ion-imagery-label").textContent = `${ionAssetLayers.imageryCount} 项`;
+  document.getElementById("scene-buildings-label").textContent = `${ionAssetLayers.tilesetCount} 项`;
+}
+
+/**
+ * 响应公共影像开关。每个开关由 IonAssetLayerManager 独立管理请求版本，用户在
+ * 网络请求结束前关闭开关时，不会出现图层稍后又自行显示的异步竞态。
+ */
+async function toggleIonImagery(input) {
+  const assetId = Number(input.dataset.ionImagery);
+  const label = input.dataset.ionLabel || `ion 影像 ${assetId}`;
   const message = document.getElementById("ion-layer-message");
+  const enabled = input.checked;
   try {
-    if (enabled) {
-      if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
-      setInlineMessage(message, "正在加载 OSM 建筑物");
-      buildingsTileset ??= await Cesium.Cesium3DTileset.fromIonAssetId(96188);
-      if (!viewer.scene.primitives.contains(buildingsTileset)) viewer.scene.primitives.add(buildingsTileset);
-      buildingsTileset.show = true;
-    } else if (buildingsTileset) buildingsTileset.show = false;
-    document.getElementById("scene-buildings-label").textContent = enabled ? "开启" : "关闭";
-    setInlineMessage(message, enabled ? "OSM 建筑物已开启" : "OSM 建筑物已关闭", enabled ? "success" : "");
+    setInlineMessage(message, enabled ? `正在加载 ${label}` : `正在关闭 ${label}`);
+    const result = await ionAssetLayers.setImageryAsset(assetId, enabled);
+    if (!result.applied) return;
+    updateIonAssetSummary();
+    setInlineMessage(message, `${label} 已${enabled ? "开启" : "关闭"}`, enabled ? "success" : "");
   } catch (error) {
-    checkbox.checked = false;
-    document.getElementById("scene-buildings-label").textContent = "关闭";
-    setInlineMessage(message, `建筑物加载失败：${error.message}`, "error");
+    input.checked = false;
+    updateIonAssetSummary();
+    setInlineMessage(message, `${label} 加载失败：${error.message}`, "error");
   }
+}
+
+/**
+ * 响应 ion 3D Tiles 开关。Google Photorealistic 数据量明显大于普通建筑图层，
+ * 因此限制客户端缓存并适度放宽屏幕空间误差，降低公开网站访客的显存和带宽压力。
+ */
+async function toggleIonTileset(input) {
+  const assetId = Number(input.dataset.ionTileset);
+  const label = input.dataset.ionLabel || `ion 3D Tiles ${assetId}`;
+  const message = document.getElementById("ion-layer-message");
+  const enabled = input.checked;
+  const options = assetId === 2275207
+    ? {
+        maximumScreenSpaceError: 24,
+        cacheBytes: 256 * 1024 * 1024,
+        maximumCacheOverflowBytes: 128 * 1024 * 1024,
+      }
+    : {};
+  try {
+    setInlineMessage(message, enabled ? `正在加载 ${label}` : `正在关闭 ${label}`);
+    const result = await ionAssetLayers.setTilesetAsset(assetId, enabled, options);
+    if (!result.applied) return;
+    updateIonAssetSummary();
+    setInlineMessage(message, `${label} 已${enabled ? "开启" : "关闭"}`, enabled ? "success" : "");
+  } catch (error) {
+    input.checked = false;
+    updateIonAssetSummary();
+    setInlineMessage(message, `${label} 加载失败：${error.message}`, "error");
+  }
+}
+
+function initializeIonAssetControls() {
+  const controls = document.querySelectorAll("[data-ion-imagery], [data-ion-tileset], [data-ion-terrain]");
+  if (CESIUM_ION_TOKEN) {
+    setInlineMessage(document.getElementById("ion-layer-message"), "Cesium ion 公共资产待命");
+    return;
+  }
+
+  // ion 公共资产仍要求站点提供受域名限制的浏览器 Token。“公共”不表示可以
+  // 绕过 ion 鉴权；禁用开关比让每次点击都产生失败请求更适合公开 Vercel 页面。
+  controls.forEach((control) => { control.disabled = true; });
+  setInlineMessage(
+    document.getElementById("ion-layer-message"),
+    "未配置 VITE_CESIUM_ION_TOKEN，Cesium ion 公共资产不可用",
+    "error",
+  );
 }
 
 async function toggleWorldTerrain(enabled) {
@@ -650,12 +732,28 @@ async function refreshTerrains() {
     }));
     if (!terrainEntries.length) select.innerHTML = '<option value="">暂无已发布地形</option>';
     else if (terrainEntries.some((terrain) => terrain.url === selectedUrl)) select.value = selectedUrl;
+
+    // 浏览器文件夹地形不属于公开目录或本地服务目录。刷新目录时继续保留当前
+    // 会话选项，否则 Cesium 仍在显示地形，但下拉框和“应用所选地形”会失去对应项。
+    if (localTerrainSession) {
+      ensureTerrainOption({
+        name: localTerrainSession.name,
+        url: localTerrainSession.url,
+        bounds: localTerrainSession.bounds,
+        source: "browser-folder",
+      });
+    }
+    if (selectedUrl && Array.from(select.options).some((option) => option.value === selectedUrl)) {
+      select.value = selectedUrl;
+    }
+    syncTerrainActions();
     const detail = result.localWarning
       ? `找到 ${terrainEntries.length} 个公开地形；本地目录不可用`
       : `找到 ${terrainEntries.length} 个可用地形`;
     setInlineMessage(message, detail, terrainEntries.length ? "success" : "");
   } catch (error) {
     setInlineMessage(message, error.message, "error");
+    syncTerrainActions();
   }
 }
 
@@ -712,6 +810,7 @@ function ensureTerrainOption(terrain) {
   }
   option.dataset.source = terrain.source || "catalog";
   select.value = terrain.url;
+  syncTerrainActions();
 }
 
 async function releaseLocalTerrainSession(exceptUrl) {
@@ -720,6 +819,7 @@ async function releaseLocalTerrainSession(exceptUrl) {
   localTerrainSession = null;
   const select = document.getElementById("local-terrain-select");
   Array.from(select.options).find((option) => option.value === session.url)?.remove();
+  syncTerrainActions();
   await session.dispose();
 }
 
@@ -744,9 +844,15 @@ async function loadSelectedTerrain(selectedTerrain) {
 
 function bindLayerControls() {
   document.querySelectorAll("[data-basemap]").forEach((button) => button.addEventListener("click", () => setBasemap(button.dataset.basemap)));
-  document.getElementById("buildings-toggle").addEventListener("change", (event) => toggleBuildings(event.target.checked));
+  document.querySelectorAll("[data-ion-imagery]").forEach((input) => {
+    input.addEventListener("change", () => toggleIonImagery(input));
+  });
+  document.querySelectorAll("[data-ion-tileset]").forEach((input) => {
+    input.addEventListener("change", () => toggleIonTileset(input));
+  });
   document.getElementById("terrain-toggle").addEventListener("change", (event) => toggleWorldTerrain(event.target.checked));
   document.getElementById("refresh-terrains").addEventListener("click", refreshTerrains);
+  document.getElementById("local-terrain-select").addEventListener("change", syncTerrainActions);
   document.getElementById("load-local-terrain").addEventListener("click", loadSelectedTerrain);
   document.getElementById("open-local-terrain-catalog").addEventListener("click", openTerrainCatalog);
   document.getElementById("refresh-terrain-catalog").addEventListener("click", refreshTerrainCatalog);
@@ -767,6 +873,7 @@ function bindLayerControls() {
       setInlineMessage(document.getElementById("layer-message"), "当前地形未提供有效覆盖范围", "error");
     }
   });
+  syncTerrainActions();
 }
 
 function updateToolResult(id, title, detail, state = "") {
@@ -916,11 +1023,12 @@ async function main() {
   bindWindControls();
   bindLayerControls();
   bindTools();
+  initializeIonAssetControls();
   createIcons({
     icons: {
-      Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Layers2, Layers3,
-      LocateFixed, Map, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
-      Satellite, Server, Wind, Wrench, X, ZoomIn, ZoomOut,
+      Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
+      Landmark, Layers2, Layers3, ListChecks, LocateFixed, Map, MoonStar, Mountain, MountainSnow,
+      PanelLeftClose, PanelRightClose, RefreshCw, Satellite, Server, Tags, Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
@@ -934,6 +1042,7 @@ async function main() {
 
 window.addEventListener("beforeunload", () => {
   localTerrainSession?.dispose();
+  ionAssetLayers.destroy();
   terrainController.destroy();
 }, { once: true });
 main();

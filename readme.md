@@ -38,7 +38,7 @@
 - 顶部模式栏在“风场、场景、地形、工具”之间切换。
 - 左侧参数面板用于加载数据、选择场景资源、加载地形和执行转换。
 - 中央区域保持 Cesium 地图为主视图，并提供复位、缩放和定位当前风场按钮。
-- 右侧图层面板管理已加载的二维/三维风场，并显示底图、建筑物和地形状态。
+- 右侧图层面板管理已加载的二维/三维风场，并显示底图、ion 公共影像、3D Tiles 和地形状态。
 - 底部状态栏显示本地服务、WebGL、经纬度、相机高度和 FPS。
 
 当浏览器宽度小于 `900px` 时，左右面板会变为互斥抽屉；初始状态只显示地图，可以从地图左右边缘打开对应面板。
@@ -158,7 +158,7 @@ py tools\netcdf\convert_netcdf.py "D:\data\wind.nc"
 
 ### GUI 转换 NetCDF-4
 
-示例页面的“工具”页可以调用本地 Python 服务转换用户选择的 NC 文件：
+示例页面的“风场”页顶部可以调用本地 Python 服务转换用户选择的 NC 文件：
 
 ```powershell
 npm run local:server
@@ -183,13 +183,15 @@ DEM 使用 Docker 中的 Cesium Terrain Builder 转为标准 quantized-mesh：
 npm run local:server
 ```
 
-在 GUI“工具”页选择 GeoTIFF、IMG、ASC 或 DEM 文件。服务会调用 GDAL 重投影到 EPSG:4326，再使用 `tumgis/ctb-quantized-mesh:latest` 生成地形。输出保存在 `tools/terrain-output/`，可在开发环境检查。公开用户需要的数据还必须发布到 `example/public/terrain` 或对象存储/CDN，并加入公开地形目录。
+在 GUI“地形”页顶部选择 GeoTIFF、IMG、ASC 或 DEM 文件。服务会调用 GDAL 重投影到 EPSG:4326，再使用 `tumgis/ctb-quantized-mesh:latest` 生成地形。输出保存在 `tools/terrain-output/`，可在开发环境检查。公开用户需要的数据还必须发布到 `example/public/terrain` 或对象存储/CDN，并加入公开地形目录。
 
 ### Cesium 服务配置
 
 复制 `example/.env.example` 为 `example/.env.local`，通过 `VITE_CESIUM_ION_TOKEN` 配置 Cesium ion。未配置时示例默认使用 OpenStreetMap。
 
 `VITE_*` 会进入浏览器包，只能保存面向浏览器的公开 Token。请在 Cesium ion 后台限制允许域名，不能放置私密服务端密钥。旧 `example/config/serviceTokens.js` 已不再由示例入口依赖。
+
+配置 Token 后，“场景”页可按需打开截图所列的 Google Maps、Bing Maps、Sentinel-2、Earth at Night、Google Photorealistic 3D Tiles、Cesium OSM Buildings 和 Cesium World Terrain。地图右下角的 Cesium credit 容器必须保持可见，以满足数据提供者署名要求。
 
 ### Vercel 公开部署
 

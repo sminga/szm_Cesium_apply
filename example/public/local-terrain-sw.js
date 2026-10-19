@@ -26,6 +26,8 @@ self.addEventListener("message", (event) => {
   const message = event.data || {};
   const port = event.ports?.[0];
   if (message.type === "register-terrain") {
+    // 会话只保存已经按地形根目录规范化的相对路径。页面可以选择性传入 File；
+    // 当前实现主要由页面按需回传 File，避免注册时复制大型地形目录的全部对象。
     const files = new Map();
     for (const item of message.files || []) {
       if (item?.file && item.path) files.set(normalizePath(item.path), item.file);
@@ -43,10 +45,15 @@ self.addEventListener("message", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (!url.pathname.startsWith(PREFIX)) return;
+  // CesiumTerrainProvider 仍按普通 HTTP URL 请求 layer.json 和瓦片。仅拦截
+  // 本项目预留前缀，其他静态资源、公开地形和第三方请求继续走原网络链路。
   event.respondWith(serveTerrain(url, event.request, event.clientId));
 });
 
 async function requestFileFromPage(clientId, id, path) {
+  // Service Worker 重启后内存 Map 会丢失，但页面仍持有用户授权得到的 File。
+  // 这里通过 MessageChannel 向发起请求的页面按需取回文件，使刷新前的会话可继续
+  // 服务 Cesium；页面已关闭或释放会话时返回 null，最终由 fetch 返回明确的 404。
   let client = clientId ? await self.clients.get(clientId) : null;
   if (!client) [client] = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   if (!client) return null;
@@ -81,6 +88,9 @@ async function serveTerrain(url, request, clientId) {
     headers.set("Cache-Control", "no-store");
     const prefix = new Uint8Array(await file.slice(0, 2).arrayBuffer());
     if (prefix[0] === 0x1f && prefix[1] === 0x8b) {
+      // 本地 Python 服务会通过 Content-Encoding 告知浏览器 gzip。对于浏览器 File，
+      // 优先在 Service Worker 内解压，保证 Cesium 得到 quantized-mesh 原始字节；
+      // 旧浏览器没有 DecompressionStream 时再退回标准 Content-Encoding 处理。
       if (typeof DecompressionStream === "function") {
         body = file.stream().pipeThrough(new DecompressionStream("gzip"));
       } else {
