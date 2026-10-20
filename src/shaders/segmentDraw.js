@@ -1,6 +1,7 @@
 /**
  * 粒子流线的顶点和片元着色器。
- * 将连续粒子位置扩展成屏幕空间线段，按速度映射长度、宽度和颜色，并结合地球深度完成遮挡。
+ * 将连续粒子位置转换为屏幕空间线段，按速度映射目标长度、宽度和颜色，同时结合地球深度完成遮挡。
+ * 近景保留可读的目标像素长度；仅在三维相机拉远时平滑回落到真实投影长度，避免全球视角放射变形。
  */
 export const renderParticlesVertexShader = `#version 300 es
 precision highp float;
@@ -81,7 +82,11 @@ vec4 calculateOffsetOnNormalDirection(vec4 pointA, vec4 pointB, float offsetSign
   return vec4(offsetSign * normalVector, 0.0, 0.0);
 }
 
-vec4 extendInScreenPixels(vec4 pointA, vec4 pointB, float pixelLength) {
+// 在透视除法后的屏幕坐标中生成线段终点。
+// 近景使用 pixelTarget 保持粒子可读，并让“最大线长”控件继续直接影响显示长度；
+// 三维相机超过 1500 km 后逐渐减少人为延长，5000 km 及以上完全使用真实投影长度。
+// 这个衰减只修复拉远后的比例失真，不改变二维模式，也不缩小常用区域视角下的粒子。
+vec4 resolveSegmentEndpoint(vec4 pointA, vec4 pointB, float pixelTarget) {
   vec2 aspectVec2 = vec2(aspect, 1.0);
   vec2 pointA_NDC = pointA.xy / pointA.w;
   vec2 pointB_NDC = pointB.xy / pointB.w;
@@ -89,11 +94,21 @@ vec4 extendInScreenPixels(vec4 pointA, vec4 pointB, float pixelLength) {
   float deltaLength = length(delta);
   if (deltaLength < 0.000001) return pointA;
 
-  vec2 direction = delta / deltaLength;
-  vec2 ndcDirection = vec2(direction.x / aspect, direction.y);
-  float ndcPerPixel = 2.0 / max(czm_viewport.w, 1.0);
-  vec2 extendedNDC = pointA_NDC + ndcDirection * max(pixelLength, 0.0) * ndcPerPixel;
-  return vec4(extendedNDC * pointA.w, pointA.z, pointA.w);
+  // delta 使用按高宽比修正后的 NDC，因此乘视口高度的一半即可得到屏幕像素长度。
+  float actualPixelLength = deltaLength * max(czm_viewport.w, 1.0) * 0.5;
+  float cameraHeight = max(length(czm_viewerPositionWC) - 6378137.0, 0.0);
+  float distanceAttenuation = is3D
+    ? 1.0 - smoothstep(1500000.0, 5000000.0, cameraHeight)
+    : 1.0;
+  // 衰减采用平方曲线，让接近全球视角时更快收敛，避免过渡区仍残留明显射线。
+  float extensionWeight = distanceAttenuation * distanceAttenuation;
+  float targetPixelLength = mix(actualPixelLength, max(pixelTarget, 0.0), extensionWeight);
+  float scale = targetPixelLength / max(actualPixelLength, 0.000001);
+  vec2 limitedNDC = mix(pointA_NDC, pointB_NDC, scale);
+
+  // 保留 pointB 的深度趋势，同时使用 pointA.w 把受限后的 NDC 坐标还原到裁剪空间。
+  float limitedZ = mix(pointA.z / pointA.w, pointB.z / pointB.w, scale) * pointA.w;
+  return vec4(limitedNDC * pointA.w, limitedZ, pointA.w);
 }
 
 void main() {
@@ -131,7 +146,8 @@ void main() {
   float widthFactor = mix(lineWidth.x, lineWidth.y, normalizedSpeed);
   widthFactor *= (pointToUse < 0 ? 1.0 : 0.5);
 
-  float lengthPixels = mix(lineLength.x, lineLength.y, normalizedSpeed);
+  // 不同风速使用不同的近景目标像素长度；远景衰减在 resolveSegmentEndpoint() 内处理。
+  float targetLengthPixels = mix(lineLength.x, lineLength.y, normalizedSpeed);
 
   if (pointToUse == 1) {
     offset = calculateOffsetOnNormalDirection(
@@ -140,8 +156,8 @@ void main() {
     gl_Position = projectedCoordinates.previous + projectedCoordinates.previous.w * offset;
     v_segmentPosition = 0.0;
   } else if (pointToUse == -1) {
-    vec4 extendedPosition = extendInScreenPixels(
-      projectedCoordinates.current, projectedCoordinates.next, lengthPixels);
+    vec4 extendedPosition = resolveSegmentEndpoint(
+      projectedCoordinates.current, projectedCoordinates.next, targetLengthPixels);
     offset = calculateOffsetOnNormalDirection(
       projectedCoordinates.current, extendedPosition, offsetSign, widthFactor);
     gl_Position = extendedPosition + extendedPosition.w * offset;

@@ -7,7 +7,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `build_quantized_mesh.py` | 调用 Docker 中的 GDAL 和 CTB，重投影 DEM、生成瓦片和 `layer.json`，并在完成后校验输出。 |
-| `terrain_dataset.py` | 检查 `layer.json` 格式、bounds、层级、瓦片数量、总大小、法线和水面遮罩等元数据。 |
+| `terrain_dataset.py` | 检查 `layer.json` 格式、定位范围、层级、瓦片数量、总大小、法线和水面遮罩等元数据；局部 CTB 数据优先使用 `valid_bounds`，再回退到 `bounds`。 |
 
 ## 前置条件
 
@@ -75,6 +75,7 @@ npm run dev
 | `Cannot connect to Docker daemon` | 启动 Docker Desktop，等待完成后运行 `docker info`。 |
 | 镜像拉取失败 | 检查 Docker Hub 网络、代理和磁盘空间。 |
 | 输出缺少 `layer.json` | 检查 DEM CRS、输入完整性、Docker 日志和磁盘空间。 |
+| 点击“定位当前地形”只回到全球视角 | 检查 `layer.json` 是否同时存在全球 `bounds` 和局部 `valid_bounds`；目录检查会优先把后者作为页面定位范围。 |
 | 页面加载失败 | 确认数据集校验通过，并使用 HTTP、公开 URL 或浏览器文件夹会话，不能使用 Windows 文件路径。 |
 
 ## 测试与学习

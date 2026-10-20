@@ -112,7 +112,7 @@ Tianditu, or other service tokens.
 | `dropRateBump` | `0.01` | Speed-dependent drop increment |
 | `speedFactor` | `1.0` | Speed scaling factor |
 | `lineWidth` | `{ min: 1, max: 2 }` | Line width range (pixels) |
-| `lineLength` | `{ min: 20, max: 100 }` | Line length range |
+| `lineLength` | `{ min: 20, max: 100 }` | Speed-mapped near-view target length; globe-scale views smoothly fall back to the real projected length |
 | `heightScale` | `1` | Height exaggeration |
 | `colors` | `["white"]` | Color ramp (CSS color array) |
 | `flipY` | `false` | Flip Y axis |

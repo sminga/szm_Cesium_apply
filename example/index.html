@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>风场实验台 | Cesium 多层风场与公开地形</title>
   <link rel="stylesheet" href="./ui/index.css" />
+
+  <link rel="icon" type="image/png" href="/favicon.png">
 </head>
 
 <body>
@@ -65,13 +67,13 @@
               <label id="height-level-control" class="select-control" hidden><span>离散高度层</span><select id="height-level"></select></label>
             </section>
             <section class="panel-section controls-section">
-              <div class="section-heading"><div><span class="section-kicker">RENDERING</span><h2>渲染参数</h2></div><span class="section-index">02</span></div>
-              <label class="range-control" for="particles"><span>粒子密度</span><output id="particles-value">256</output><input id="particles" type="range" min="64" max="512" step="64" value="256" /></label>
-              <label class="range-control" for="speed"><span>流动速度</span><output id="speed-value">0.3</output><input id="speed" type="range" min="0.01" max="5" step="0.01" value="0.3" /></label>
-              <label class="range-control" for="low-speed-opacity"><span>低速显眼度</span><output id="low-speed-opacity-value">0.72</output><input id="low-speed-opacity" type="range" min="0.2" max="1" step="0.02" value="0.72" /></label>
-              <label class="range-control" for="height"><span>高度拉伸</span><output id="height-value">10</output><input id="height" type="range" min="1" max="50" step="1" value="10" /></label>
-              <label class="range-control" for="length"><span>最大线长</span><output id="length-value">400</output><input id="length" type="range" min="20" max="3000" step="20" value="400" /></label>
-              <label class="range-control" for="density"><span>高速区密度</span><output id="density-value">1.5</output><input id="density" type="range" min="0.2" max="3" step="0.1" value="1.5" /></label>
+              <div class="section-heading rendering-heading"><div><span class="section-kicker">RENDERING</span><h2>渲染参数</h2></div><button id="reset-rendering-parameters" class="parameter-reset-button" type="button" title="恢复渲染参数默认值"><i data-lucide="refresh-cw"></i><span>恢复默认</span></button></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="particles">粒子密度 <small>默认 256</small></label><input id="particles-value" class="parameter-number" type="number" min="64" max="512" step="64" value="256" aria-label="粒子密度数值" /></div><input id="particles" type="range" min="64" max="512" step="64" value="256" aria-label="粒子密度滑块" /></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="speed">流动速度 <small>默认 0.3</small></label><input id="speed-value" class="parameter-number" type="number" min="0.05" max="5" step="0.01" value="0.3" aria-label="流动速度数值" /></div><input id="speed" type="range" min="0" max="200" step="1" value="78" aria-label="流动速度滑块" aria-valuetext="0.3" /></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="low-speed-opacity">低速显眼度 <small>默认 0.72</small></label><input id="low-speed-opacity-value" class="parameter-number" type="number" min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度数值" /></div><input id="low-speed-opacity" type="range" min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度滑块" /></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="height">高度拉伸 <small>默认 10</small></label><input id="height-value" class="parameter-number" type="number" min="1" max="50" step="1" value="10" aria-label="高度拉伸数值" /></div><input id="height" type="range" min="1" max="50" step="1" value="10" aria-label="高度拉伸滑块" /></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="length">最大线长 <small>默认 80</small></label><input id="length-value" class="parameter-number" type="number" min="20" max="240" step="5" value="80" aria-label="最大线长数值" /></div><input id="length" type="range" min="20" max="240" step="5" value="80" aria-label="最大线长滑块" /></div>
+              <div class="range-control"><div class="parameter-control-header"><label for="density">高速区密度 <small>默认 1.5</small></label><input id="density-value" class="parameter-number" type="number" min="0.2" max="3" step="0.1" value="1.5" aria-label="高速区密度数值" /></div><input id="density" type="range" min="0.2" max="3" step="0.1" value="1.5" aria-label="高速区密度滑块" /></div>
               <div class="toggle-row"><label><input id="density-enabled" type="checkbox" checked /><span>按风速加密</span></label><label><input id="dynamic" type="checkbox" checked /><span>动画</span></label></div>
             </section>
           </div>

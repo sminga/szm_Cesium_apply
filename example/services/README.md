@@ -37,6 +37,8 @@ await session.dispose();
 
 文件不会上传到 Vercel 或本地 Python 服务。页面保存用户选择得到的 `File`，`example/public/local-terrain-sw.js` 只拦截 `/__local-terrain__/` 前缀并按需取回文件。
 
+文件夹检查器会从 `layer.json` 提取相机定位范围。CTB 局部 DEM 常把 `bounds` 写成全球瓦片金字塔范围，同时用 `valid_bounds` 保存真实高程覆盖范围；页面优先使用合法的 `valid_bounds`，缺失或无效时再兼容回退到 `bounds`。这只影响“定位当前地形”，不会改写原文件，也不会改变 Cesium Provider 请求瓦片的方式。
+
 ## 错误和安全边界
 
 - `localServiceClient.js` 默认地址是 `127.0.0.1:8765`，生产代码只有显式开启时才能调用。

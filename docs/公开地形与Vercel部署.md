@@ -33,6 +33,8 @@
 
 每个有效条目至少需要 `name` 和 `url`。`bounds` 使用 `[west, south, east, north]`，可让页面的“定位”按钮飞到数据覆盖范围。
 
+浏览器直接选择本地 quantized-mesh 文件夹时，页面会从该目录的 `layer.json` 自动提取定位范围。部分 CTB 数据将标准 `bounds` 写成全球范围，以描述从根瓦片开始的可用金字塔，并另外使用 `valid_bounds` 保存局部 DEM 的真实覆盖范围；页面会优先使用合法的 `valid_bounds`。公开 `catalog.json` 不会自动读取远端 `layer.json` 来补全清单元数据，因此公开目录仍应显式填写真实数据覆盖范围的 `bounds`。
+
 小型数据集可放在 `example/public/terrain/<dataset>/`，其中包含 `layer.json` 和 `.terrain` 瓦片。大型数据集不建议进入 Vercel Deployment，应放到支持 HTTPS、CORS 和长期缓存的对象存储或 CDN，并在目录中使用绝对 HTTPS URL。
 
 ## 开发者本地目录

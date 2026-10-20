@@ -83,8 +83,15 @@ def inspect_terrain_dataset(directory: Path) -> dict[str, Any]:
             if result["minLevel"] > result["maxLevel"]:
                 raise ValueError("地形最小层级大于最大层级")
 
-        result["bounds"] = _valid_bounds(layer.get("bounds"))
-        if layer.get("bounds") is not None and result["bounds"] is None:
+        # CTB 可能用全球 bounds 描述从根瓦片开始的可用金字塔，同时在
+        # valid_bounds 中保存 DEM 的真实覆盖范围。目录接口返回的 bounds 专供页面
+        # 相机定位，因此优先采用 valid_bounds；旧数据没有该字段时继续兼容 bounds。
+        valid_bounds = _valid_bounds(layer.get("valid_bounds"))
+        fallback_bounds = _valid_bounds(layer.get("bounds"))
+        result["bounds"] = valid_bounds or fallback_bounds
+        if layer.get("valid_bounds") is not None and valid_bounds is None:
+            result["warnings"].append("layer.json valid_bounds 无效，已尝试回退到 bounds")
+        if result["bounds"] is None and layer.get("bounds") is not None:
             result["warnings"].append("layer.json bounds 无效，无法自动定位")
         extensions = {str(item).lower() for item in layer.get("extensions", [])}
         result["hasVertexNormals"] = bool(extensions & {"octvertexnormals", "vertexnormals"})

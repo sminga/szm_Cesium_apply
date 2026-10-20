@@ -56,6 +56,29 @@ class TerrainDatasetTests(unittest.TestCase):
         self.assertIsNone(result["bounds"])
         self.assertTrue(result["warnings"])
 
+    def test_prefers_valid_bounds_for_local_dem_location(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            result = inspect_terrain_dataset(self.create_dataset(
+                Path(temp),
+                bounds=[-180, -90, 180, 90],
+                valid_bounds=[116.03356763720512, 40.15316918492317, 116.05319872498512, 40.16459807753563],
+            ))
+        self.assertEqual(result["bounds"], {
+            "west": 116.03356763720512,
+            "south": 40.15316918492317,
+            "east": 116.05319872498512,
+            "north": 40.16459807753563,
+        })
+
+    def test_invalid_valid_bounds_falls_back_to_bounds_with_warning(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            result = inspect_terrain_dataset(self.create_dataset(
+                Path(temp),
+                valid_bounds=[116, 40, 115, 41],
+            ))
+        self.assertEqual(result["bounds"]["west"], 100)
+        self.assertTrue(any("valid_bounds" in warning for warning in result["warnings"]))
+
     def test_rejects_parent_path_in_tile_template(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             result = inspect_terrain_dataset(

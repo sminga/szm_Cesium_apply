@@ -210,7 +210,7 @@ npm run build:vercel
 | `dropRateBump` | `0.01` | 速度相关丢弃增量 |
 | `speedFactor` | `1.0` | 速度缩放 |
 | `lineWidth` | `{ min: 1, max: 2 }` | 线宽范围（像素） |
-| `lineLength` | `{ min: 20, max: 100 }` | 线长范围 |
+| `lineLength` | `{ min: 20, max: 100 }` | 按风速插值的近景目标屏幕线长；全球远景会平滑回落到真实投影长度以避免放射变形 |
 | `heightScale` | `1` | 高度拉伸 |
 | `colors` | `["white"]` | 色带 CSS 颜色数组 |
 | `flipY` | `false` | 翻转 Y 轴 |

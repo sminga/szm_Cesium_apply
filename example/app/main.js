@@ -53,6 +53,12 @@ import {
 import { listAvailableTerrains } from "../services/terrainCatalogClient.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
+import {
+  formatSpeedFactor,
+  normalizeParameterValue,
+  speedFactorFromSlider,
+  speedSliderFromFactor,
+} from "./windControlScale.js";
 
 const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim() ?? "";
 const LOCAL_TOOLS_ENABLED = import.meta.env.DEV
@@ -78,7 +84,8 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
 });
 // Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据都带有署名要求。
 // 公开 Vercel 页面必须保留 Cesium credit 容器，具体位置由页面 CSS 调整到地图右下角。
-viewer.cesiumWidget.creditContainer.style.removeProperty("display");
+viewer.cesiumWidget.creditContainer.style.display = "none";
+// viewer.cesiumWidget.creditContainer.style.removeProperty("display");
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -106,19 +113,28 @@ const WIND_COLORS = [
   "rgb(224, 70, 62)", "rgb(151, 53, 126)",
 ];
 
+const RENDERING_PARAMETER_DEFAULTS = Object.freeze({
+  particlesTextureSize: 256,
+  speedFactor: 0.3,
+  lowSpeedOpacity: 0.72,
+  heightScale: 10,
+  lineLengthMax: 80,
+  densityExponent: 1.5,
+});
+
 const sharedOptions = {
   colors: WIND_COLORS,
-  particlesTextureSize: 256,
+  particlesTextureSize: RENDERING_PARAMETER_DEFAULTS.particlesTextureSize,
   lineWidth: { min: 0.9, max: 1.6 },
-  lineLength: { min: 8, max: 80 },
-  heightScale: 10,
-  speedFactor: 0.3,
+  lineLength: { min: 8, max: RENDERING_PARAMETER_DEFAULTS.lineLengthMax },
+  heightScale: RENDERING_PARAMETER_DEFAULTS.heightScale,
+  speedFactor: RENDERING_PARAMETER_DEFAULTS.speedFactor,
   dropRate: 0.003,
   dropRateBump: 0.001,
   useViewerBounds: true,
-  lowSpeedOpacity: 0.72,
+  lowSpeedOpacity: RENDERING_PARAMETER_DEFAULTS.lowSpeedOpacity,
   densityBySpeed: true,
-  densityExponent: 1.5,
+  densityExponent: RENDERING_PARAMETER_DEFAULTS.densityExponent,
   densityFloor: 0.15,
   dynamic: true,
 };
@@ -550,28 +566,84 @@ function updateAllLayers(option) {
   for (const entry of windLayers.list()) entry.layer.updateOptions(option);
 }
 
-function bindRange(id, option) {
-  const input = document.getElementById(id);
-  const output = document.getElementById(`${id}-value`);
-  input.addEventListener("input", () => {
-    const value = Number(input.value);
-    output.value = String(value);
-    sharedOptions[option] = value;
-    updateAllLayers({ [option]: value });
-  });
-}
-
 function bindWindControls() {
-  bindRange("particles", "particlesTextureSize");
-  bindRange("speed", "speedFactor");
-  bindRange("low-speed-opacity", "lowSpeedOpacity");
-  bindRange("height", "heightScale");
-  bindRange("density", "densityExponent");
-  document.getElementById("length").addEventListener("input", (event) => {
-    const value = Number(event.target.value);
-    document.getElementById("length-value").value = String(value);
-    sharedOptions.lineLength = { min: 8, max: value };
-    updateAllLayers({ lineLength: sharedOptions.lineLength });
+  const parameterDefinitions = [
+    { id: "particles", option: "particlesTextureSize", defaultValue: RENDERING_PARAMETER_DEFAULTS.particlesTextureSize },
+    { id: "low-speed-opacity", option: "lowSpeedOpacity", defaultValue: RENDERING_PARAMETER_DEFAULTS.lowSpeedOpacity },
+    { id: "height", option: "heightScale", defaultValue: RENDERING_PARAMETER_DEFAULTS.heightScale },
+    { id: "length", option: "lineLengthMax", defaultValue: RENDERING_PARAMETER_DEFAULTS.lineLengthMax },
+    { id: "density", option: "densityExponent", defaultValue: RENDERING_PARAMETER_DEFAULTS.densityExponent },
+  ];
+  const speedDefinition = {
+    id: "speed",
+    option: "speedFactor",
+    defaultValue: RENDERING_PARAMETER_DEFAULTS.speedFactor,
+  };
+
+  /**
+   * 所有入口最终都调用同一个提交函数，避免滑块、填写框和恢复默认分别维护状态。
+   * 输入值在这里统一限制到 HTML 声明的 min/max/step；更新图层后再回写两个控件，
+   * 因此拖动滑块不会抢占正在键入但尚未提交的填写框内容。
+   */
+  function commitParameter(definition, rawValue, updateLayers = true) {
+    const slider = document.getElementById(definition.id);
+    const numberInput = document.getElementById(`${definition.id}-value`);
+    const constraints = {
+      min: Number(numberInput.min),
+      max: Number(numberInput.max),
+      step: Number(numberInput.step),
+    };
+    const currentValue = definition.option === "lineLengthMax"
+      ? sharedOptions.lineLength.max
+      : sharedOptions[definition.option];
+    const value = normalizeParameterValue(rawValue, constraints, currentValue);
+
+    numberInput.value = definition.option === "speedFactor"
+      ? formatSpeedFactor(value)
+      : String(value);
+    slider.value = definition.option === "speedFactor"
+      ? String(speedSliderFromFactor(value))
+      : String(value);
+    if (definition.option === "speedFactor") slider.setAttribute("aria-valuetext", formatSpeedFactor(value));
+
+    if (definition.option === "lineLengthMax") {
+      sharedOptions.lineLength = { min: 8, max: value };
+      if (updateLayers) updateAllLayers({ lineLength: sharedOptions.lineLength });
+    } else {
+      sharedOptions[definition.option] = value;
+      if (updateLayers) updateAllLayers({ [definition.option]: value });
+    }
+    return value;
+  }
+
+  for (const definition of parameterDefinitions) {
+    const slider = document.getElementById(definition.id);
+    const numberInput = document.getElementById(`${definition.id}-value`);
+    slider.addEventListener("input", () => commitParameter(definition, slider.value));
+    numberInput.addEventListener("change", () => commitParameter(definition, numberInput.value));
+  }
+
+  const speedSlider = document.getElementById(speedDefinition.id);
+  const speedNumber = document.getElementById(`${speedDefinition.id}-value`);
+  commitParameter(speedDefinition, sharedOptions.speedFactor, false);
+  speedSlider.addEventListener("input", () => {
+    commitParameter(speedDefinition, speedFactorFromSlider(speedSlider.value));
+  });
+  speedNumber.addEventListener("change", () => commitParameter(speedDefinition, speedNumber.value));
+
+  document.getElementById("reset-rendering-parameters").addEventListener("click", () => {
+    // 先只同步页面和 sharedOptions，再一次性通知每个图层，避免六次连续重建资源。
+    for (const definition of [...parameterDefinitions, speedDefinition]) {
+      commitParameter(definition, definition.defaultValue, false);
+    }
+    updateAllLayers({
+      particlesTextureSize: sharedOptions.particlesTextureSize,
+      speedFactor: sharedOptions.speedFactor,
+      lowSpeedOpacity: sharedOptions.lowSpeedOpacity,
+      heightScale: sharedOptions.heightScale,
+      lineLength: sharedOptions.lineLength,
+      densityExponent: sharedOptions.densityExponent,
+    });
   });
   document.getElementById("dynamic").addEventListener("change", (event) => {
     sharedOptions.dynamic = event.target.checked;
@@ -853,7 +925,10 @@ function bindLayerControls() {
   document.getElementById("terrain-toggle").addEventListener("change", (event) => toggleWorldTerrain(event.target.checked));
   document.getElementById("refresh-terrains").addEventListener("click", refreshTerrains);
   document.getElementById("local-terrain-select").addEventListener("change", syncTerrainActions);
-  document.getElementById("load-local-terrain").addEventListener("click", loadSelectedTerrain);
+  // DOM 会把 click Event 作为监听器的第一个参数。loadSelectedTerrain() 的可选参数
+  // 是目录中的地形对象，不能直接把函数当监听器，否则 Event 会被误判为地形条目，
+  // 最终因缺少 url 而加载失败。按钮入口显式无参数调用，下拉框值再由函数内部读取。
+  document.getElementById("load-local-terrain").addEventListener("click", () => loadSelectedTerrain());
   document.getElementById("open-local-terrain-catalog").addEventListener("click", openTerrainCatalog);
   document.getElementById("refresh-terrain-catalog").addEventListener("click", refreshTerrainCatalog);
   terrainCatalogDialog.addEventListener("close", async () => {

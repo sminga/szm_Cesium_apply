@@ -8,6 +8,7 @@
 | --- | --- |
 | `main.js` | 网站入口：创建 Viewer、初始化风场和地形管理器、绑定 DOM、加载示例数据、维护状态栏与图层列表。 |
 | `ionAssetLayerManager.js` | 按需加载/释放 Cesium ion 影像与 3D Tiles，并用请求版本号避免异步加载完成后恢复已关闭图层。 |
+| `windControlScale.js` | 在页面滑块的对数位置与核心库使用的 `speedFactor` 浮点值之间转换，使低速范围更容易精细调节。 |
 | `favicon.png` | 示例网站图标。 |
 
 ## `main.js` 功能分区

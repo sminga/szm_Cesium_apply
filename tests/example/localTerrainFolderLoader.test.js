@@ -50,6 +50,32 @@ describe("localTerrainFolderLoader", () => {
     expect(result.maxLevel).toBe(4);
   });
 
+  it("优先使用 CTB valid_bounds 定位局部 DEM", async () => {
+    const result = await inspectLocalTerrainFiles([
+      localFile("xfsDEMWGS84/layer.json", layer({
+        bounds: [-180, -90, 180, 90],
+        valid_bounds: [116.03356763720512, 40.15316918492317, 116.05319872498512, 40.16459807753563],
+      })),
+      localFile("xfsDEMWGS84/20/1724560/758220.terrain"),
+    ]);
+
+    expect(result.bounds).toEqual({
+      west: 116.03356763720512,
+      south: 40.15316918492317,
+      east: 116.05319872498512,
+      north: 40.16459807753563,
+    });
+  });
+
+  it("valid_bounds 无效时回退到兼容的 bounds", async () => {
+    const result = await inspectLocalTerrainFiles([
+      localFile("terrain/layer.json", layer({ valid_bounds: [116, 40, 115, 41] })),
+      localFile("terrain/0/0/0.terrain"),
+    ]);
+
+    expect(result.bounds).toEqual({ west: 100, south: 20, east: 110, north: 30 });
+  });
+
   it("保留 gzip terrain 文件并计入瓦片", async () => {
     const result = await inspectLocalTerrainFiles([
       localFile("terrain/layer.json", layer()),

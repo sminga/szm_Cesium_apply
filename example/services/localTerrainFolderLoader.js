@@ -79,13 +79,22 @@ async function readLayer(record) {
   }
 }
 
-function boundsFromLayer(layer) {
-  if (!Array.isArray(layer.bounds) || layer.bounds.length !== 4) return undefined;
-  const values = layer.bounds.map(Number);
+function normalizeBounds(value) {
+  if (!Array.isArray(value) || value.length !== 4) return undefined;
+  const values = value.map(Number);
   if (!values.every(Number.isFinite)) return undefined;
   const [west, south, east, north] = values;
+  if (west < -180 || east > 180 || south < -90 || north > 90) return undefined;
   if (west >= east || south >= north) return undefined;
   return { west, south, east, north };
+}
+
+function boundsFromLayer(layer) {
+  // 部分 CTB 输出为了让 Cesium 从全球根瓦片逐级查找局部数据，会把标准 bounds
+  // 写成整个地球，而把 DEM 的真实有效覆盖范围写入 valid_bounds。前者适合瓦片
+  // 可用性描述，却不适合“定位当前地形”；否则相机会飞到全球视角。优先使用合法的
+  // valid_bounds，并在旧数据没有该字段时回退到 bounds，保持已有数据集兼容。
+  return normalizeBounds(layer.valid_bounds) ?? normalizeBounds(layer.bounds);
 }
 
 function topFolderName(records) {
