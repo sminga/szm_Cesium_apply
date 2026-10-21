@@ -149,6 +149,12 @@ export interface TerrainEntry {
   bounds?: TerrainBounds | [number, number, number, number];
 }
 
+export interface TerrainProviderEntry {
+  name?: string;
+  url?: string;
+  bounds?: TerrainBounds | [number, number, number, number];
+}
+
 export interface TerrainControllerState {
   status: "loading" | "ready" | "error";
   type: "ellipsoid" | "world" | "local";
@@ -189,6 +195,10 @@ export class TerrainController {
     requestVertexNormals?: boolean;
     requestWaterMask?: boolean;
   }): Promise<{ applied: boolean; reason?: "superseded" | "error"; error?: Error }>;
+  loadProvider(
+    terrain: TerrainProviderEntry,
+    provider: TerrainProvider | Promise<TerrainProvider> | (() => TerrainProvider | Promise<TerrainProvider>)
+  ): Promise<{ applied: boolean; reason?: "superseded" | "error"; error?: Error }>;
   useEllipsoid(): TerrainControllerState;
   flyToCurrentTerrain(options?: { duration?: number }): boolean;
   destroy(): void;

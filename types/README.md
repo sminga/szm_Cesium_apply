@@ -8,7 +8,7 @@
 - 渲染配置：`WindLayerOptions`、`WindLayer2DOptions`、`NumberRange`。
 - NetCDF：`NetCDFLoadOptions`、`NetCDFLoadResult` 和三个加载函数。
 - 图层：`WindLayer3D`、`WindLayer2D`、`ManagedWindLayer`、`WindLayerManager`。
-- 地形：`TerrainBounds`、`TerrainEntry`、`TerrainControllerState`、`TerrainController`。
+- 地形：`TerrainBounds`、`TerrainEntry`、`TerrainProviderEntry`、`TerrainControllerState`、`TerrainController`；`loadProvider()` 允许应用调用方创建的 Cesium `TerrainProvider`。
 
 ## 使用示例
 

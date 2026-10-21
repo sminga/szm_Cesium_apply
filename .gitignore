@@ -3,7 +3,6 @@ dist/
 site-dist/
 .claude/
 cesium-wind-layer-3d/
-package-lock.json
 .DS_Store
 *.log
 __pycache__/

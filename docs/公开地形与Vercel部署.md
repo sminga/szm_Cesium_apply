@@ -2,9 +2,11 @@
 
 ## 功能边界
 
-公开网站只读取浏览器可访问的静态资源或 HTTPS 服务，不会默认访问访客电脑上的 `127.0.0.1`。Python、Docker、NetCDF 转换和 DEM 转 quantized-mesh 仍是开发者离线工具，使用者需要在项目开发环境中运行 `npm run local:server`。
+公开网站只读取浏览器可访问的静态资源、HTTPS 服务，或访客主动选择并保留在当前标签页内的文件，不会默认访问访客电脑上的 `127.0.0.1`。Python、Docker、NetCDF 转换和 DEM 转 quantized-mesh 仍是开发者离线工具；但 EPSG:4326 与 WGS84 UTM GeoTIFF 可以直接在浏览器 Worker 中作为当前会话 heightmap 加载，不需要 `npm run local:server`。
 
-离线处理结果如需提供给公开用户，必须进一步发布到 `example/public/terrain`、对象存储或 CDN，并加入公开地形目录。Vercel 网站不会运行本项目的 Python 转换服务，也不会持久保存转换输出。
+浏览器 DEM 不上传原文件、不生成 `.terrain`，刷新页面后不会保留。离线处理结果如需提供给其他公开用户，仍必须进一步发布到 `example/public/terrain`、对象存储或 CDN，并加入公开地形目录。Vercel 网站不会运行本项目的 Python 转换服务，也不会持久保存转换输出。
+
+两条 DEM 流程的格式、投影、NoData、内存和生命周期边界见 `docs/浏览器本地DEM加载.md`。
 
 ## 公开地形目录
 
@@ -49,6 +51,8 @@ VITE_LOCAL_SERVICE_URL=http://127.0.0.1:8765
 
 `VITE_ENABLE_LOCAL_TOOLS=true` 可以在生产模式构建中显式开启本地工具，但不应在公开 Vercel 站点启用。公开浏览器无法可靠访问开发者的 Python/Docker 服务，这种配置只适合受控内网或生产模式本机验收。
 
+浏览器 GeoTIFF 流程不读取这两个变量。公开构建只在用户点击“选择并加载 DEM”并明确选择文件后创建 Worker，因此不会在打开地形页时探测 localhost，也不会把文件发送到本地服务。
+
 ## Cesium ion Token
 
 没有 Cesium ion Token 时，页面默认使用 OpenStreetMap，Cesium 影像、OSM 建筑物和 Cesium World Terrain 会提示缺少配置。需要这些功能时，在 `example/.env.local` 或 Vercel 项目环境变量中设置：
@@ -70,6 +74,8 @@ npm run build:vercel
 
 `npm run build` 继续生成 npm 库的 `dist` 产物。`npm run build:vercel` 使用 `vite.example.config.js` 构建公开工作台到 `site-dist`。`vercel.json` 已把后者设为部署构建命令和输出目录。
 
+站点构建将浏览器 DEM 作为 ES module Worker 输出。`worker.format: "es"` 是必需配置，因为 `geotiff` 的压缩解码器会按格式拆分为多个 chunk；使用默认 IIFE Worker 会在 Rollup code-splitting 阶段失败。代表性构建中 Worker 入口约 177.75 kB，主站脚本约 244.46 kB，具体 hash 与压缩后大小会随依赖和源码变化。
+
 部署前至少执行：
 
 ```powershell
@@ -89,3 +95,5 @@ npm run build:vercel
 4. 在 `example/public/terrain/catalog.json` 添加目录条目。
 5. 执行 `npm run build:vercel`，确认 `site-dist/terrain/catalog.json` 和所需静态数据存在。
 6. 创建 Vercel 预览部署，使用真实域名验证加载、定位、失败提示和浏览器网络请求。
+
+仅需个人即时查看 GeoTIFF 时，可以跳过上述发布流程，直接在公开站点选择文件。需要把数据分享给其他用户、长期保存、支持更多格式或降低访问者内存开销时，仍应生成并发布 quantized-mesh。

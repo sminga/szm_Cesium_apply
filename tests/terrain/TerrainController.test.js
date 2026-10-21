@@ -83,6 +83,27 @@ describe("TerrainController", () => {
     controller.destroy();
   });
 
+  it("可以应用调用方创建的浏览器 TerrainProvider", async () => {
+    const ellipsoid = provider("ellipsoid");
+    const browserProvider = provider("browser-dem");
+    const viewer = createViewer(ellipsoid);
+    const controller = new TerrainController(viewer, { ellipsoidTerrainProvider: ellipsoid });
+
+    const result = await controller.loadProvider({
+      name: "西峰山东侧 DEM",
+      bounds: [116.03, 40.15, 116.06, 40.17],
+    }, browserProvider);
+
+    expect(result.applied).toBe(true);
+    expect(viewer.scene.terrainProvider).toBe(browserProvider);
+    expect(controller.getState()).toMatchObject({
+      type: "local",
+      name: "西峰山东侧 DEM",
+      bounds: { west: 116.03, south: 40.15, east: 116.06, north: 40.17 },
+    });
+    controller.destroy();
+  });
+
   it("后续请求失败时恢复最后一个稳定状态", async () => {
     const ellipsoid = provider("ellipsoid");
     const stable = provider("stable");

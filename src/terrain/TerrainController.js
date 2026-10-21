@@ -94,6 +94,26 @@ export class TerrainController {
     });
   }
 
+  /**
+   * 应用调用方已经创建的 TerrainProvider，例如浏览器根据用户 GeoTIFF 动态生成的
+   * heightmap Provider。Provider 的外部资源生命周期仍由调用方负责；控制器只统一
+   * 处理异步竞态、状态、瓦片错误与定位，避免示例页面绕过现有地形状态机。
+   */
+  async loadProvider(terrain, provider) {
+    const entry = terrain ?? {};
+    return this.loadTerrain({
+      type: "local",
+      name: entry.name ?? "自定义地形",
+      url: entry.url,
+      bounds: entry.bounds,
+      createProvider: async () => {
+        const resolved = await (typeof provider === "function" ? provider() : provider);
+        if (!resolved) throw new Error("缺少可用的 TerrainProvider");
+        return resolved;
+      },
+    });
+  }
+
   useEllipsoid() {
     this.assertActive();
     this.requestId += 1;

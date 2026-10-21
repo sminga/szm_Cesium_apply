@@ -44,6 +44,12 @@ tools/terrain-output/<安全化数据集名称>/
 
 输出目录重名时自动追加序号，不覆盖已有数据。
 
+## 与浏览器即时预览的区别
+
+公开网站现在可以直接选择 `.tif`/`.tiff`，在 Web Worker 中按需生成当前会话的 Cesium heightmap。这条流程不需要 Docker 或 `npm run local:server`，但不会生成 `layer.json`、`.terrain` 或任何可下载发布物，刷新页面后也不会保留。
+
+本目录仍负责以下任务：处理 `.img`、`.asc`、`.dem` 或浏览器未支持的投影；使用 GDAL 统一重投影；生成可长期托管的 quantized-mesh；在发布前校验瓦片目录。两条流程的详细对照见 `docs/浏览器本地DEM加载.md`。
+
 ## 网页开发入口
 
 ```powershell
@@ -51,14 +57,14 @@ npm run local:server
 npm run dev
 ```
 
-在开发模式“地形”页顶部使用“选择并处理 DEM”。处理完成后，可以：
+在开发模式“地形”页选择非 GeoTIFF 时，页面会使用本地服务离线转换。GeoTIFF 会优先走浏览器流程；若其投影不受支持，请直接运行本页前述 Python 命令，或先用 GDAL 转为 EPSG:4326/WGS84 UTM 后重新选择。处理完成后，可以：
 
 - 点击“加载本地文件夹”直接检查结果。
 - 通过本地服务地形目录加载。
 - 小型数据复制到 `example/public/terrain/`。
 - 大型数据上传对象存储/CDN，并更新公开 `catalog.json`。
 
-公开 Vercel 网站默认禁用 DEM 转换，因为 Docker/GDAL/CTB 长任务不适合静态网站或普通 Serverless 请求。
+公开 Vercel 网站禁用 Docker/GDAL/CTB 转换，因为长任务不适合静态网站或普通 Serverless 请求；但受支持 GeoTIFF 的当前会话预览可直接在浏览器完成。
 
 ## DEM 准备要求
 

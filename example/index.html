@@ -115,11 +115,12 @@
 
           <div class="panel-page" data-page="terrain" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">DEVELOPER TOOL</span><h2>处理高程数据</h2></div><span>DEM / Docker CTB</span></div>
+              <div class="section-heading"><div><span class="section-kicker">BROWSER LOCAL</span><h2>处理本地高程数据</h2></div><span>GeoTIFF / Worker</span></div>
               <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" hidden />
-              <button id="convert-dem" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并处理 DEM</span></button>
-              <div id="dem-result" class="conversion-result" role="status"><b>DEM 工具待命</b><span>选择 DEM 文件后生成 quantized-mesh 地形</span></div>
-              <p class="tool-hint">仅供开发者离线预处理。处理结果可以直接用下方本地文件夹加载，也可以发布到公开地形目录。</p>
+              <button id="convert-dem" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并加载 DEM</span></button>
+              <button id="cancel-dem-processing" class="text-command" type="button" hidden>取消本次 DEM 处理</button>
+              <div id="dem-result" class="conversion-result" role="status"><b>浏览器 DEM 待命</b><span>GeoTIFF 将在当前浏览器处理，文件不会上传</span></div>
+              <p class="tool-hint">公开网站支持 WGS84 与 WGS84 UTM GeoTIFF，并在 Web Worker 中按需生成 Cesium heightmap。IMG、ASC、DEM 或需要发布 quantized-mesh 时仍使用开发者离线工具。</p>
             </section>
             <section class="panel-section">
               <div class="section-heading"><div><span class="section-kicker">TERRAIN MANAGEMENT</span><h2>地形管理</h2></div><span>quantized-mesh</span></div>

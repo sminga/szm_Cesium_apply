@@ -51,6 +51,10 @@ import {
   listLocalTerrains,
 } from "../services/localServiceClient.js";
 import { listAvailableTerrains } from "../services/terrainCatalogClient.js";
+import {
+  createBrowserDemTerrainSession,
+  supportsBrowserDemTerrain,
+} from "../services/browserDemTerrain.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
 import {
@@ -106,6 +110,8 @@ let catalogMode = "3d";
 let catalogEntries = [];
 let terrainEntries = [];
 let localTerrainSession = null;
+let browserDemSession = null;
+let demProcessingAbortController = null;
 
 const WIND_COLORS = [
   "rgb(74, 152, 255)", "rgb(46, 184, 229)", "rgb(56, 205, 176)",
@@ -767,6 +773,7 @@ function initializeIonAssetControls() {
 async function toggleWorldTerrain(enabled) {
   const checkbox = document.getElementById("terrain-toggle");
   const message = document.getElementById("ion-layer-message");
+  cancelPendingBrowserDemProcessing();
   try {
     if (enabled) {
       if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
@@ -774,7 +781,10 @@ async function toggleWorldTerrain(enabled) {
         requestVertexNormals: viewer.scene.globe.enableLighting,
         requestWaterMask: false,
       });
-      if (result.applied) await releaseLocalTerrainSession();
+      if (result.applied) {
+        await releaseLocalTerrainSession();
+        await releaseBrowserDemSession();
+      }
     } else if (terrainController.getState().type === "world"
       || terrainController.getState().requestedType === "world") {
       terrainController.useEllipsoid();
@@ -895,11 +905,32 @@ async function releaseLocalTerrainSession(exceptUrl) {
   await session.dispose();
 }
 
+async function releaseBrowserDemSession(exceptSession) {
+  if (!browserDemSession || browserDemSession === exceptSession) return;
+  const session = browserDemSession;
+  browserDemSession = null;
+  await session.dispose();
+}
+
+function cancelPendingBrowserDemProcessing() {
+  // 地形选择遵循“最后一次用户操作优先”。如果 GeoTIFF 仍在 Worker 中解析，继续
+  // 执行可能会在目录地形、世界地形或椭球已经选中后把旧 DEM 再次应用到场景。
+  demProcessingAbortController?.abort();
+}
+
+function throwIfDemProcessingCancelled(signal) {
+  if (!signal.aborted) return;
+  throw signal.reason instanceof Error
+    ? signal.reason
+    : new DOMException("DEM 处理已取消", "AbortError");
+}
+
 async function loadSelectedTerrain(selectedTerrain) {
   const select = document.getElementById("local-terrain-select");
   const url = selectedTerrain?.url || select.value;
   const message = document.getElementById("layer-message");
   if (!url) return setInlineMessage(message, "请先选择地形", "error");
+  cancelPendingBrowserDemProcessing();
   const terrain = selectedTerrain
     || terrainEntries.find((entry) => entry.url === url)
     || { name: select.selectedOptions[0]?.textContent || "地形", url };
@@ -910,6 +941,7 @@ async function loadSelectedTerrain(selectedTerrain) {
   if (result.applied) {
     ensureTerrainOption(terrain);
     await releaseLocalTerrainSession(terrain.url);
+    await releaseBrowserDemSession();
   }
   return result;
 }
@@ -940,8 +972,10 @@ function bindLayerControls() {
     }
   });
   document.getElementById("disable-terrain").addEventListener("click", async () => {
+    cancelPendingBrowserDemProcessing();
     terrainController.useEllipsoid();
     await releaseLocalTerrainSession();
+    await releaseBrowserDemSession();
   });
   document.getElementById("locate-terrain").addEventListener("click", () => {
     if (!terrainController.flyToCurrentTerrain()) {
@@ -962,6 +996,7 @@ function updateToolResult(id, title, detail, state = "") {
 }
 
 async function loadTerrainFolder(fileList) {
+  cancelPendingBrowserDemProcessing();
   updateToolResult("local-terrain-folder-result", "正在查询文件夹", "正在检查 layer.json 和地形瓦片", "processing");
   let session;
   try {
@@ -988,6 +1023,7 @@ async function loadTerrainFolder(fileList) {
     localTerrainSession = session;
     ensureTerrainOption(terrain);
     if (previousSession && previousSession.url !== session.url) await previousSession.dispose();
+    await releaseBrowserDemSession();
     const levelText = Number.isFinite(session.minLevel) && Number.isFinite(session.maxLevel)
       ? `，层级 ${session.minLevel}-${session.maxLevel}`
       : "";
@@ -1003,13 +1039,86 @@ async function loadTerrainFolder(fileList) {
   }
 }
 
+async function loadBrowserDem(file) {
+  const demButton = document.getElementById("convert-dem");
+  const cancelButton = document.getElementById("cancel-dem-processing");
+  cancelPendingBrowserDemProcessing();
+  const abortController = new AbortController();
+  demProcessingAbortController = abortController;
+  demButton.disabled = true;
+  cancelButton.hidden = false;
+  updateToolResult("dem-result", "正在读取本地 DEM", `${file.name}，${formatBytes(file.size)}，文件不会上传`, "processing");
+
+  let session;
+  try {
+    session = await createBrowserDemTerrainSession(file, {
+      signal: abortController.signal,
+      onStatus: (_stage, detail) => updateToolResult("dem-result", "正在处理本地 DEM", detail, "processing"),
+    });
+    throwIfDemProcessingCancelled(abortController.signal);
+    updateToolResult(
+      "dem-result",
+      "DEM 已解析，正在应用地形",
+      `${session.width} x ${session.height}，${session.projection}，层级 0-${session.maxLevel}`,
+      "processing",
+    );
+    const result = await terrainController.loadProvider({
+      name: session.name,
+      bounds: session.bounds,
+    }, session.provider);
+    throwIfDemProcessingCancelled(abortController.signal);
+    if (!result.applied) throw result.error || new Error("浏览器 DEM 地形加载请求已取消");
+
+    // Provider 已由 TerrainController 正式接管场景；从此不再把它视为“待处理任务”。
+    // 其他地形只有在成功应用后才释放该会话，避免新地形失败时留下不可用的 DEM。
+    if (demProcessingAbortController === abortController) demProcessingAbortController = null;
+    const previousSession = browserDemSession;
+    browserDemSession = session;
+    await releaseLocalTerrainSession();
+    if (previousSession && previousSession !== session) await previousSession.dispose();
+    terrainController.flyToCurrentTerrain({ duration: 1.2 });
+    updateToolResult(
+      "dem-result",
+      "本地 DEM 已加载",
+      `${session.fileName}：${session.projectionCode}，高程 ${session.minHeight.toFixed(1)}-${session.maxHeight.toFixed(1)} m，文件未上传`,
+      "success",
+    );
+  } catch (error) {
+    if (session && session !== browserDemSession) await session.dispose();
+    const cancelled = error?.name === "AbortError";
+    updateToolResult(
+      "dem-result",
+      cancelled ? "DEM 处理已取消" : "浏览器 DEM 处理失败",
+      cancelled ? file.name : (error.message || String(error)),
+      cancelled ? "" : "error",
+    );
+  } finally {
+    if (demProcessingAbortController === abortController) demProcessingAbortController = null;
+    demButton.disabled = false;
+    cancelButton.hidden = true;
+  }
+}
+
+async function convertDemWithLocalService(file) {
+  updateToolResult("dem-result", "正在离线转换 DEM", "Docker CTB 处理可能需要较长时间", "processing");
+  try {
+    const result = await convertDEMFile(file, LOCAL_SERVICE_OPTIONS);
+    updateToolResult("dem-result", "DEM 处理成功", `地形已保存到：${result.outputPath}`, "success");
+    await refreshTerrains();
+  } catch (error) {
+    updateToolResult("dem-result", "DEM 处理失败", error.message, "error");
+  }
+}
+
 function bindTools() {
   const ncInput = document.getElementById("convert-file-input");
   const demInput = document.getElementById("dem-file-input");
   const terrainFolderInput = document.getElementById("local-terrain-folder-input");
   const convertButton = document.getElementById("convert-file");
   const demButton = document.getElementById("convert-dem");
+  const cancelDemButton = document.getElementById("cancel-dem-processing");
   const terrainFolderButton = document.getElementById("load-local-terrain-folder");
+  const browserDemSupported = supportsBrowserDemTerrain(window);
 
   const folderLoadingSupported = window.isSecureContext
     && Boolean(navigator.serviceWorker)
@@ -1033,42 +1142,51 @@ function bindTools() {
 
   if (!LOCAL_TOOLS_ENABLED) {
     convertButton.disabled = true;
-    demButton.disabled = true;
     document.getElementById("service-status").textContent = "公开站点";
     updateToolResult("conversion-result", "开发者离线工具", "请在开发环境运行 npm run local:server");
-    updateToolResult("dem-result", "开发者离线工具", "DEM 需在本地处理，再发布为网站可访问资源");
-    return;
+  } else {
+    convertButton.addEventListener("click", () => ncInput.click());
+    ncInput.addEventListener("change", async () => {
+      const file = ncInput.files?.[0];
+      if (!file) return;
+      updateToolResult("conversion-result", "正在处理", file.name, "processing");
+      try {
+        const result = await convertNetCDFFile(file, LOCAL_SERVICE_OPTIONS);
+        updateToolResult("conversion-result", "转换成功", `文件已保存到：${result.outputPath}`, "success");
+      } catch (error) {
+        updateToolResult("conversion-result", "转换失败", error.message, "error");
+      } finally { ncInput.value = ""; }
+    });
   }
-  convertButton.addEventListener("click", () => ncInput.click());
-  demButton.addEventListener("click", () => demInput.click());
-  ncInput.addEventListener("change", async () => {
-    const file = ncInput.files?.[0];
-    if (!file) return;
-    updateToolResult("conversion-result", "正在处理", file.name, "processing");
-    try {
-      const result = await convertNetCDFFile(file, LOCAL_SERVICE_OPTIONS);
-      updateToolResult("conversion-result", "转换成功", `文件已保存到：${result.outputPath}`, "success");
-    } catch (error) {
-      updateToolResult("conversion-result", "转换失败", error.message, "error");
-    } finally { ncInput.value = ""; }
-  });
+
+  if (!browserDemSupported && !LOCAL_TOOLS_ENABLED) {
+    demButton.disabled = true;
+    updateToolResult("dem-result", "当前浏览器不支持", "请使用支持 Web Worker 和 File API 的现代桌面浏览器", "error");
+  } else {
+    demButton.addEventListener("click", () => demInput.click());
+    cancelDemButton.addEventListener("click", () => demProcessingAbortController?.abort());
+  }
   demInput.addEventListener("change", async () => {
     const file = demInput.files?.[0];
     if (!file) return;
-    updateToolResult("dem-result", "正在处理 DEM", "Docker CTB 处理可能需要较长时间", "processing");
     try {
-      const result = await convertDEMFile(file, LOCAL_SERVICE_OPTIONS);
-      updateToolResult("dem-result", "DEM 处理成功", `地形已保存到：${result.outputPath}`, "success");
-      await refreshTerrains();
-    } catch (error) {
-      updateToolResult("dem-result", "DEM 处理失败", error.message, "error");
+      if (/\.tiff?$/i.test(file.name) && browserDemSupported) await loadBrowserDem(file);
+      else if (LOCAL_TOOLS_ENABLED) await convertDemWithLocalService(file);
+      else updateToolResult(
+        "dem-result",
+        "浏览器模式不支持该格式",
+        "公开网站请使用 .tif 或 .tiff；IMG、ASC、DEM 需要开发者离线服务",
+        "error",
+      );
     } finally { demInput.value = ""; }
   });
-  document.querySelector('[data-panel="tools"]').addEventListener("click", async () => {
-    const health = await checkLocalService(LOCAL_SERVICE_URL);
-    document.getElementById("service-status").textContent = health ? "本地服务已连接" : "本地服务未启动";
-    updateToolResult("conversion-result", health ? "本地服务已连接" : "本地服务未启动", health ? health.windDirectory : "请运行 npm run local:server", health ? "success" : "error");
-  });
+  if (LOCAL_TOOLS_ENABLED) {
+    document.querySelector('[data-panel="tools"]').addEventListener("click", async () => {
+      const health = await checkLocalService(LOCAL_SERVICE_URL);
+      document.getElementById("service-status").textContent = health ? "本地服务已连接" : "本地服务未启动";
+      updateToolResult("conversion-result", health ? "本地服务已连接" : "本地服务未启动", health ? health.windDirectory : "请运行 npm run local:server", health ? "success" : "error");
+    });
+  }
 }
 
 async function loadExample() {
@@ -1116,7 +1234,9 @@ async function main() {
 }
 
 window.addEventListener("beforeunload", () => {
+  demProcessingAbortController?.abort();
   localTerrainSession?.dispose();
+  browserDemSession?.dispose();
   ionAssetLayers.destroy();
   terrainController.destroy();
 }, { once: true });
