@@ -12,6 +12,7 @@
 | `browserDemTerrain.js` | 支持 File 与 Web Worker 的浏览器 | 创建浏览器 DEM 会话、自定义 Cesium `TerrainProvider`，并管理 Worker 请求、取消和释放。 |
 | `browserDemTerrain.worker.js` | 模块 Web Worker | 使用 `geotiff` 解码栅格，按 Cesium 瓦片请求采样 heightmap，并维护小型 LRU 缓存。 |
 | `demRasterMath.js` | 浏览器与单元测试 | 识别 WGS84/WGS84 UTM、执行 `proj4` 坐标转换、计算全球瓦片范围、NoData 插值和层级。 |
+| `vectorFileLoader.js` | 浏览器与单元测试 | 读取本地 GeoJSON/TopoJSON/Shapefile 文件、限制文件/要素规模，并将结果转换成 Cesium 可加载的 GeoJSON FeatureCollection。 |
 
 ## 公开地形目录
 
@@ -63,6 +64,20 @@ await session.dispose();
 
 文件夹检查器会从 `layer.json` 提取相机定位范围。CTB 局部 DEM 常把 `bounds` 写成全球瓦片金字塔范围，同时用 `valid_bounds` 保存真实高程覆盖范围；页面优先使用合法的 `valid_bounds`，缺失或无效时再兼容回退到 `bounds`。这只影响“定位当前地形”，不会改写原文件，也不会改变 Cesium Provider 请求瓦片的方式。
 
+## 浏览器本地矢量文件
+
+```js
+const { geojson, format, featureCount } = await loadVectorFile(file);
+const dataSource = await Cesium.GeoJsonDataSource.load(geojson, { clampToGround: true });
+await viewer.dataSources.add(dataSource);
+```
+
+`loadVectorFile(input)` 只读取浏览器选择的本地文件，不会执行 HTTP 请求。GeoJSON 经过格式和规模校验后返回；TopoJSON 通过 `topoJsonToGeoJson()` 展开仿射变换、delta 编码 arcs 和负值反向弧线引用；Shapefile 通过项目依赖 `shpjs@6.2.0` 读取 ZIP 或同名 `.shp/.dbf/.prj/.cpg` 配套文件，再统一转换为 GeoJSON。输出供 Cesium 原生 DataSource 接入。限制为总大小 50 MiB 和 100,000 个要素；超限或文件结构无效会抛出可显示的异常。
+
+不支持 KML、外部 URL 文件或服务端上传。Shapefile 建议优先选择包含 `.shp`、`.dbf`、`.prj` 等配套文件的 ZIP；缺少 `.dbf` 时可能没有属性字段，缺少 `.prj` 时无法按投影信息转换。大数据集建议离线简化或拆分，再把适合公开浏览的数据发布为静态 GeoJSON/TopoJSON。
+
+`shpjs` 来源：npm package `shpjs@6.2.0`，MIT License。它只负责浏览器端 Shapefile 解析，本项目没有复制其源码；构建时由 Vite 打入前端 bundle。引入它会增加生产 bundle 体积，需通过 `npm run build:vercel` 检查实际影响。
+
 ## 错误和安全边界
 
 - `localServiceClient.js` 默认地址是 `127.0.0.1:8765`，生产代码只有显式开启时才能调用。
@@ -74,4 +89,4 @@ await session.dispose();
 
 ## 测试与学习
 
-`tests/example/` 分别测试公开目录、浏览器 GeoTIFF、浏览器文件夹和 ion 资产管理。学习浏览器 DEM 时建议按 `demRasterMath.js`、`browserDemTerrain.worker.js`、`browserDemTerrain.js` 的顺序阅读，再对照 `TerrainController.loadProvider()` 和 `main.js` 的会话切换逻辑。
+`tests/example/` 分别测试公开目录、浏览器 GeoTIFF、浏览器文件夹、ion 资产、矢量格式解码和场景工具辅助逻辑。学习浏览器 DEM 时建议按 `demRasterMath.js`、`browserDemTerrain.worker.js`、`browserDemTerrain.js` 的顺序阅读；学习矢量时先读 `vectorFileLoader.js`，再看 `SceneToolsController` 如何调用 Cesium 原生 `GeoJsonDataSource` 并登记图层。

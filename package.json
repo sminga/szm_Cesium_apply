@@ -62,6 +62,7 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "netcdfjs": "^4.0.0"
+    "netcdfjs": "^4.0.0",
+    "shpjs": "^6.2.0"
   }
 }

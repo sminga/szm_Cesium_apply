@@ -141,7 +141,63 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="tools" hidden></div>
+          <div class="panel-page" data-page="tools" hidden>
+            <section class="panel-section section-command" aria-labelledby="scene-tools-title">
+              <div class="section-heading"><div><span class="section-kicker">SCENE TOOLS</span><h2 id="scene-tools-title">地图标注与路线</h2></div><span>浏览器会话</span></div>
+              <div class="scene-tool-mode-grid" role="group" aria-label="地图操作模式">
+                <button class="secondary-command" type="button" data-scene-mode="point" aria-pressed="false"><i data-lucide="map-pin"></i><span>创建点</span></button>
+                <button class="secondary-command" type="button" data-scene-mode="route" aria-pressed="false"><i data-lucide="route"></i><span>绘制路线</span></button>
+                <button class="secondary-command scene-tool-wide" type="button" data-scene-mode="coordinate" aria-pressed="false"><i data-lucide="crosshair"></i><span>点击获取坐标</span></button>
+              </div>
+              <div id="scene-tool-mode-status" class="conversion-result" role="status" aria-live="polite"><b>地图工具待命</b><span>选择一种模式后在地图上操作</span></div>
+              <button id="scene-tool-cancel" class="text-command" type="button" hidden>退出地图操作</button>
+            </section>
+
+            <section class="panel-section" aria-labelledby="scene-point-title">
+              <div class="section-heading"><div><span class="section-kicker">POINT ANNOTATIONS</span><h2 id="scene-point-title">点位标注</h2></div><span id="scene-point-count">0 个</span></div>
+              <label class="tool-field"><span>当前点位</span><select id="scene-point-select" aria-label="选择点位"><option value="">暂无点位</option></select></label>
+              <label class="tool-field"><span>名称</span><input id="scene-point-name" type="text" maxlength="80" placeholder="选择或创建点位后编辑" /></label>
+              <div class="scene-tool-actions">
+                <button id="scene-point-save" class="small-command" type="button" disabled>保存名称</button>
+                <button id="scene-point-remove" class="small-command" type="button" disabled>删除点位</button>
+              </div>
+            </section>
+
+            <section class="panel-section" aria-labelledby="scene-route-title">
+              <div class="section-heading"><div><span class="section-kicker">MODEL ROUTE</span><h2 id="scene-route-title">模型移动路线</h2></div><span id="scene-route-count">0 条</span></div>
+              <p class="tool-hint">选择“绘制路线”后依次点击地图，至少添加两个点，再结束路线。选择单文件 GLB 绑定模型；文件仅在当前浏览器使用，不会上传。</p>
+              <label class="tool-field"><span>当前路线</span><select id="scene-route-select" aria-label="选择路线"><option value="">暂无路线</option></select></label>
+              <label class="tool-field"><span>路线名称</span><input id="scene-route-name" type="text" maxlength="80" placeholder="选择或完成路线后编辑" /></label>
+              <label class="tool-field"><span>移动速度（米/秒）</span><input id="scene-route-speed" type="number" min="0.1" max="10000" step="1" value="60" /></label>
+              <div class="scene-tool-actions">
+                <button id="scene-route-finish" class="small-command" type="button" disabled>结束路线</button>
+                <button id="scene-route-save" class="small-command" type="button" disabled>保存名称</button>
+                <button id="scene-route-remove" class="small-command" type="button" disabled>删除路线</button>
+              </div>
+              <label class="small-command scene-model-file" for="scene-model-file">选择 GLB 模型<input id="scene-model-file" type="file" accept=".glb,model/gltf-binary" hidden /></label>
+              <div class="scene-tool-actions">
+                <button id="scene-route-play" class="small-command" type="button" disabled>播放</button>
+                <button id="scene-route-pause" class="small-command" type="button" disabled>暂停</button>
+                <button id="scene-route-resume" class="small-command" type="button" disabled>继续</button>
+                <button id="scene-route-stop" class="small-command" type="button" disabled>停止</button>
+              </div>
+              <div id="scene-route-status" class="conversion-result" role="status" aria-live="polite"><b>尚无路线</b><span>路线与模型只保存在当前浏览器会话</span></div>
+            </section>
+
+            <section class="panel-section" aria-labelledby="scene-coordinate-title">
+              <div class="section-heading"><div><span class="section-kicker">COORDINATE PICK</span><h2 id="scene-coordinate-title">坐标拾取结果</h2></div><span>WGS84</span></div>
+              <output id="scene-coordinate-result" class="scene-coordinate-result" aria-live="polite">点击“点击获取坐标”，再选择地图位置</output>
+              <p class="tool-hint">优先读取可用的场景深度位置，其次读取地形表面；最后回退到 WGS84 椭球。结果会标明高度来源。</p>
+            </section>
+
+            <section class="panel-section" aria-labelledby="scene-vector-title">
+              <div class="section-heading"><div><span class="section-kicker">LOCAL VECTOR DATA</span><h2 id="scene-vector-title">加载矢量文件</h2></div><span>GeoJSON / TopoJSON / Shapefile</span></div>
+              <button id="scene-vector-load" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并加载矢量文件</span></button>
+              <input id="scene-vector-file" type="file" accept=".geojson,.json,.zip,.shp,.dbf,.prj,.cpg,.shx,application/geo+json,application/json,application/zip" multiple hidden />
+              <div id="scene-vector-status" class="conversion-result" role="status" aria-live="polite"><b>矢量文件待命</b><span>支持 GeoJSON、TopoJSON 与 Shapefile ZIP；单次选择总大小最大 50 MiB</span></div>
+              <p class="tool-hint">文件在浏览器本地解析，不会上传。Shapefile 建议选择包含 .shp、.dbf、.prj 等配套文件的 ZIP；也可同时选择同名配套文件。</p>
+            </section>
+          </div>
         </div>
       </aside>
 

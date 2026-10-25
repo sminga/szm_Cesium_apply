@@ -8,6 +8,7 @@
 | --- | --- |
 | `main.js` | 网站入口：创建 Viewer、初始化风场和地形管理器、绑定 DOM、加载示例数据、维护状态栏与图层列表。 |
 | `ionAssetLayerManager.js` | 按需加载/释放 Cesium ion 影像与 3D Tiles，并用请求版本号避免异步加载完成后恢复已关闭图层。 |
+| `sceneToolsController.js` | 管理工具页点位、路线、GLB Entity、坐标拾取、浏览器文件关联、Viewer 时钟恢复和 Cesium/DOM 资源释放。 |
 | `layers/` | 统一场景资源注册、能力适配、地形切换竞态保护和右侧面板渲染，详见该目录 README。 |
 | `windControlScale.js` | 在页面滑块位置与核心库使用的 `speedFactor` 浮点值之间转换，并统一处理数值填写框的范围限制、步进对齐和无效值回退。 |
 | `favicon.png` | 示例网站图标。 |
@@ -49,6 +50,14 @@ manager.destroy();
 
 管理器不读取 DOM，也不持有 Token 字符串。Token 由入口设置到 Cesium，并通过布尔值告知管理器是否可用。关闭或销毁时会移除 Cesium 资源；过期的成功结果不会恢复已关闭图层，过期的失败也不会覆盖当前关闭状态，晚到的 3D Tiles 结果会主动销毁。
 
+## 地图工具
+
+`SceneToolsController` 只属于示例网站，不进入核心库。构造时接收 Viewer、Cesium 命名空间和现有 `SceneLayerRegistry`，自身负责工具表单与 Cesium 左键事件。点、完整路线和 GeoJSON/TopoJSON/Shapefile 数据源归入 `vector` 组，复用图层显隐、定位和移除动作。Shapefile 文件由浏览器 `File`/`FileList` 读取后交给 `vectorFileLoader.js`，不会上传到服务端。
+
+地图模式互斥。点创建支持重复落点；路线先进入临时预览，用户结束后才登记为正式条目，取消会清理临时 Polyline 和路径点。模型使用 `ModelGraphics` 与临时 Blob URL，按路线点距离和用户速度生成时间采样位置，并由 `VelocityOrientationProperty` 计算朝向。播放前备份 Viewer Clock；停止、完成、移除路线或页面销毁时恢复原时钟状态。
+
+页面卸载时必须调用 `destroy()`，解绑事件、停止播放、移除 Entity/DataSource 并撤销 GLB Object URL。异步加载完成时还要检查控制器是否已销毁，避免迟到的数据重新进入场景。工具入口和边界见 [`docs/工具页地图标注与路线.md`](../../docs/工具页地图标注与路线.md)。
+
 ## Vercel 与配置边界
 
 - `main.js` 随 Vite 构建到 `site-dist`，不能依赖开发者绝对路径。
@@ -62,5 +71,5 @@ manager.destroy();
 
 - `tests/example/ionAssetLayerManager.test.js` 覆盖 ion 图层增删、异步取消和资源销毁。
 - `tests/example/browserDemTerrain.test.js` 和 `demRasterMath.test.js` 覆盖浏览器 DEM 会话、投影、瓦片编号、NoData 与资源释放。
-- 页面完整交互通过 `npm run build:vercel` 后的生产预览验证。
+- 页面完整交互通过 `npm run build:vercel` 后的生产预览验证；本次还使用 `D:\下载\内蒙古自治区` 的 WGS84 Polygon Shapefile 文件组完成浏览器导入，页面显示 12 个要素并在右侧“矢量数据”组登记。
 - 建议先读 `example/index.html` 了解控件，再按 `main()` 调用顺序阅读 `main.js`，最后查看 `services/`。

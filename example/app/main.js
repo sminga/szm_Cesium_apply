@@ -14,6 +14,7 @@ import {
   Circle,
   CircleCheck,
   CircleOff,
+  Crosshair,
   createIcons,
   Eye,
   EyeOff,
@@ -31,6 +32,7 @@ import {
   LoaderCircle,
   LocateFixed,
   Map as MapIcon,
+  MapPin,
   MoonStar,
   MoreHorizontal,
   Mountain,
@@ -39,6 +41,7 @@ import {
   PanelRightClose,
   RefreshCw,
   RotateCcw,
+  Route,
   Satellite,
   Server,
   Shapes,
@@ -72,6 +75,7 @@ import {
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
 import { LayerPanelController } from "./layers/LayerPanelController.js";
+import { SceneToolsController } from "./sceneToolsController.js";
 import { createTerrainActivationRunner } from "./layers/terrainActivation.js";
 import { SceneLayerRegistry } from "./layers/SceneLayerRegistry.js";
 import {
@@ -132,6 +136,7 @@ const sceneLayers = new SceneLayerRegistry();
 let activeLayerId = null;
 let activeTerrainSourceId = "terrain:ellipsoid";
 let basemapLayer = null;
+let sceneTools = null;
 let basemapRequestId = 0;
 let catalogMode = "3d";
 let catalogEntries = [];
@@ -1404,6 +1409,9 @@ async function convertDemWithLocalService(file) {
 }
 
 function bindTools() {
+  sceneTools = new SceneToolsController(viewer, Cesium, sceneLayers, {
+    onStatus: (message) => setStatus(message),
+  });
   const ncInput = document.getElementById("convert-file-input");
   const demInput = document.getElementById("dem-file-input");
   const terrainFolderInput = document.getElementById("local-terrain-folder-input");
@@ -1515,9 +1523,9 @@ async function main() {
     icons: {
       Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
       ArrowDown, ArrowUp, ChevronDown, ChevronsDown, ChevronsUp, Circle, CircleCheck, Eye, EyeOff,
-      GripVertical, Landmark, Layers2, Layers3, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon,
+      Crosshair, GripVertical, Landmark, Layers2, Layers3, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon, MapPin,
       MoreHorizontal, MoonStar, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
-      RotateCcw, Satellite, Server, Shapes, Tags, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
+      RotateCcw, Route, Satellite, Server, Shapes, Tags, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
@@ -1534,6 +1542,7 @@ window.addEventListener("beforeunload", () => {
   for (const session of localTerrainSources.values()) session.dispose();
   browserDemSession?.dispose();
   browserDemSources.clear();
+  sceneTools?.destroy();
   layerPanel.destroy();
   sceneLayers.clear({ dispose: false });
   ionAssetLayers.destroy();

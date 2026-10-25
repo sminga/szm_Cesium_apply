@@ -1684,3 +1684,103 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+.scene-tool-mode-grid,
+.scene-tool-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.scene-tool-mode-grid .secondary-command {
+  justify-content: flex-start;
+  min-height: 38px;
+  font-size: 11px;
+}
+
+.scene-tool-mode-grid .secondary-command.active {
+  color: var(--text-1);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-2));
+}
+
+.scene-tool-mode-grid svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.scene-tool-wide {
+  grid-column: 1 / -1;
+}
+
+.tool-field {
+  display: grid;
+  grid-template-columns: minmax(86px, 0.7fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 10px;
+}
+
+.tool-field input,
+.tool-field select {
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 5px 8px;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  font: inherit;
+}
+
+.tool-field input:focus-visible,
+.tool-field select:focus-visible,
+.scene-tool-mode-grid button:focus-visible,
+.scene-tool-actions button:focus-visible,
+.scene-model-file:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scene-tool-actions {
+  margin-top: 8px;
+}
+
+.scene-tool-actions .small-command,
+.scene-model-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.scene-model-file {
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.scene-model-file:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.scene-coordinate-result {
+  display: block;
+  min-width: 0;
+  padding: 9px 10px;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent);
+  font-size: 10px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
