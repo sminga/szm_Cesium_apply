@@ -5,6 +5,7 @@
 | 文件 | 覆盖行为 |
 | --- | --- |
 | `test_convert_netcdf.py` | 变量映射、维度规范化、单层高度、垂直速度单位和异常条带修复。 |
+| `test_convert_wrf.py` | WRF 共同 MSL 高度、逐柱垂直插值、有效矩形裁剪。 |
 | `test_local_service.py` | 文件名安全、路径限制、目录接口、缓存/HEAD、上传转换和错误响应。 |
 | `test_terrain_dataset.py` | `layer.json`、瓦片数量、层级、`valid_bounds`/`bounds` 定位优先级、大小和无效数据集报告。 |
 

@@ -163,15 +163,8 @@
 
       <aside id="layer-panel" class="workspace-panel panel-right" aria-label="图层管理">
         <div class="workspace-panel-heading"><div><span class="eyebrow">SCENE STACK</span><h1>图层管理</h1></div><button id="close-right-panel" class="panel-close-button" type="button" title="收起图层面板" aria-label="收起图层面板"><i data-lucide="panel-right-close"></i></button></div>
-        <div class="layer-panel-summary"><span class="layer-summary-icon"><i data-lucide="layers-3"></i></span><span><b>风场图层</b><small>选择图层后调整高度与显示参数</small></span><strong id="wind-layer-count">0 层</strong></div>
-        <div id="wind-layer-list" class="wind-layer-list"><p class="empty-message">尚未加载风场</p></div>
-        <div class="scene-stack">
-          <div class="section-heading"><div><span class="section-kicker">SCENE</span><h2>场景状态</h2></div><span class="scene-state-dot">READY</span></div>
-          <div class="scene-state-row"><i data-lucide="satellite"></i><span>底图</span><b id="scene-basemap-label">OpenStreetMap</b></div>
-          <div class="scene-state-row"><i data-lucide="image"></i><span>ion 影像</span><b id="scene-ion-imagery-label">0 项</b></div>
-          <div class="scene-state-row"><i data-lucide="building-2"></i><span>3D Tiles</span><b id="scene-buildings-label">0 项</b></div>
-          <div class="scene-state-row"><i data-lucide="mountain"></i><span>地形</span><b id="scene-terrain-label">椭球</b></div>
-        </div>
+        <div class="layer-panel-summary"><span class="layer-summary-icon"><i data-lucide="layers-3"></i></span><span><b>场景资源</b><small>分类型管理显隐、定位、顺序与移除</small></span><strong id="scene-layer-count">0 项</strong></div>
+        <div id="scene-layer-list" class="scene-layer-list" aria-live="polite"><p class="empty-message">正在初始化场景资源</p></div>
       </aside>
     </div>
 

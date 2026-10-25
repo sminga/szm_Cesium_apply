@@ -6,7 +6,7 @@
 
 | 目录 | 作用 |
 | --- | --- |
-| `netcdf/` | 把 NetCDF-4/HDF5 或非标准风场整理为浏览器可读的 NetCDF-3。 |
+| `netcdf/` | 通用 NetCDF-4/HDF5 风场规范化，以及使用独立 WRF 依赖处理错列网格、曲线坐标和地形跟随高度。 |
 | `terrain/` | 检查地形数据集，并通过 Docker/GDAL/CTB 把 DEM 转成 quantized-mesh。 |
 | `server/` | 为开发页面提供风场目录、文件下载、转换接口和地形静态托管。 |
 | `converted/` | NetCDF 转换结果和开发模式风场目录。 |
@@ -21,6 +21,9 @@ npm run local:server
 
 # 直接转换 NetCDF
 py tools/netcdf/convert_netcdf.py input.nc
+
+# WRF wrfout 使用独立 Conda 环境，详细参数见 tools/netcdf/README.md
+python tools/netcdf/convert_wrf.py input_wrfout.nc --time-index 0 --height-step 500
 
 # 直接转换 DEM，需要 Docker Desktop
 py tools/terrain/build_quantized_mesh.py input.tif
@@ -38,4 +41,4 @@ npm run test:python
 
 ## 学习顺序
 
-先阅读 `netcdf/README.md` 或 `terrain/README.md` 理解具体格式，再阅读 `server/README.md` 了解网页如何调用。接口和转换测试位于 `tests/tools/`。
+先阅读 `netcdf/README.md` 或 `terrain/README.md` 理解具体格式，再阅读 `server/README.md` 了解网页如何调用。WRF 转换是开发者离线预处理，不由公开 Vercel 网站执行。接口和转换测试位于 `tests/tools/`。

@@ -4,33 +4,47 @@
 import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import {
+  ArrowDown,
+  ArrowUp,
   Box,
   Building2,
+  ChevronDown,
+  ChevronsDown,
+  ChevronsUp,
+  Circle,
+  CircleCheck,
   CircleOff,
   createIcons,
   Eye,
+  EyeOff,
   FileUp,
   FolderOpen,
   FolderCog,
   Globe2,
+  GripVertical,
   Home,
   Image as ImageIcon,
   Landmark,
   Layers2,
   Layers3,
   ListChecks,
+  LoaderCircle,
   LocateFixed,
-  Map,
+  Map as MapIcon,
   MoonStar,
+  MoreHorizontal,
   Mountain,
   MountainSnow,
   PanelLeftClose,
   PanelRightClose,
   RefreshCw,
+  RotateCcw,
   Satellite,
   Server,
+  Shapes,
   Tags,
   Trash2,
+  TriangleAlert,
   Wind,
   Wrench,
   X,
@@ -57,6 +71,18 @@ import {
 } from "../services/browserDemTerrain.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
+import { LayerPanelController } from "./layers/LayerPanelController.js";
+import { createTerrainActivationRunner } from "./layers/terrainActivation.js";
+import { SceneLayerRegistry } from "./layers/SceneLayerRegistry.js";
+import {
+  basemapLayerDefinition,
+  demSessionDetail,
+  ionImageryLayerDefinition,
+  ionTilesetLayerDefinition,
+  taskLayerDefinition,
+  terrainSourceDefinition,
+  windLayerDefinition,
+} from "./layers/layerAdapters.js";
 import {
   formatSpeedFactor,
   normalizeParameterValue,
@@ -88,8 +114,7 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
 });
 // Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据都带有署名要求。
 // 公开 Vercel 页面必须保留 Cesium credit 容器，具体位置由页面 CSS 调整到地图右下角。
-viewer.cesiumWidget.creditContainer.style.display = "none";
-// viewer.cesiumWidget.creditContainer.style.removeProperty("display");
+viewer.cesiumWidget.creditContainer.style.removeProperty("display");
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -103,15 +128,22 @@ const windLayers = new WindLayerManager(viewer);
 const ionAssetLayers = new IonAssetLayerManager(viewer, Cesium, {
   accessTokenAvailable: Boolean(CESIUM_ION_TOKEN),
 });
+const sceneLayers = new SceneLayerRegistry();
 let activeLayerId = null;
+let activeTerrainSourceId = "terrain:ellipsoid";
 let basemapLayer = null;
 let basemapRequestId = 0;
 let catalogMode = "3d";
 let catalogEntries = [];
 let terrainEntries = [];
 let localTerrainSession = null;
+let localTerrainSourceId = null;
+const localTerrainSources = new Map();
 let browserDemSession = null;
 let demProcessingAbortController = null;
+let demLocalConversionAbortController = null;
+const browserDemSources = new Map();
+let demTaskSequence = 0;
 
 const WIND_COLORS = [
   "rgb(74, 152, 255)", "rgb(46, 184, 229)", "rgb(56, 205, 176)",
@@ -148,6 +180,20 @@ const sharedOptions = {
 const status = document.getElementById("status");
 const catalogDialog = document.getElementById("wind-catalog-dialog");
 const terrainCatalogDialog = document.getElementById("terrain-catalog-dialog");
+const layerPanel = new LayerPanelController(
+  document.getElementById("scene-layer-list"),
+  sceneLayers,
+  {
+    onSelect: (entry) => {
+      if (entry.group === "wind") selectLayer(entry.id);
+    },
+    onError: (error) => setStatus(error.message || String(error), true),
+  },
+);
+
+sceneLayers.subscribe((entries) => {
+  document.getElementById("scene-layer-count").textContent = `${entries.filter((entry) => entry.group !== "task").length} 项`;
+});
 
 function setStatus(message, error = false) {
   status.textContent = message;
@@ -167,7 +213,6 @@ function renderTerrainState(state) {
   const localMessage = document.getElementById("layer-message");
   const summary = document.getElementById("terrain-state");
   const locateButton = document.getElementById("locate-terrain");
-  const sceneTerrainLabel = document.getElementById("scene-terrain-label");
   const requestedWorld = state.status === "loading" && state.requestedType === "world";
   worldToggle.checked = requestedWorld || (state.status !== "loading" && state.type === "world");
   locateButton.disabled = !state.bounds || state.type !== "local";
@@ -193,9 +238,12 @@ function renderTerrainState(state) {
   }
   summary.querySelector("span").textContent = detail;
   summary.className = `conversion-result${messageState ? ` ${messageState}` : ""}`;
-  sceneTerrainLabel.textContent = state.status === "loading"
-    ? "加载中"
-    : state.type === "ellipsoid" ? "椭球" : state.name;
+  if (state.status !== "loading" && state.status !== "error" && sceneLayers.has(activeTerrainSourceId)) {
+    sceneLayers.update(activeTerrainSourceId, {
+      status: state.status,
+      detail,
+    });
+  }
 
   const target = state.requestedType === "world" || state.type === "world"
     ? worldMessage
@@ -248,15 +296,14 @@ function updateSummary() {
   const count2d = list.filter((entry) => entry.kind === "2d").length;
   const count3d = list.filter((entry) => entry.kind === "3d").length;
   document.getElementById("data-summary").textContent = `${count2d} 个二维层 / ${count3d} 个三维层`;
-  document.getElementById("wind-layer-count").textContent = `${list.length} 层`;
 }
 
 function selectLayer(id) {
   const entry = windLayers.get(id);
   if (!entry) return;
   activeLayerId = id;
+  sceneLayers.setExclusiveActive("wind", id);
   updateLegend(entry.layer.windData.speed);
-  document.querySelectorAll(".wind-layer-item").forEach((item) => item.classList.toggle("active", item.dataset.layerId === id));
   renderVerticalControls(entry);
 }
 
@@ -302,54 +349,24 @@ function layerSubtitle(entry) {
 }
 
 function renderWindLayerList() {
-  const container = document.getElementById("wind-layer-list");
   const entries = windLayers.list();
   updateSummary();
   if (!entries.length) {
-    container.innerHTML = '<p class="empty-message">尚未加载风场</p>';
     document.getElementById("vertical-controls").hidden = true;
     return;
   }
-  container.replaceChildren(...entries.map((entry) => {
-    const row = document.createElement("div");
-    row.className = `wind-layer-item${entry.id === activeLayerId ? " active" : ""}`;
-    row.dataset.layerId = entry.id;
-    row.innerHTML = `
-      <button class="layer-select" type="button">
-        <span class="layer-kind">${entry.kind.toUpperCase()}</span>
-        <span><b></b><small></small></span>
-      </button>
-      <div class="layer-actions">
-        ${entry.kind === "2d" ? '<input class="layer-height-input" type="number" step="100" title="显示高度（米）" />' : ""}
-        <button type="button" data-action="visible" title="显隐"><i data-lucide="eye"></i></button>
-        <button type="button" data-action="zoom" title="定位"><i data-lucide="locate-fixed"></i></button>
-        <button type="button" data-action="remove" title="删除"><i data-lucide="trash-2"></i></button>
-      </div>`;
-    row.querySelector("b").textContent = entry.name;
-    row.querySelector("small").textContent = layerSubtitle(entry);
-    const heightInput = row.querySelector(".layer-height-input");
-    if (heightInput) {
-      heightInput.value = String(entry.layer.options.fixedHeight);
-      heightInput.addEventListener("change", () => {
-        entry.layer.setHeight(Number(heightInput.value));
-        row.querySelector("small").textContent = layerSubtitle(entry);
-      });
-    }
-    row.querySelector(".layer-select").addEventListener("click", () => selectLayer(entry.id));
-    row.querySelector('[data-action="visible"]').addEventListener("click", () => {
-      entry.layer.show = !entry.layer.show;
-      row.classList.toggle("muted", !entry.layer.show);
+  for (const entry of entries) {
+    const definition = windLayerDefinition(entry, windLayers, {
+      detail: layerSubtitle,
+      onRemoved: async (removedId) => {
+        if (activeLayerId === removedId) activeLayerId = windLayers.list().at(-1)?.id ?? null;
+        updateSummary();
+        if (activeLayerId) selectLayer(activeLayerId);
+        else document.getElementById("vertical-controls").hidden = true;
+      },
     });
-    row.querySelector('[data-action="zoom"]').addEventListener("click", () => entry.layer.zoomTo(1.2));
-    row.querySelector('[data-action="remove"]').addEventListener("click", () => {
-      windLayers.remove(entry.id);
-      if (activeLayerId === entry.id) activeLayerId = windLayers.list().at(-1)?.id ?? null;
-      renderWindLayerList();
-      if (activeLayerId) selectLayer(activeLayerId);
-    });
-    return row;
-  }));
-  createIcons({ icons: { Eye, LocateFixed, Trash2 }, root: container });
+    sceneLayers.upsert({ ...definition, active: entry.id === activeLayerId });
+  }
 }
 
 async function loadWindFile(file, kind, options = {}) {
@@ -690,7 +707,7 @@ async function setBasemap(mode) {
     basemapLayer = nextBasemapLayer;
     document.querySelectorAll("[data-basemap]").forEach((button) => button.classList.toggle("active", button.dataset.basemap === mode));
     document.getElementById("basemap-status").textContent = label;
-    document.getElementById("scene-basemap-label").textContent = label;
+    sceneLayers.upsert(basemapLayerDefinition({ mode, name: label, layer: basemapLayer }));
     setInlineMessage(message, `${label} 已加载`, "success");
   } catch (error) {
     setInlineMessage(message, `底图切换失败：${error.message}`, "error");
@@ -698,8 +715,8 @@ async function setBasemap(mode) {
 }
 
 function updateIonAssetSummary() {
-  document.getElementById("scene-ion-imagery-label").textContent = `${ionAssetLayers.imageryCount} 项`;
-  document.getElementById("scene-buildings-label").textContent = `${ionAssetLayers.tilesetCount} 项`;
+  // 右侧总数由 SceneLayerRegistry 订阅统一计算；保留该函数作为左侧开关流程的
+  // 同步节点，后续若需要分类型计数可在这里扩展，而不再直接维护第二套列表 DOM。
 }
 
 /**
@@ -715,6 +732,21 @@ async function toggleIonImagery(input) {
     setInlineMessage(message, enabled ? `正在加载 ${label}` : `正在关闭 ${label}`);
     const result = await ionAssetLayers.setImageryAsset(assetId, enabled);
     if (!result.applied) return;
+    const layerId = `ion-imagery:${assetId}`;
+    if (enabled) {
+      sceneLayers.register(ionImageryLayerDefinition({
+        assetId,
+        name: label,
+        layer: result.layer,
+        manager: ionAssetLayers,
+        viewer,
+        registry: sceneLayers,
+        onRemoved: () => { input.checked = false; },
+      }));
+      await sceneLayers.move(layerId, 0);
+    } else {
+      await sceneLayers.remove(layerId, { dispose: false });
+    }
     updateIonAssetSummary();
     setInlineMessage(message, `${label} 已${enabled ? "开启" : "关闭"}`, enabled ? "success" : "");
   } catch (error) {
@@ -744,6 +776,19 @@ async function toggleIonTileset(input) {
     setInlineMessage(message, enabled ? `正在加载 ${label}` : `正在关闭 ${label}`);
     const result = await ionAssetLayers.setTilesetAsset(assetId, enabled, options);
     if (!result.applied) return;
+    const layerId = `ion-tileset:${assetId}`;
+    if (enabled) {
+      sceneLayers.register(ionTilesetLayerDefinition({
+        assetId,
+        name: label,
+        tileset: result.tileset,
+        manager: ionAssetLayers,
+        viewer,
+        onRemoved: () => { input.checked = false; },
+      }));
+    } else {
+      await sceneLayers.remove(layerId, { dispose: false });
+    }
     updateIonAssetSummary();
     setInlineMessage(message, `${label} 已${enabled ? "开启" : "关闭"}`, enabled ? "success" : "");
   } catch (error) {
@@ -770,6 +815,136 @@ function initializeIonAssetControls() {
   );
 }
 
+function terrainSourceId(terrain) {
+  const source = terrain.source || "catalog";
+  return `terrain:${source}:${terrain.url || terrain.name}`;
+}
+
+function flyToBounds(bounds, duration = 1.2) {
+  if (!bounds) return false;
+  const values = Array.isArray(bounds)
+    ? bounds
+    : [bounds.west, bounds.south, bounds.east, bounds.north];
+  if (values.length !== 4 || !values.every(Number.isFinite)) return false;
+  viewer.camera.flyTo({
+    destination: Cesium.Rectangle.fromDegrees(...values),
+    duration,
+  });
+  return true;
+}
+
+/**
+ * TerrainController 保证异步请求只有最后一次能够进入场景；这里再把请求状态映射到
+ * 统一地形源条目。只有新 Provider 成功应用后才释放活动的浏览器 DEM Worker，
+ * 因而失败切换不会破坏仍在显示的旧地形。
+ */
+const runTerrainActivation = createTerrainActivationRunner({
+  registry: sceneLayers,
+  getActiveId: () => activeTerrainSourceId,
+  setActiveId: (id) => { activeTerrainSourceId = id; },
+  releasePrevious: releaseBrowserDemSession,
+});
+
+function registerCatalogTerrainSource(terrain) {
+  const id = terrainSourceId(terrain);
+  sceneLayers.upsert(terrainSourceDefinition({
+    id,
+    type: "quantized-mesh",
+    name: terrain.name || "目录地形",
+    source: terrain.source === "local" ? "开发者本地目录" : "公开地形目录",
+    detail: terrain.bounds ? "quantized-mesh · 已提供覆盖范围" : "quantized-mesh",
+    bounds: terrain.bounds,
+    active: id === activeTerrainSourceId,
+    activate: () => runTerrainActivation(id, async () => {
+      cancelPendingBrowserDemProcessing();
+      const result = await terrainController.loadLocal(terrain, {
+        requestVertexNormals: viewer.scene.globe.enableLighting,
+        requestWaterMask: false,
+      });
+      if (result.applied) ensureTerrainOption(terrain);
+      return result;
+    }),
+    locate: terrain.bounds ? () => flyToBounds(terrain.bounds) : undefined,
+    removable: true,
+    remove: async () => {
+      if (activeTerrainSourceId === id) await sceneLayers.perform("terrain:ellipsoid", "activate");
+      const select = document.getElementById("local-terrain-select");
+      Array.from(select.options).find((option) => option.value === terrain.url)?.remove();
+      syncTerrainActions();
+    },
+  }));
+  return id;
+}
+
+function registerLocalFolderTerrainSource(session) {
+  const id = `terrain:browser-folder:${session.id}`;
+  const terrain = {
+    name: session.name,
+    url: session.url,
+    bounds: session.bounds,
+    source: "browser-folder",
+  };
+  localTerrainSources.set(id, session);
+  sceneLayers.register(terrainSourceDefinition({
+    id,
+    type: "quantized-mesh-folder",
+    name: session.name,
+    source: "浏览器本地文件夹",
+    detail: `${session.tileCount} 个瓦片 · 文件未上传`,
+    bounds: session.bounds,
+    localOnly: true,
+    removable: true,
+    activate: () => runTerrainActivation(id, () => terrainController.loadLocal(terrain, {
+      requestVertexNormals: viewer.scene.globe.enableLighting,
+      requestWaterMask: false,
+    })),
+    locate: session.bounds ? () => flyToBounds(session.bounds) : undefined,
+    remove: async () => {
+      if (activeTerrainSourceId === id) await sceneLayers.perform("terrain:ellipsoid", "activate");
+      if (localTerrainSession === session) {
+        localTerrainSession = null;
+        localTerrainSourceId = null;
+      }
+      localTerrainSources.delete(id);
+      const select = document.getElementById("local-terrain-select");
+      Array.from(select.options).find((option) => option.value === session.url)?.remove();
+      syncTerrainActions();
+      await session.dispose();
+    },
+  }));
+  return { id, terrain };
+}
+
+function registerCoreTerrainSources() {
+  sceneLayers.upsert(terrainSourceDefinition({
+    id: "terrain:ellipsoid",
+    type: "ellipsoid",
+    name: "关闭高程地形",
+    source: "Cesium Ellipsoid",
+    detail: "使用椭球表面，不加载高程瓦片",
+    active: activeTerrainSourceId === "terrain:ellipsoid",
+    activate: () => runTerrainActivation("terrain:ellipsoid", async () => {
+      cancelPendingBrowserDemProcessing();
+      return { applied: true, state: terrainController.useEllipsoid() };
+    }),
+  }));
+  sceneLayers.upsert(terrainSourceDefinition({
+    id: "terrain:world",
+    type: "world",
+    name: "Cesium World Terrain",
+    source: "Cesium ion 1",
+    detail: CESIUM_ION_TOKEN ? "在线全球地形" : "缺少公开浏览器 Token，当前不可用",
+    active: activeTerrainSourceId === "terrain:world",
+    activate: CESIUM_ION_TOKEN ? () => runTerrainActivation("terrain:world", async () => {
+      cancelPendingBrowserDemProcessing();
+      return terrainController.loadWorld({
+        requestVertexNormals: viewer.scene.globe.enableLighting,
+        requestWaterMask: false,
+      });
+    }) : false,
+  }));
+}
+
 async function toggleWorldTerrain(enabled) {
   const checkbox = document.getElementById("terrain-toggle");
   const message = document.getElementById("ion-layer-message");
@@ -777,17 +952,11 @@ async function toggleWorldTerrain(enabled) {
   try {
     if (enabled) {
       if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
-      const result = await terrainController.loadWorld({
-        requestVertexNormals: viewer.scene.globe.enableLighting,
-        requestWaterMask: false,
-      });
-      if (result.applied) {
-        await releaseLocalTerrainSession();
-        await releaseBrowserDemSession();
-      }
+      const result = await sceneLayers.perform("terrain:world", "activate");
+      if (result?.applied === false) throw result.error || new Error("世界地形加载失败");
     } else if (terrainController.getState().type === "world"
       || terrainController.getState().requestedType === "world") {
-      terrainController.useEllipsoid();
+      await sceneLayers.perform("terrain:ellipsoid", "activate");
     }
   } catch (error) {
     checkbox.checked = false;
@@ -806,6 +975,7 @@ async function refreshTerrains() {
       localOptions: LOCAL_SERVICE_OPTIONS,
     });
     terrainEntries = result.terrains;
+    terrainEntries.forEach(registerCatalogTerrainSource);
     select.replaceChildren(...terrainEntries.map((terrain) => {
       const option = document.createElement("option");
       option.value = terrain.url;
@@ -817,11 +987,11 @@ async function refreshTerrains() {
 
     // 浏览器文件夹地形不属于公开目录或本地服务目录。刷新目录时继续保留当前
     // 会话选项，否则 Cesium 仍在显示地形，但下拉框和“应用所选地形”会失去对应项。
-    if (localTerrainSession) {
+    for (const session of localTerrainSources.values()) {
       ensureTerrainOption({
-        name: localTerrainSession.name,
-        url: localTerrainSession.url,
-        bounds: localTerrainSession.bounds,
+        name: session.name,
+        url: session.url,
+        bounds: session.bounds,
         source: "browser-folder",
       });
     }
@@ -855,6 +1025,7 @@ async function refreshTerrainCatalog() {
       localLoader: listLocalTerrains,
       localOptions: LOCAL_SERVICE_OPTIONS,
     });
+    result.terrains.forEach(registerCatalogTerrainSource);
     document.getElementById("terrain-catalog-directory").textContent = result.directory;
     filesContainer.replaceChildren(...result.terrains.map((terrain, index) => {
       const label = document.createElement("label");
@@ -895,20 +1066,13 @@ function ensureTerrainOption(terrain) {
   syncTerrainActions();
 }
 
-async function releaseLocalTerrainSession(exceptUrl) {
-  if (!localTerrainSession || localTerrainSession.url === exceptUrl) return;
-  const session = localTerrainSession;
-  localTerrainSession = null;
-  const select = document.getElementById("local-terrain-select");
-  Array.from(select.options).find((option) => option.value === session.url)?.remove();
-  syncTerrainActions();
-  await session.dispose();
-}
-
 async function releaseBrowserDemSession(exceptSession) {
   if (!browserDemSession || browserDemSession === exceptSession) return;
   const session = browserDemSession;
   browserDemSession = null;
+  for (const source of browserDemSources.values()) {
+    if (source.session === session) source.session = null;
+  }
   await session.dispose();
 }
 
@@ -933,17 +1097,18 @@ async function loadSelectedTerrain(selectedTerrain) {
   cancelPendingBrowserDemProcessing();
   const terrain = selectedTerrain
     || terrainEntries.find((entry) => entry.url === url)
-    || { name: select.selectedOptions[0]?.textContent || "地形", url };
-  const result = await terrainController.loadLocal(terrain, {
-    requestVertexNormals: viewer.scene.globe.enableLighting,
-    requestWaterMask: false,
-  });
-  if (result.applied) {
-    ensureTerrainOption(terrain);
-    await releaseLocalTerrainSession(terrain.url);
-    await releaseBrowserDemSession();
-  }
-  return result;
+    || {
+      name: select.selectedOptions[0]?.textContent || "地形",
+      url,
+      source: select.selectedOptions[0]?.dataset.source,
+    };
+  const folderSource = terrain.source === "browser-folder"
+    ? Array.from(localTerrainSources.entries()).find(([, session]) => session.url === url)
+    : undefined;
+  const id = folderSource
+    ? folderSource[0]
+    : registerCatalogTerrainSource(terrain);
+  return sceneLayers.perform(id, "activate");
 }
 
 function bindLayerControls() {
@@ -973,9 +1138,7 @@ function bindLayerControls() {
   });
   document.getElementById("disable-terrain").addEventListener("click", async () => {
     cancelPendingBrowserDemProcessing();
-    terrainController.useEllipsoid();
-    await releaseLocalTerrainSession();
-    await releaseBrowserDemSession();
+    await sceneLayers.perform("terrain:ellipsoid", "activate");
   });
   document.getElementById("locate-terrain").addEventListener("click", () => {
     if (!terrainController.flyToCurrentTerrain()) {
@@ -1007,23 +1170,19 @@ async function loadTerrainFolder(fileList) {
       `${session.tileCount} 个瓦片，${formatBytes(session.totalBytes)}`,
       "processing",
     );
-    const terrain = {
-      name: session.name,
-      url: session.url,
-      bounds: session.bounds,
-      source: "browser-folder",
-    };
-    const result = await terrainController.loadLocal(terrain, {
-      requestVertexNormals: viewer.scene.globe.enableLighting,
-      requestWaterMask: false,
-    });
+    const { id, terrain } = registerLocalFolderTerrainSource(session);
+    const result = await sceneLayers.perform(id, "activate");
     if (!result.applied) throw result.error || new Error("地形加载请求已取消");
 
     const previousSession = localTerrainSession;
+    const previousSourceId = localTerrainSourceId;
     localTerrainSession = session;
+    localTerrainSourceId = id;
     ensureTerrainOption(terrain);
-    if (previousSession && previousSession.url !== session.url) await previousSession.dispose();
-    await releaseBrowserDemSession();
+    // 已有浏览器文件夹地形作为候选保留，用户可在右侧再次切换回去；每个文件对象
+    // 只由自己的 Service Worker 会话持有，只有用户明确移除条目或关闭页面才释放。
+    void previousSession;
+    void previousSourceId;
     const levelText = Number.isFinite(session.minLevel) && Number.isFinite(session.maxLevel)
       ? `，层级 ${session.minLevel}-${session.maxLevel}`
       : "";
@@ -1035,78 +1194,212 @@ async function loadTerrainFolder(fileList) {
     );
   } catch (error) {
     if (session && session !== localTerrainSession) await session.dispose();
+    const failedId = session && `terrain:browser-folder:${session.id}`;
+    if (failedId) {
+      localTerrainSources.delete(failedId);
+      await sceneLayers.remove(failedId, { dispose: false });
+    }
     updateToolResult("local-terrain-folder-result", "本地地形加载失败", error.message || String(error), "error");
   }
 }
 
-async function loadBrowserDem(file) {
+function registerBrowserDemTerrainSource(source) {
+  const metadata = source.metadata;
+  sceneLayers.upsert(terrainSourceDefinition({
+    id: source.id,
+    type: "browser-dem",
+    name: metadata.name,
+    source: "浏览器 GeoTIFF",
+    detail: demSessionDetail(metadata),
+    bounds: metadata.bounds,
+    localOnly: true,
+    removable: true,
+    active: source.id === activeTerrainSourceId,
+    activate: async () => {
+      if (!source.session) return loadBrowserDem(source.file, { sourceId: source.id });
+      return applyBrowserDemSession(source, source.session);
+    },
+    locate: () => flyToBounds(metadata.bounds),
+    remove: async () => {
+      if (activeTerrainSourceId === source.id) await sceneLayers.perform("terrain:ellipsoid", "activate");
+      if (browserDemSession === source.session) browserDemSession = null;
+      await source.session?.dispose();
+      source.session = null;
+      browserDemSources.delete(source.id);
+    },
+  }));
+}
+
+async function applyBrowserDemSession(source, session) {
+  const result = await runTerrainActivation(source.id, () => terrainController.loadProvider({
+    name: session.name,
+    bounds: session.bounds,
+  }, session.provider), { releaseBrowser: false });
+  if (!result.applied) return result;
+
+  // 浏览器 DEM 只保留当前活动源的解码栅格和 Worker。其他候选源保留 File 引用与
+  // 元数据，用户再次激活时重新解析，避免多个完整 DEM 长期占用访客内存。
+  const previousSession = browserDemSession;
+  browserDemSession = session;
+  source.session = session;
+  if (previousSession && previousSession !== session) {
+    for (const candidate of browserDemSources.values()) {
+      if (candidate.session === previousSession) candidate.session = null;
+    }
+    await previousSession.dispose();
+  }
+  terrainController.flyToCurrentTerrain({ duration: 1.2 });
+  return result;
+}
+
+async function loadBrowserDem(file, options = {}) {
   const demButton = document.getElementById("convert-dem");
   const cancelButton = document.getElementById("cancel-dem-processing");
   cancelPendingBrowserDemProcessing();
   const abortController = new AbortController();
   demProcessingAbortController = abortController;
+  const taskId = options.taskId || `task:dem:${Date.now().toString(36)}:${++demTaskSequence}`;
+  const taskName = `处理 DEM：${file.name}`;
+  sceneLayers.upsert(taskLayerDefinition({
+    id: taskId,
+    type: "dem",
+    name: taskName,
+    status: "queued",
+    detail: `${formatBytes(file.size)} · 等待读取`,
+    cancel: () => abortController.abort(new DOMException("DEM 处理已取消", "AbortError")),
+    retry: async () => {
+      // 重试使用新任务 ID，避免已结束请求的晚到回调覆盖新一轮任务状态。
+      abortController.abort(new DOMException("DEM 处理正在重试", "AbortError"));
+      await sceneLayers.remove(taskId, { dispose: false });
+      return loadBrowserDem(file, { ...options, taskId: undefined });
+    },
+    remove: () => abortController.abort(new DOMException("DEM 任务已移除", "AbortError")),
+  }));
   demButton.disabled = true;
   cancelButton.hidden = false;
+  sceneLayers.update(taskId, { status: "reading", detail: `${file.name} · 文件不会上传` });
   updateToolResult("dem-result", "正在读取本地 DEM", `${file.name}，${formatBytes(file.size)}，文件不会上传`, "processing");
 
   let session;
+  let source;
   try {
     session = await createBrowserDemTerrainSession(file, {
       signal: abortController.signal,
-      onStatus: (_stage, detail) => updateToolResult("dem-result", "正在处理本地 DEM", detail, "processing"),
+      onStatus: (stage, detail) => {
+        if (abortController.signal.aborted || demProcessingAbortController !== abortController) return;
+        sceneLayers.update(taskId, { status: "processing", detail: `${stage} · ${detail}` });
+        updateToolResult("dem-result", "正在处理本地 DEM", detail, "processing");
+      },
     });
     throwIfDemProcessingCancelled(abortController.signal);
+    sceneLayers.update(taskId, {
+      status: "applying",
+      detail: `${session.width} × ${session.height} · ${session.projection} · 正在应用`,
+    });
     updateToolResult(
       "dem-result",
       "DEM 已解析，正在应用地形",
       `${session.width} x ${session.height}，${session.projection}，层级 0-${session.maxLevel}`,
       "processing",
     );
-    const result = await terrainController.loadProvider({
-      name: session.name,
-      bounds: session.bounds,
-    }, session.provider);
+    const sourceId = options.sourceId || `terrain:${session.id}`;
+    source = browserDemSources.get(sourceId) || {
+      id: sourceId,
+      file,
+      metadata: session,
+      session: null,
+    };
+    source.file = file;
+    source.metadata = session;
+    source.session = session;
+    browserDemSources.set(sourceId, source);
+    registerBrowserDemTerrainSource(source);
+    const result = await applyBrowserDemSession(source, session);
     throwIfDemProcessingCancelled(abortController.signal);
     if (!result.applied) throw result.error || new Error("浏览器 DEM 地形加载请求已取消");
+    if (demProcessingAbortController !== abortController) {
+      throw new DOMException("DEM 处理已被后续任务取代", "AbortError");
+    }
 
-    // Provider 已由 TerrainController 正式接管场景；从此不再把它视为“待处理任务”。
-    // 其他地形只有在成功应用后才释放该会话，避免新地形失败时留下不可用的 DEM。
+    // Provider 成功进入场景后，处理任务退出任务组，只保留可重新激活的地形源。
     if (demProcessingAbortController === abortController) demProcessingAbortController = null;
-    const previousSession = browserDemSession;
-    browserDemSession = session;
-    await releaseLocalTerrainSession();
-    if (previousSession && previousSession !== session) await previousSession.dispose();
-    terrainController.flyToCurrentTerrain({ duration: 1.2 });
+    sceneLayers.setExclusiveActive("terrain", sourceId);
+    await sceneLayers.remove(taskId, { dispose: false });
     updateToolResult(
       "dem-result",
       "本地 DEM 已加载",
       `${session.fileName}：${session.projectionCode}，高程 ${session.minHeight.toFixed(1)}-${session.maxHeight.toFixed(1)} m，文件未上传`,
       "success",
     );
+    return result;
   } catch (error) {
     if (session && session !== browserDemSession) await session.dispose();
+    if (source?.session === session && browserDemSession !== session) source.session = null;
     const cancelled = error?.name === "AbortError";
-    updateToolResult(
-      "dem-result",
-      cancelled ? "DEM 处理已取消" : "浏览器 DEM 处理失败",
-      cancelled ? file.name : (error.message || String(error)),
-      cancelled ? "" : "error",
-    );
+    if (sceneLayers.has(taskId) && demProcessingAbortController === abortController) {
+      sceneLayers.update(taskId, {
+        status: cancelled ? "cancelled" : "failed",
+        detail: cancelled ? `${file.name} · 已取消，可重试` : (error.message || String(error)),
+      });
+    }
+    if (demProcessingAbortController === abortController) {
+      updateToolResult(
+        "dem-result",
+        cancelled ? "DEM 处理已取消" : "浏览器 DEM 处理失败",
+        cancelled ? file.name : (error.message || String(error)),
+        cancelled ? "" : "error",
+      );
+    }
+    return { applied: false, error };
   } finally {
-    if (demProcessingAbortController === abortController) demProcessingAbortController = null;
-    demButton.disabled = false;
-    cancelButton.hidden = true;
+    if (demProcessingAbortController === abortController) {
+      demProcessingAbortController = null;
+      demButton.disabled = false;
+      cancelButton.hidden = true;
+    }
   }
 }
 
 async function convertDemWithLocalService(file) {
+  demLocalConversionAbortController?.abort(new DOMException("已开始新的 DEM 转换", "AbortError"));
+  const taskId = `task:dem-convert:${Date.now().toString(36)}:${++demTaskSequence}`;
+  const abortController = new AbortController();
+  demLocalConversionAbortController = abortController;
+  const isCurrentTask = () => demLocalConversionAbortController === abortController;
+  sceneLayers.register(taskLayerDefinition({
+    id: taskId,
+    type: "dem-convert",
+    name: `离线转换 DEM：${file.name}`,
+    status: "queued",
+    detail: "等待开发者本地服务接收",
+    cancel: () => abortController.abort(new DOMException("DEM 转换已取消", "AbortError")),
+    retry: async () => {
+      abortController.abort(new DOMException("DEM 转换正在重试", "AbortError"));
+      await sceneLayers.remove(taskId, { dispose: false });
+      return convertDemWithLocalService(file);
+    },
+    remove: () => abortController.abort(new DOMException("DEM 转换任务已移除", "AbortError")),
+  }));
+  sceneLayers.update(taskId, { status: "processing", detail: "Docker CTB 正在生成 quantized-mesh" });
   updateToolResult("dem-result", "正在离线转换 DEM", "Docker CTB 处理可能需要较长时间", "processing");
   try {
-    const result = await convertDEMFile(file, LOCAL_SERVICE_OPTIONS);
+    const result = await convertDEMFile(file, { ...LOCAL_SERVICE_OPTIONS, signal: abortController.signal });
+    if (!isCurrentTask()) return;
+    sceneLayers.update(taskId, { status: "applying", detail: "转换完成，正在刷新地形目录" });
     updateToolResult("dem-result", "DEM 处理成功", `地形已保存到：${result.outputPath}`, "success");
     await refreshTerrains();
+    await sceneLayers.remove(taskId, { dispose: false });
   } catch (error) {
-    updateToolResult("dem-result", "DEM 处理失败", error.message, "error");
+    if (sceneLayers.has(taskId) && isCurrentTask()) {
+      const cancelled = error?.name === "AbortError";
+      sceneLayers.update(taskId, {
+        status: cancelled ? "cancelled" : "failed",
+        detail: cancelled ? "离线转换已取消" : (error.message || String(error)),
+      });
+      updateToolResult("dem-result", cancelled ? "DEM 转换已取消" : "DEM 处理失败", error.message || String(error), cancelled ? "" : "error");
+    }
+  } finally {
+    if (isCurrentTask()) demLocalConversionAbortController = null;
   }
 }
 
@@ -1207,6 +1500,7 @@ async function loadExample() {
 }
 
 async function main() {
+  registerCoreTerrainSources();
   bindPanelTabs();
   bindWorkspaceChrome();
   bindMapControls();
@@ -1220,8 +1514,10 @@ async function main() {
   createIcons({
     icons: {
       Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
-      Landmark, Layers2, Layers3, ListChecks, LocateFixed, Map, MoonStar, Mountain, MountainSnow,
-      PanelLeftClose, PanelRightClose, RefreshCw, Satellite, Server, Tags, Wind, Wrench, X, ZoomIn, ZoomOut,
+      ArrowDown, ArrowUp, ChevronDown, ChevronsDown, ChevronsUp, Circle, CircleCheck, Eye, EyeOff,
+      GripVertical, Landmark, Layers2, Layers3, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon,
+      MoreHorizontal, MoonStar, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
+      RotateCcw, Satellite, Server, Shapes, Tags, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
@@ -1235,8 +1531,11 @@ async function main() {
 
 window.addEventListener("beforeunload", () => {
   demProcessingAbortController?.abort();
-  localTerrainSession?.dispose();
+  for (const session of localTerrainSources.values()) session.dispose();
   browserDemSession?.dispose();
+  browserDemSources.clear();
+  layerPanel.destroy();
+  sceneLayers.clear({ dispose: false });
   ionAssetLayers.destroy();
   terrainController.destroy();
 }, { once: true });

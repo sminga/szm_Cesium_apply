@@ -10,6 +10,9 @@
 | `browserDemTerrain.test.js` | File/Worker 能力检测、浏览器 DEM 会话创建和释放、按需瓦片请求、无数据区域停止细分及非 GeoTIFF 拒绝。 |
 | `ionAssetLayerManager.test.js` | ion 影像与 3D Tiles 增删、Token 缺失、异步取消、晚到错误忽略和过期资源销毁。 |
 | `windControlScale.test.js` | 粒子流速度比例滑块的 `0.05～5` 范围、默认值回填、小数显示，以及填写值的边界限制、步进对齐和空值回退。 |
+| `sceneLayerRegistry.test.js` | 图层能力声明、快照、排序同步、地形单选与移除前资源清理。 |
+| `layerAdapters.test.js` | ion 影像真实叠放顺序、显隐保留资源和移除委托。 |
+| `terrainActivation.test.js` | 地形激活失败保留原活动源、旧请求晚到保护和 Provider 初始化异常。 |
 
 ```powershell
 npx vitest run tests/example
@@ -18,3 +21,5 @@ npx vitest run tests/example
 这些测试不访问真实 Cesium ion、Vercel、Service Worker 或本机目录，也不真实解码 GeoTIFF，而是验证可分离的业务逻辑。修改 `example/app` 或 `example/services` 时，应把不依赖 DOM 的逻辑抽出后在此测试。
 
 Service Worker 注册、文件夹权限、真实 GeoTIFF 解码、Cesium 地形画面、相机跳转和页面布局仍需浏览器生产预览验证。
+
+图层注册中心和适配器的边界说明见 `example/app/layers/README.md`；统一图层阶段方案见 `docs/统一场景图层管理方案.md`。

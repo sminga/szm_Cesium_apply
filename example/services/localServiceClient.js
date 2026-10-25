@@ -9,7 +9,9 @@ async function requestJson(path, options = {}) {
   let response;
   try {
     response = await fetch(new URL(path, serviceUrl), options.fetchOptions);
-  } catch {
+  } catch (error) {
+    // 用户取消上传时保留 AbortError，让任务栏显示“已取消”而不是误报服务未启动。
+    if (options.fetchOptions?.signal?.aborted || error?.name === "AbortError") throw error;
     throw new Error("本地服务未启动，请先运行 npm run local:server");
   }
   const result = await response.json().catch(() => ({}));
@@ -29,6 +31,7 @@ async function uploadFile(path, file, options = {}) {
       method: "POST",
       headers: { "Content-Type": "application/octet-stream" },
       body: file,
+      signal: options.signal,
     },
   });
 }
