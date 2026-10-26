@@ -11,10 +11,27 @@ from tools.netcdf.convert_wrf import (  # noqa: E402
     common_height_levels,
     interpolate_vertical,
     largest_valid_rectangle,
+    normalize_wrf_array,
 )
 
 
 class WRFConverterTests(unittest.TestCase):
+    def test_normalizes_unmasked_wrf_masked_array_for_scipy(self):
+        source = np.ma.array([[1.0, 2.0]], mask=False, fill_value=1e20)
+
+        actual = normalize_wrf_array(source)
+
+        self.assertIs(type(actual), np.ndarray)
+        np.testing.assert_array_equal(actual, [[1.0, 2.0]])
+
+    def test_normalizes_real_wrf_mask_to_nan_for_validation(self):
+        source = np.ma.array([[1.0, 2.0]], mask=[[False, True]], fill_value=1e20)
+
+        actual = normalize_wrf_array(source)
+
+        self.assertEqual(actual[0, 0], 1.0)
+        self.assertTrue(np.isnan(actual[0, 1]))
+
     def test_common_msl_levels_use_domain_wide_overlap(self):
         height = np.array([
             [[100, 200], [300, 400]],

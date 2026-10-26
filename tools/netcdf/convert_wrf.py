@@ -9,6 +9,14 @@ import numpy as np
 import xarray as xr
 
 
+def normalize_wrf_array(value: np.ndarray) -> np.ndarray:
+    """把 wrf-python 诊断结果转换为普通数组，并保留真实缺测语义。"""
+    # wrf-python 会在没有任何缺测点时仍返回 MaskedArray。SciPy 的 Delaunay
+    # 不接受该类型，因此必须先去除数组包装；若确实存在掩码，则用 NaN 保留
+    # 缺测语义，让 load_wrf_fields 后续的有限值检查明确拒绝不完整输入。
+    return np.asarray(np.ma.filled(value, np.nan))
+
+
 def common_height_levels(height: np.ndarray, step: float) -> np.ndarray:
     """生成所有源网格柱均有垂直覆盖的共同海拔（MSL）高度层。"""
     if step <= 0:
@@ -93,16 +101,26 @@ def load_wrf_fields(input_path: Path, time_index: int) -> tuple[np.ndarray, ...]
             raise ValueError(f"缺少 WRF-ARW 必需变量: {', '.join(sorted(missing))}")
 
         # uvmet 负责水平风去错列和地图投影旋转；wa、z 返回在质量网格点上。
-        uv = to_np(getvar(source, "uvmet", timeidx=time_index, units="m s-1", meta=False))
-        vertical = to_np(getvar(source, "wa", timeidx=time_index, units="m s-1", meta=False))
-        height = to_np(getvar(source, "z", timeidx=time_index, units="m", meta=False))
-        latitude = to_np(getvar(source, "lat", timeidx=time_index, meta=False))
-        longitude = to_np(getvar(source, "lon", timeidx=time_index, meta=False))
+        uv = normalize_wrf_array(
+            to_np(getvar(source, "uvmet", timeidx=time_index, units="m s-1", meta=False))
+        )
+        vertical = normalize_wrf_array(
+            to_np(getvar(source, "wa", timeidx=time_index, units="m s-1", meta=False))
+        )
+        height = normalize_wrf_array(
+            to_np(getvar(source, "z", timeidx=time_index, units="m", meta=False))
+        )
+        latitude = normalize_wrf_array(
+            to_np(getvar(source, "lat", timeidx=time_index, meta=False))
+        )
+        longitude = normalize_wrf_array(
+            to_np(getvar(source, "lon", timeidx=time_index, meta=False))
+        )
 
     if uv.ndim != 4 or uv.shape[0] != 2:
         raise ValueError(f"uvmet 形状异常，预期 (2, level, y, x)，实际为 {uv.shape}")
-    u, v = np.asarray(uv[0]), np.asarray(uv[1])
-    w, height = np.asarray(vertical), np.asarray(height)
+    u, v = uv[0], uv[1]
+    w = vertical
     if u.shape != v.shape or u.shape != w.shape or u.shape != height.shape:
         raise ValueError(f"去错列后质量网格形状不一致: U={u.shape}, V={v.shape}, W={w.shape}, z={height.shape}")
     if u.shape[0] < 2:

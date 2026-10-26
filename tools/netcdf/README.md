@@ -53,6 +53,7 @@ python tools/netcdf/convert_wrf.py \
 - `--height-step` 指定共同 MSL 高度层间隔，单位米，默认 500 米。程序取所有网格柱都覆盖的高度交集，因此复杂地形下最低输出层可能高于地表附近；这避免把不存在的风速高度伪造为零。
 - `--nx`、`--ny` 可设定规则经纬网分辨率，默认分别采用源 WRF 的水平网格宽、高。分辨率降低可缩小输出数据和浏览器纹理负担。
 - 经度、纬度先覆盖源域外接范围，再对曲线网格做线性插值。凸包之外及垂直覆盖无效的位置会被剔除，最后只保留最大的完整有效矩形，因为当前浏览器加载器要求规则、无缺测的经纬度网格。
+- `wrf-python` 即使没有缺测点也可能返回 `numpy.ma.MaskedArray`。转换器会先把空掩码结果转为普通 `ndarray`，以满足 SciPy 三角剖分输入要求；真实掩码会转为 `NaN` 并由完整性检查拒绝，不会把 `_FillValue` 当成有效风速。
 - 输出包含 `lon`、`lat`、`lev` 以及等尺寸 `U/V/W(lev,lat,lon)`，使用 NetCDF-3 64-bit offset。转换成功后可放入 `tools/converted/` 并在开发页面“风场”面板加载。
 - 输出默认不覆盖已存在文件；需明确传入 `--overwrite` 才会覆盖。
 
@@ -76,5 +77,5 @@ python tools/netcdf/convert_wrf.py \
 - 找不到变量时使用显式参数，不要根据上下文猜测物理量。
 - 转换后应在开发页面加载，检查范围、高度、速度和异常条带。
 - 自动测试：`py -m unittest tests.tools.test_convert_netcdf`。
-- WRF 转换算法测试：`py -m unittest tests.tools.test_convert_wrf`；需要实际转换时另需 `wrf-python`、`netCDF4`、SciPy 等 Conda 依赖。
+- WRF 转换算法测试：`py -m unittest tests.tools.test_convert_wrf`；需要实际转换时另需 `wrf-python`、`netCDF4`、SciPy 等 Conda 依赖。2026-10-26 已使用真实 WRF V4.7.1 文件完成 Linux 容器转换、NetCDF-3 重读和 Cesium 桌面浏览器加载，详细数据见 `docs/WRF风场离线处理方法.md`。
 - 浏览器读取规则见 `src/data/README.md`，异常风场诊断见 `docs/Wind3D异常诊断与修复.md`。
