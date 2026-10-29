@@ -118,7 +118,8 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
 });
 // Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据都带有署名要求。
 // 公开 Vercel 页面必须保留 Cesium credit 容器，具体位置由页面 CSS 调整到地图右下角。
-viewer.cesiumWidget.creditContainer.style.removeProperty("display");
+viewer.cesiumWidget.creditContainer.style.display = "none";
+// viewer.cesiumWidget.creditContainer.style.removeProperty("display");
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
