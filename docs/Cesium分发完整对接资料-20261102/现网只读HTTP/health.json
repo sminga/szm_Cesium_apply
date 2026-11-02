@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "path": "/api/v1/health",
+  "http_status": 200,
+  "response_json": {
+    "status": "ok",
+    "schema_version": "1.0",
+    "mode": "live",
+    "replay_at": null,
+    "machine_auth": "required"
+  },
+  "tls_verified": true,
+  "redaction": "only nonempty personal name/id values; keys preserved"
+}

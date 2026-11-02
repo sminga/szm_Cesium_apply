@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "path": "/api/v1/datasets/DS_546C1C0E34284DC2B19CA0E8F891EF9D/content",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "accept-ranges": "bytes",
+    "content-type": "image/png",
+    "content-disposition": "attachment; filename*=UTF-8''vertical_time_height.png",
+    "etag": "\"b29d8e60fd47e618d6c892565a99df9a05fee4a59c1fbaeee378092a3ab2baf5\"",
+    "cache-control": "private, no-cache",
+    "content-length": "92210"
+  },
+  "response_json": null
+}

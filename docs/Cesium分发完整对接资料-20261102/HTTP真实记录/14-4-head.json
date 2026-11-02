@@ -1,0 +1,17 @@
+{
+  "method": "HEAD",
+  "path": "/api/v1/datasets/DS_A159C04FE3D7495D804CC5BB5657CEBF/content",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "accept-ranges": "bytes",
+    "content-type": "application/vnd.ms-excel",
+    "content-disposition": "attachment; filename*=UTF-8''observations.csv",
+    "etag": "\"b84614061e7be0753a1362ebbf8e32766bbcfdd1a11ac3b39e8921229b885762\"",
+    "cache-control": "private, no-cache",
+    "content-length": "111785"
+  },
+  "response_json": null
+}

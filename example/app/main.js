@@ -13,7 +13,6 @@ import {
   ChevronsUp,
   Circle,
   CircleCheck,
-  CircleOff,
   Crosshair,
   createIcons,
   Eye,
@@ -33,7 +32,6 @@ import {
   LocateFixed,
   Map as MapIcon,
   MapPin,
-  MoonStar,
   MoreHorizontal,
   Mountain,
   MountainSnow,
@@ -45,7 +43,6 @@ import {
   Satellite,
   Server,
   Shapes,
-  Tags,
   Trash2,
   TriangleAlert,
   Wind,
@@ -74,6 +71,18 @@ import {
 } from "../services/browserDemTerrain.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
+import { BasemapManager } from "./basemaps/BasemapManager.js";
+import {
+  getBasemapAvailability,
+  getBasemapCatalog,
+  getBasemapDefinition,
+  getBasemapStyle,
+} from "./basemaps/basemapCatalog.js";
+import {
+  createBasemapProviders,
+  describeBasemapSelection,
+  readBasemapConfig,
+} from "./basemaps/basemapProviders.js";
 import { LayerPanelController } from "./layers/LayerPanelController.js";
 import { SceneToolsController } from "./sceneToolsController.js";
 import { createTerrainActivationRunner } from "./layers/terrainActivation.js";
@@ -94,7 +103,8 @@ import {
   speedSliderFromFactor,
 } from "./windControlScale.js";
 
-const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN?.trim() ?? "";
+const BASEMAP_CONFIG = readBasemapConfig(import.meta.env);
+const CESIUM_ION_TOKEN = BASEMAP_CONFIG.ionToken;
 const LOCAL_TOOLS_ENABLED = import.meta.env.DEV
   || import.meta.env.VITE_ENABLE_LOCAL_TOOLS === "true";
 const LOCAL_SERVICE_URL = import.meta.env.VITE_LOCAL_SERVICE_URL?.trim()
@@ -116,10 +126,13 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   fullscreenButton: false,
   baseLayer: false,
 });
-// Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据都带有署名要求。
+// Google、Sentinel、OpenStreetMap、多厂商瓦片和 Cesium ion 数据都带有署名要求。
 // 公开 Vercel 页面必须保留 Cesium credit 容器，具体位置由页面 CSS 调整到地图右下角。
+
 viewer.cesiumWidget.creditContainer.style.display = "none";
-// viewer.cesiumWidget.creditContainer.style.removeProperty("display");
+
+
+
 viewer.scene.debugShowFramesPerSecond = false;
 viewer.scene.globe.enableLighting = false;
 viewer.scene.fog.enabled = true;
@@ -134,11 +147,14 @@ const ionAssetLayers = new IonAssetLayerManager(viewer, Cesium, {
   accessTokenAvailable: Boolean(CESIUM_ION_TOKEN),
 });
 const sceneLayers = new SceneLayerRegistry();
+const basemaps = new BasemapManager(
+  viewer,
+  (selection) => createBasemapProviders(selection, BASEMAP_CONFIG, Cesium),
+);
 let activeLayerId = null;
 let activeTerrainSourceId = "terrain:ellipsoid";
-let basemapLayer = null;
 let sceneTools = null;
-let basemapRequestId = 0;
+let activeBasemapSelection = null;
 let catalogMode = "3d";
 let catalogEntries = [];
 let terrainEntries = [];
@@ -215,7 +231,7 @@ function setInlineMessage(element, message, state = "") {
 
 function renderTerrainState(state) {
   const worldToggle = document.getElementById("terrain-toggle");
-  const worldMessage = document.getElementById("ion-layer-message");
+  const worldMessage = document.getElementById("terrain-online-message");
   const localMessage = document.getElementById("layer-message");
   const summary = document.getElementById("terrain-state");
   const locateButton = document.getElementById("locate-terrain");
@@ -685,39 +701,106 @@ function bindWindControls() {
   document.getElementById("zoom").addEventListener("click", () => activeEntry()?.layer.zoomTo(1.2));
 }
 
-async function setBasemap(mode) {
-  const requestId = ++basemapRequestId;
-  const message = document.getElementById("layer-message");
-  setInlineMessage(message, "正在切换底图");
-  try {
-    let provider = null;
-    let label = "无底图";
-    if (mode === "ion") {
-      if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
-      provider = await Cesium.createWorldImageryAsync({ style: Cesium.IonWorldImageryStyle.AERIAL });
-      label = "Cesium 影像";
-    } else if (mode === "osm") {
-      provider = new Cesium.OpenStreetMapImageryProvider({ url: "https://tile.openstreetmap.org/" });
-      label = "OpenStreetMap";
-    }
-    if (requestId !== basemapRequestId) return;
+function renderBasemapProviderOptions(preferredProviderId) {
+  const select = document.getElementById("basemap-provider-select");
+  const catalog = getBasemapCatalog();
+  select.replaceChildren(...catalog.map((definition) => {
+    const option = document.createElement("option");
+    const availability = getBasemapAvailability(definition, BASEMAP_CONFIG);
+    option.value = definition.id;
+    option.disabled = !availability.available;
+    option.textContent = availability.available ? definition.name : `${definition.name}（未配置）`;
+    option.title = availability.reason;
+    return option;
+  }));
+  const preferred = catalog.find((entry) => entry.id === preferredProviderId
+    && getBasemapAvailability(entry, BASEMAP_CONFIG).available);
+  select.value = preferred?.id ?? "osm";
+}
 
-    // 底图固定插入影像栈最底层，只移除上一次底图。不能使用 removeAll()，否则
-    // 用户在“公共影像”中打开的 ion 叠加层也会被一并销毁，开关状态将与场景脱节。
-    const nextBasemapLayer = provider
-      ? viewer.imageryLayers.addImageryProvider(provider, 0)
-      : null;
-    if (basemapLayer && viewer.imageryLayers.contains(basemapLayer)) {
-      viewer.imageryLayers.remove(basemapLayer, true);
-    }
-    basemapLayer = nextBasemapLayer;
-    document.querySelectorAll("[data-basemap]").forEach((button) => button.classList.toggle("active", button.dataset.basemap === mode));
-    document.getElementById("basemap-status").textContent = label;
-    sceneLayers.upsert(basemapLayerDefinition({ mode, name: label, layer: basemapLayer }));
-    setInlineMessage(message, `${label} 已加载`, "success");
+function renderBasemapStyleOptions(providerId, preferredStyleId) {
+  const definition = getBasemapDefinition(providerId);
+  const select = document.getElementById("basemap-style-select");
+  select.replaceChildren(...definition.styles.map((style) => {
+    const option = document.createElement("option");
+    option.value = style.id;
+    option.textContent = style.name;
+    return option;
+  }));
+  select.value = definition.styles.some((style) => style.id === preferredStyleId)
+    ? preferredStyleId
+    : definition.defaultStyle;
+}
+
+function syncBasemapAuxiliaryControls(providerId) {
+  const definition = getBasemapDefinition(providerId);
+  const labels = document.getElementById("basemap-labels-toggle");
+  const boundaries = document.getElementById("basemap-boundaries-toggle");
+  labels.disabled = !definition.supportsLabels;
+  boundaries.disabled = !definition.supportsBoundaries;
+}
+
+function readBasemapSelection() {
+  const definition = getBasemapDefinition(document.getElementById("basemap-provider-select").value);
+  return {
+    providerId: definition.id,
+    styleId: document.getElementById("basemap-style-select").value,
+    labelsEnabled: Boolean(definition.supportsLabels
+      && document.getElementById("basemap-labels-toggle").checked),
+    boundariesEnabled: Boolean(definition.supportsBoundaries
+      && document.getElementById("basemap-boundaries-toggle").checked),
+  };
+}
+
+function restoreBasemapControls() {
+  if (!activeBasemapSelection) return;
+  const providerSelect = document.getElementById("basemap-provider-select");
+  providerSelect.value = activeBasemapSelection.providerId;
+  renderBasemapStyleOptions(activeBasemapSelection.providerId, activeBasemapSelection.styleId);
+  document.getElementById("basemap-labels-toggle").checked = activeBasemapSelection.labelsEnabled;
+  document.getElementById("basemap-boundaries-toggle").checked = activeBasemapSelection.boundariesEnabled;
+  syncBasemapAuxiliaryControls(activeBasemapSelection.providerId);
+}
+
+function renderBasemapCoordinate(description) {
+  const summary = document.getElementById("basemap-coordinate");
+  summary.querySelector("b").textContent = description.coordinateSystem;
+  summary.querySelector("span").textContent = "风场、DEM 与矢量数据继续使用 WGS84，不随底图改变";
+}
+
+async function setBasemap(selection) {
+  const message = document.getElementById("basemap-message");
+  const description = describeBasemapSelection(selection);
+  setInlineMessage(message, `正在加载 ${description.name}`);
+  try {
+    const result = await basemaps.set(selection);
+    if (!result.applied) return false;
+    activeBasemapSelection = { ...selection };
+    document.getElementById("basemap-status").textContent = description.name;
+    renderBasemapCoordinate(description);
+    sceneLayers.upsert(basemapLayerDefinition({
+      mode: description.id,
+      name: description.name,
+      layers: result.layers,
+      manager: basemaps,
+      source: description.source,
+      detail: description.detail,
+      coordinateSystem: description.coordinateSystem,
+    }));
+    setInlineMessage(message, `${description.name} 已加载`, "success");
+    return true;
   } catch (error) {
+    restoreBasemapControls();
     setInlineMessage(message, `底图切换失败：${error.message}`, "error");
+    return false;
   }
+}
+
+function initializeBasemapControls() {
+  renderBasemapProviderOptions(CESIUM_ION_TOKEN ? "cesium" : "osm");
+  const providerId = document.getElementById("basemap-provider-select").value;
+  renderBasemapStyleOptions(providerId);
+  syncBasemapAuxiliaryControls(providerId);
 }
 
 function updateIonAssetSummary() {
@@ -808,6 +891,7 @@ function initializeIonAssetControls() {
   const controls = document.querySelectorAll("[data-ion-imagery], [data-ion-tileset], [data-ion-terrain]");
   if (CESIUM_ION_TOKEN) {
     setInlineMessage(document.getElementById("ion-layer-message"), "Cesium ion 公共资产待命");
+    setInlineMessage(document.getElementById("terrain-online-message"), "Cesium World Terrain 待命");
     return;
   }
 
@@ -817,6 +901,11 @@ function initializeIonAssetControls() {
   setInlineMessage(
     document.getElementById("ion-layer-message"),
     "未配置 VITE_CESIUM_ION_TOKEN，Cesium ion 公共资产不可用",
+    "error",
+  );
+  setInlineMessage(
+    document.getElementById("terrain-online-message"),
+    "未配置 VITE_CESIUM_ION_TOKEN，Cesium World Terrain 不可用",
     "error",
   );
 }
@@ -953,7 +1042,7 @@ function registerCoreTerrainSources() {
 
 async function toggleWorldTerrain(enabled) {
   const checkbox = document.getElementById("terrain-toggle");
-  const message = document.getElementById("ion-layer-message");
+  const message = document.getElementById("terrain-online-message");
   cancelPendingBrowserDemProcessing();
   try {
     if (enabled) {
@@ -1118,7 +1207,21 @@ async function loadSelectedTerrain(selectedTerrain) {
 }
 
 function bindLayerControls() {
-  document.querySelectorAll("[data-basemap]").forEach((button) => button.addEventListener("click", () => setBasemap(button.dataset.basemap)));
+  initializeBasemapControls();
+  document.getElementById("basemap-provider-select").addEventListener("change", (event) => {
+    renderBasemapStyleOptions(event.target.value);
+    syncBasemapAuxiliaryControls(event.target.value);
+    setBasemap(readBasemapSelection());
+  });
+  document.getElementById("basemap-style-select").addEventListener("change", () => {
+    setBasemap(readBasemapSelection());
+  });
+  document.getElementById("basemap-labels-toggle").addEventListener("change", () => {
+    setBasemap(readBasemapSelection());
+  });
+  document.getElementById("basemap-boundaries-toggle").addEventListener("change", () => {
+    setBasemap(readBasemapSelection());
+  });
   document.querySelectorAll("[data-ion-imagery]").forEach((input) => {
     input.addEventListener("change", () => toggleIonImagery(input));
   });
@@ -1522,15 +1625,15 @@ async function main() {
   initializeIonAssetControls();
   createIcons({
     icons: {
-      Box, Building2, CircleOff, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
+      Box, Building2, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
       ArrowDown, ArrowUp, ChevronDown, ChevronsDown, ChevronsUp, Circle, CircleCheck, Eye, EyeOff,
       Crosshair, GripVertical, Landmark, Layers2, Layers3, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon, MapPin,
-      MoreHorizontal, MoonStar, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
-      RotateCcw, Route, Satellite, Server, Shapes, Tags, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
+      MoreHorizontal, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
+      RotateCcw, Route, Satellite, Server, Shapes, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
-    await setBasemap(CESIUM_ION_TOKEN ? "ion" : "osm");
+    await setBasemap(readBasemapSelection());
     await loadExample();
     setStatus("");
   } catch (error) {
@@ -1546,6 +1649,7 @@ window.addEventListener("beforeunload", () => {
   sceneTools?.destroy();
   layerPanel.destroy();
   sceneLayers.clear({ dispose: false });
+  basemaps.destroy();
   ionAssetLayers.destroy();
   terrainController.destroy();
 }, { once: true });

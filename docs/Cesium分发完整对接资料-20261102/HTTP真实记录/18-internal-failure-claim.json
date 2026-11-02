@@ -1,0 +1,53 @@
+{
+  "method": "POST",
+  "path": "/api/v1/processing-requests/claim",
+  "request_json": {
+    "owner": "分发服务绘图脚本",
+    "worker_id": "HANDOFF_HISTORY_WORKER",
+    "request_types": [
+      "wind_time_height_latest"
+    ],
+    "lease_seconds": 120
+  },
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "971"
+  },
+  "response_json": {
+    "schema_version": "1.0",
+    "claimed": true,
+    "request": {
+      "request_id": "JOB_E4F66241B7574961AB91224543D4BF54",
+      "idempotency_key": "HANDOFF_HISTORY_FAILURE_1",
+      "session_id": "SESSION_718DC54CB1D04377BAAB04E8A2E962BE",
+      "terminal_id": "HANDOFF_TERMINAL",
+      "receiver_type": "command_center",
+      "role_id": "commander",
+      "mission_id": "CESIUM_HISTORY_HANDOFF",
+      "request_type": "wind_time_height_latest",
+      "script_id": "SCRIPT_WIND_TIME_HEIGHT",
+      "category_id": "wind",
+      "output_product_type": "wind_time_height",
+      "owner": "分发服务绘图脚本",
+      "status": "running",
+      "worker_id": "HANDOFF_HISTORY_WORKER",
+      "result_product_id": null,
+      "last_error": null,
+      "lease_expires_at": "2026-11-02T07:14:58+00:00",
+      "heartbeat_at": "2026-11-02T07:12:58+00:00",
+      "attempt_count": 1,
+      "requested_at": "2026-11-02T07:12:58+00:00",
+      "updated_at": "2026-11-02T07:12:58+00:00",
+      "parameters": {
+        "latest": false,
+        "variable": "wind_speed"
+      },
+      "schema_version": "1.0",
+      "waiting_seconds": 0,
+      "progress_hint": ""
+    }
+  }
+}

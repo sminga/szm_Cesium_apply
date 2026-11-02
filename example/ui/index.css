@@ -682,6 +682,69 @@ button:disabled {
   margin-top: 8px;
 }
 
+.basemap-control-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.basemap-control-grid .select-control {
+  margin-top: 0;
+}
+
+.basemap-option-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.basemap-option {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 7px 8px;
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  font-size: 10px;
+}
+
+.basemap-option input {
+  width: 15px;
+  height: 15px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.basemap-option b,
+.basemap-option small {
+  display: block;
+}
+
+.basemap-option b {
+  color: var(--text-1);
+  font-size: 11px;
+}
+
+.basemap-option small {
+  margin-top: 2px;
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+.basemap-option:has(input:disabled) {
+  opacity: 0.5;
+}
+
+/* 场景页包含大量 8～9px 的来源与状态说明，小字号需要比全局辅助色更高的对比度。 */
+[data-page="layers"] .section-kicker,
+[data-page="layers"] .section-heading > span,
+[data-page="layers"] .layer-copy small {
+  color: var(--text-2);
+}
+
 .mode-list {
   display: grid;
   gap: 6px;

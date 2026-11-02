@@ -34,7 +34,7 @@ registry.register({
 
 ## 顺序语义
 
-- 底图固定在 Cesium 影像集合底部，不参加拖动排序。
+- 底图固定在 Cesium 影像集合底部，不参加拖动排序。天地图等复合底图可以包含多个内部 `ImageryLayer`，但注册中心只显示一个逻辑条目，显隐和透明度统一委托给 `BasemapManager`。
 - 只有影像叠加层启用拖动与上移/下移；列表越靠上，在 Cesium 影像栈中也越靠上。
 - 风场与 3D Tiles 可以同时存在，但 WebGL 深度测试决定遮挡关系，列表顺序不承诺覆盖关系。
 - Cesium Globe 同一时刻只有一个 `terrainProvider`。面板保存多个候选地形源，并用单选状态标记当前活动源。
@@ -44,7 +44,7 @@ registry.register({
 
 注册中心不直接创建或销毁 Cesium 对象。`main.js` 通过适配器继续调用 `WindLayerManager`、`IonAssetLayerManager` 和 `TerrainController`，避免产生第二套资源所有权。用户点击“从场景移除”后，底层管理器先释放 GPU、Worker 或网络资源，成功后注册中心才删除条目。
 
-浏览器选择的 DEM 和 quantized-mesh 文件夹默认只在当前会话使用，不上传到 Vercel 或第三方。公开目录和对象存储中的资源仍通过正常 URL 加载。后续接入 SHP、ENVI、TIF 或天地图时，应先定义它属于影像、矢量、3D 内容还是地形，再声明真实支持的能力，不能为了统一外观而提供无效排序。
+浏览器选择的 DEM、Shapefile 和 quantized-mesh 文件夹默认只在当前会话使用，不上传到 Vercel 或第三方。公开目录、对象存储和多厂商底图仍通过正常 URL 加载。后续接入 ENVI、TIF 影像或其他地图服务时，应先定义它属于影像、矢量、3D 内容还是地形，再声明真实支持的能力，不能为了统一外观而提供无效排序。
 
 地形切换按“最新用户选择优先”：异步 Provider 创建被较新请求取代后，旧结果不会改写活动地形；失败时原 Provider 留在场景中，失败候选保留状态供用户重试。DEM 任务重试使用新任务 ID，以隔离旧 Worker 的迟到进度。
 
@@ -57,7 +57,7 @@ registry.register({
 
 ## 测试
 
-运行 `npm test -- tests/example/sceneLayerRegistry.test.js tests/example/layerAdapters.test.js tests/example/terrainActivation.test.js`。测试覆盖注册/顺序、影像适配、地形失败回退和过期请求；不连接真实 ion、Vercel 或 Service Worker。页面集成仍需执行 `npm run build:vercel`，并在真实桌面浏览器中检查 Cesium 图层顺序、资源释放、地形互斥、版权署名和错误提示。
+运行 `npm test -- tests/example/sceneLayerRegistry.test.js tests/example/layerAdapters.test.js tests/example/terrainActivation.test.js tests/example/basemapManager.test.js tests/example/basemapProviders.test.js`。测试覆盖注册/顺序、影像与复合底图适配、地形失败回退和过期请求；不连接真实厂商、Vercel 或 Service Worker。页面集成仍需执行 `npm run build:vercel`，并在真实桌面浏览器中检查 Cesium 图层顺序、资源释放、地形互斥、版权署名和错误提示。
 
 ## 常见问题与限制
 
@@ -65,4 +65,4 @@ registry.register({
 - 同时激活多个高程地形：Cesium 的 `terrainProvider` 是单值，面板保留多个候选，但只能单选应用。
 - 处理任务移除失败或网络中断：底层资源由对应 adapter 管理；取消网络 fetch 不保证已经开始的本地 CTB 子进程立即退出。
 - 某类数据没有操作按钮：说明 adapter 没声明/未实现该能力，不应仅为 UI 一致性添加空动作。
-- 当前没有 SHP、ENVI、天地图等适配器；扩展前应先确认格式授权、署名、渲染栈顺序和 Vercel 资源路径。
+- 当前已有浏览器 Shapefile 和天地图底图适配；ENVI/TIF 影像及其他厂商服务仍需先确认格式、授权、署名、渲染栈顺序和 Vercel 资源路径。

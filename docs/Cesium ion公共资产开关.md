@@ -1,138 +1,94 @@
-# Cesium ion 公共资产开关
+# Cesium ion 公共资产与场景开关
 
-## 1. 功能目标
+## 1. 当前范围
 
-“场景”页允许普通网站用户在浏览器中按需组合 Cesium ion 公共影像、3D Tiles 和世界地形。功能随 Vite 静态站点部署到 Vercel，不依赖 Python、Docker、本地服务、开发者电脑路径或访客的 `localhost`。
+场景页不再平铺十个相互重复的 Google/Bing/Earth at Night 影像开关。基础底图采用互斥选择，专题影像与三维内容保持独立开关，世界地形归入“地形”页。
 
-公共资产仍需要网站部署者提供 `VITE_CESIUM_ION_TOKEN`。这里的“公共”表示资产可通过 ion 目录使用，不表示可以绕过 ion 鉴权、数据许可或署名要求。
+| 类型 | 名称 | ion 资产 ID | 页面位置 | 默认状态 |
+| --- | --- | --- | --- | --- |
+| 基础底图 | Google Maps 卫星含标签 | `3830183` | 场景 > 基础底图 | 关闭 |
+| 专题影像 | Sentinel-2 | `3954` | 场景 > 专题影像 | 关闭 |
+| 3D Tiles | Google Photorealistic 3D Tiles | `2275207` | 场景 > 三维内容 | 关闭，高负载 |
+| 3D Tiles | Cesium OSM Buildings | `96188` | 场景 > 三维内容 | 关闭 |
+| 地形 | Cesium World Terrain | `1` | 地形 > 地形管理 | 关闭 |
 
-## 2. 资产清单
+Cesium World Imagery 仍通过 `createWorldImageryAsync()` 作为基础底图提供。删除的 Google Maps 等高线/仅标签/道路/卫星、Bing 道路/航空/航空含标签和 Earth at Night 不再出现在 UI，但本次没有删除 Cesium ion 后台资产，也没有改变外部资产权限。
 
-| 类型 | 页面名称 | ion 资产 ID |
-| --- | --- | ---: |
-| 影像 | Google Maps 等高线 | `3830186` |
-| 影像 | Google Maps 仅标签 | `3830185` |
-| 影像 | Google Maps 道路 | `3830184` |
-| 影像 | Google Maps 卫星含标签 | `3830183` |
-| 影像 | Google Maps 卫星 | `3830182` |
-| 影像 | Sentinel-2 | `3954` |
-| 影像 | Earth at Night | `3812` |
-| 影像 | Bing Maps 道路 | `4` |
-| 影像 | Bing Maps 航空含标签 | `3` |
-| 影像 | Bing Maps 航空 | `2` |
-| 3D Tiles | Google Photorealistic 3D Tiles | `2275207` |
-| 3D Tiles | Cesium OSM Buildings | `96188` |
-| 地形 | Cesium World Terrain | `1` |
+## 2. 精简原因
 
-资产 ID 来自本次需求提供的 Cesium ion 公共资产列表。若 ion 后台以后调整资产可用性、许可或 ID，需要同时更新页面、本文档和验证记录。
+- 多个不透明影像同时开启时，下层会被完全遮挡，普通用户难以判断哪个开关是真正的底图。
+- Google/Bing 的多个道路、标签和卫星变体与新增多厂商基础底图重复，增加网络请求和维护成本。
+- Sentinel-2 具有明确专题影像用途，保留为可与任意基础底图叠加的独立层。
+- Google Photorealistic 3D Tiles 和 Cesium OSM Buildings 属于三维内容，不应与二维底图混在同一清单。
+- Cesium World Terrain 改变 `terrainProvider`，必须和 DEM/quantized-mesh 放在同一个地形职责区域。
 
 ## 3. 文件职责
 
 | 文件 | 职责 |
 | --- | --- |
-| `example/index.html` | 声明资产开关、资产 ID、显示名称和右侧场景计数。 |
-| `example/app/main.js` | 读取 Token、绑定 DOM、显示加载状态、管理底图和调用资产管理器。 |
-| `example/app/ionAssetLayerManager.js` | 不依赖 DOM 的 ion 影像/3D Tiles 生命周期与异步竞态管理。 |
-| `example/ui/index.css` | 开关列表间距、禁用态和 Cesium credit 位置。 |
-| `tests/example/ionAssetLayerManager.test.js` | 使用 Cesium/viewer 替身验证增删、取消、错误和资源释放。 |
+| `example/index.html` | 声明 Sentinel-2、两个 3D Tiles 和 World Terrain 开关。 |
+| `example/app/main.js` | 绑定开关、更新状态提示、登记右侧图层和处理地形互斥。 |
+| `example/app/ionAssetLayerManager.js` | 管理 ion 影像与 3D Tiles 的异步加载、取消、移除和释放。 |
+| `example/app/basemaps/` | 管理 Cesium/Google ion 等互斥基础底图，不把底图当普通影像叠加层。 |
+| `tests/example/ionAssetLayerManager.test.js` | 验证 ion 影像/3D Tiles 资源生命周期。 |
 
-## 4. 核心流程
+## 4. 资源生命周期
 
-### 4.1 影像
+### 4.1 Sentinel-2
 
-1. `main.js` 从开关的 `data-ion-imagery` 读取资产 ID。
-2. `IonAssetLayerManager` 调用 `Cesium.IonImageryProvider.fromAssetId()`。
-3. 加载成功后，影像加入当前底图之上的 `ImageryLayerCollection`。
-4. 关闭开关时只移除对应影像，不影响底图和其他公共影像。
-
-底图使用独立的 `basemapLayer` 引用，并始终插入影像栈索引 `0`。切换底图不再调用 `removeAll()`，因此不会误删公共影像。
+1. 用户打开开关后，`IonAssetLayerManager` 调用 `IonImageryProvider.fromAssetId(3954)`。
+2. 成功后加入 Cesium `ImageryLayerCollection`，并登记到右侧“影像叠加”组。
+3. 它可以隐藏、调透明度、排序或从场景移除。
+4. 切换基础底图不会调用 `removeAll()`，因此 Sentinel-2 保持存在。
 
 ### 4.2 3D Tiles
 
-1. 管理器调用 `Cesium.Cesium3DTileset.fromIonAssetId()`。
-2. 成功后把 tileset 加入 `viewer.scene.primitives`。
-3. 关闭时从 `PrimitiveCollection` 移除；Cesium 随后释放网络缓存、CPU 对象和 GPU 资源。
+管理器通过 `Cesium3DTileset.fromIonAssetId()` 创建资源。Google Photorealistic 3D Tiles 使用较保守的 `maximumScreenSpaceError` 和缓存上限，以降低公开网站带宽和显存压力，但不能保证低端电脑流畅。
 
-Google Photorealistic 3D Tiles 使用较保守的客户端参数：`maximumScreenSpaceError: 24`、`cacheBytes: 256 MiB`、`maximumCacheOverflowBytes: 128 MiB`。这些参数减少公开网站的带宽和显存压力，但不保证所有低端设备都能流畅运行。
+### 4.3 世界地形
 
-### 4.3 异步取消
+World Terrain 由 `TerrainController` 管理，不由 `IonAssetLayerManager` 持有。它与椭球、浏览器 DEM、本地文件夹和公开目录地形互斥。启用/关闭状态同时同步到地形页和右侧“地形源”。
 
-每个资产维护独立请求版本号。开关变化时版本号递增：
+### 4.4 异步取消
 
-- 旧请求晚到成功：不插入场景；若是 3D Tiles，立即销毁结果。
-- 旧请求晚到失败：作为已取消请求忽略，不覆盖当前“已关闭”提示。
-- 页面卸载：管理器标记为已释放，清理当前图层，并让进行中的请求自动失效。
+影像和 3D Tiles 每个资产都有独立请求版本号。关闭或销毁后，旧请求晚到不会恢复资源；迟到的 3D Tiles 成功结果会主动销毁。基础底图的异步竞态由 `BasemapManager` 单独处理。
 
-## 5. Vercel 配置与安全边界
+## 5. Token、Vercel 与署名
 
-在 `example/.env.local` 或 Vercel 项目环境变量中配置：
+在 `example/.env.local` 或 Vercel 环境变量中配置：
 
 ```text
 VITE_CESIUM_ION_TOKEN=由部署维护者提供的浏览器 Token
 ```
 
-注意：
+- `VITE_*` 会进入浏览器 JavaScript，不能保存私密服务端密钥。
+- Token 应在 Cesium ion 后台限制本地域名、Vercel 预览域名和生产域名，并只授予所需资产权限。
+- 未配置 Token 时，Cesium/Google ion、Sentinel-2、3D Tiles 和 World Terrain 会禁用；OpenStreetMap 和无底图仍可用。
+- 页面不会要求普通访客输入 Token，也不会把 Token 写入右侧图层 metadata 或错误消息。
+- `.cesium-widget-credits` 必须可见，不能通过内联样式或 CSS 隐藏数据提供者署名。
 
-- `VITE_*` 会写入浏览器 JavaScript，不能保存私密服务端密钥。
-- 应在 Cesium ion 后台限制本地域名、Vercel 预览域名和生产域名。
-- 未配置 Token 时，页面继续使用 OpenStreetMap，ion 公共资产开关全部禁用并显示原因。
-- 页面不会要求普通访客输入 Token，也不会连接访客电脑上的本地转换服务。
-- Cesium credit 容器必须可见，以展示 Cesium ion 及各数据提供者的署名。
+如果仓库历史或旧示例曾包含可用 Token，应由维护者在 Cesium ion 后台检查权限和使用记录，必要时轮换。仅把示例文件改成占位符不能撤销已经暴露的 Token。
 
 ## 6. 用户操作
 
-1. 进入顶部“场景”。
-2. 在“公共影像”中打开所需影像；多个影像可以叠加，后打开的位于更上层。
-3. 在“三维与地形”中打开 3D Tiles 或世界地形。
-4. 不再使用某资产时关闭开关，减少网络请求、GPU 内存和渲染压力。
+1. 在“场景 > 基础底图”选择 Cesium 或 Google，或者使用 OSM/其他已配置厂商。
+2. 需要专题影像时打开 Sentinel-2；切换基础底图后它仍然保留。
+3. 按需打开 Cesium OSM Buildings。Google Photorealistic 3D Tiles 数据量大，使用后及时关闭。
+4. 进入“地形”页启用 Cesium World Terrain；需要本地 DEM 或 quantized-mesh 时从同一页面切换。
+5. 在右侧“图层管理”查看、隐藏、调透明度、定位或移除对应资源。
 
-多个不透明卫星或道路影像同时打开时，下层可能完全被遮挡。这属于 Cesium 影像栈的正常合成结果，不是加载失败。
-
-## 7. 常见错误
-
-### 开关不可用
-
-页面提示“未配置 `VITE_CESIUM_ION_TOKEN`”。检查 Vercel 环境变量是否配置到正确环境，并在修改后重新部署；不要把 Token 硬编码到仓库。
-
-### 加载返回 401 或 403
-
-检查 Token 是否失效、是否包含对应资产访问权限，以及当前预览/生产域名是否在允许列表中。
-
-### 图层打开但看不到变化
-
-检查是否被后打开的不透明影像遮挡，或当前相机位置是否有对应 3D Tiles 数据。可暂时关闭其他影像定位原因。
-
-### 页面内存或帧率压力增大
-
-关闭不需要的 3D Tiles 和影像。Google Photorealistic 3D Tiles 数据量大，移动设备和集成显卡需要单独评估。
-
-## 8. 验证方法
+## 7. 验证
 
 ```powershell
-node --check example/app/main.js
-node --check example/app/ionAssetLayerManager.js
-npm test
+npm test -- tests/example/ionAssetLayerManager.test.js tests/example/basemapManager.test.js tests/example/basemapProviders.test.js tests/example/layerAdapters.test.js
 npm run build:vercel
 ```
 
-生产预览还应检查：
+浏览器桌面检查包括：Google ion 底图、Sentinel-2 开关和右侧登记；切换 OSM/无底图/Google 后专题影像不丢失；World Terrain 在地形页启用和关闭；Cesium credit 可见；页面错误列表为空。
 
-- 10 个影像、2 个 3D Tiles 和 1 个地形开关均显示。
-- Sentinel-2、Cesium OSM Buildings 可开启、关闭并更新右侧计数。
-- 切换底图后，已开启公共影像仍保持。
-- Token 缺失时开关禁用且提示清楚。
-- 工具页不再出现已删除说明。
-- Cesium credit 可见，无 Vite 错误覆盖层和浏览器控制台错误。
+## 8. 已知限制
 
-## 9. 学习顺序
-
-1. 先读 `example/index.html` 中的 `data-ion-imagery` 和 `data-ion-tileset`，理解页面如何声明资产。
-2. 再读 `main.js` 的 `toggleIonImagery()`、`toggleIonTileset()` 和 `setBasemap()`，理解 DOM 状态与 Cesium 场景的连接。
-3. 然后读 `ionAssetLayerManager.js`，重点关注请求版本号、过期结果和资源释放。
-4. 最后读 `tests/example/ionAssetLayerManager.test.js`，用测试理解异步取消边界。
-
-## 10. 已知限制
-
-- 真实 Vercel 预览域名和生产域名尚未验证。
-- 本次没有长时间遍历 Google Photorealistic 3D Tiles 的全球城市数据，也没有覆盖不同移动 GPU 的性能。
-- 第三方公共资产的许可、可用性、资产 ID 和服务策略可能由提供者调整，维护时需要重新核对 Cesium ion 后台。
+- ion 资产、许可、可用区域和服务策略可能由提供者调整，维护时需要在 Cesium ion 后台重新核对。
+- 真实 Vercel Preview/Production 尚未验证 Token 域名限制、网络可达性、缓存和带宽。
+- 本次只检查电脑端，没有检查手机和平板，也没有做 Google Photorealistic 3D Tiles 的长时间全球性能测试。
+- 多厂商底图与坐标系边界见 `docs/多厂商底图与坐标系适配.md`。

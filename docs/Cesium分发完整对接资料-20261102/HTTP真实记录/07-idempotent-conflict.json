@@ -1,0 +1,24 @@
+{
+  "method": "POST",
+  "path": "/api/v1/processing-requests",
+  "request_json": {
+    "session_id": "SESSION_718DC54CB1D04377BAAB04E8A2E962BE",
+    "request_type": "wind_time_height_latest",
+    "parameters": {
+      "latest": false,
+      "variable": "wind_direction"
+    },
+    "idempotency_key": "HANDOFF_HISTORY_SUCCESS_1"
+  },
+  "http_status": 400,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:57 GMT",
+    "connection": "close",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "58"
+  },
+  "response_json": {
+    "error": "idempotency_key已用于不同的处理申请"
+  }
+}

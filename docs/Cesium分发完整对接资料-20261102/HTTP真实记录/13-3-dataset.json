@@ -1,0 +1,45 @@
+{
+  "method": "GET",
+  "path": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "966"
+  },
+  "response_json": {
+    "dataset_id": "DS_9B2510ABA3A74DA19488937E4F071C1C",
+    "task_id": "CESIUM_HISTORY_HANDOFF",
+    "stage": "processed",
+    "source_type": "module_product",
+    "source_id": "HANDOFF_HISTORY_OUTPUT",
+    "owner": "分发服务绘图脚本",
+    "file_name": "latest_profile.json",
+    "format": "json",
+    "size_bytes": 10305,
+    "sha256": "9d2a1721be39fa3b1bc5528f9b5ac493f6785289b4efc2f710fc1cec453d8573",
+    "capture_start": null,
+    "capture_end": null,
+    "process_name": "existing_history_output_handoff",
+    "process_version": "1.0",
+    "created_at": "2026-11-02T07:12:58+00:00",
+    "metadata": {
+      "original_file_name": "latest_profile.json",
+      "upload_id": "UP_160AD37D6ADE48ABA2120E3143A1BB6A"
+    },
+    "derived_from": [],
+    "sync": {
+      "queue_id": 4,
+      "dataset_id": "DS_9B2510ABA3A74DA19488937E4F071C1C",
+      "status": "synced",
+      "priority": 100,
+      "attempts": 0,
+      "last_error": null,
+      "updated_at": "2026-11-02T07:12:58+00:00"
+    },
+    "schema_version": "1.0",
+    "content_url": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C/content"
+  }
+}

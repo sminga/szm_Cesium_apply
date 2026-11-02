@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "path": "/api/v1/identity-selections/SESSION_NOT_FOUND",
+  "request_json": null,
+  "http_status": 404,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "connection": "close",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "34"
+  },
+  "response_json": {
+    "error": "找不到身份会话"
+  }
+}

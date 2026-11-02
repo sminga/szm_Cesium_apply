@@ -1,0 +1,184 @@
+{
+  "product_id": "PRD_403B9B16236742C3836E560D2C0B1D48",
+  "task_id": "HISTORY_20240403",
+  "request_id": null,
+  "product_type": "wind3d_slice",
+  "product_key": "wind3d_slice:height=10m",
+  "category_id": "wind",
+  "title": "【历史回放】历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+  "summary": "历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+  "owner": "历史回放数值摘要",
+  "version": "replay-v1",
+  "generated_at": "2024-04-03T08:33:00+00:00",
+  "valid_from": "2024-04-03T08:33:00+00:00",
+  "valid_until": "2024-04-03T08:38:00+00:00",
+  "processor_name": "historical_replay",
+  "processor_version": "1.0",
+  "threshold_version": null,
+  "quality_status": "usable",
+  "quality_reason": null,
+  "created_at": "2026-10-10T02:35:46+00:00",
+  "extent": {},
+  "metadata": {
+    "briefing_lines": {
+      "结论": "历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+      "行动提示": "本次为历史回放，不用于当前现场指挥；固定站位置未核实",
+      "风险位置或高度": "风速大小不等于危险等级；尚无已确认的航线/风切变风险结果"
+    },
+    "briefing_metrics": [
+      {
+        "metric_id": "wind_speed_mean",
+        "unit": "m/s",
+        "value": 1.835
+      },
+      {
+        "metric_id": "wind_speed_max",
+        "unit": "m/s",
+        "value": 5.47
+      },
+      {
+        "metric_id": "wind_direction",
+        "unit": "°",
+        "value": 171.3
+      },
+      {
+        "metric_id": "height_agl",
+        "unit": "m",
+        "value": 10
+      },
+      {
+        "metric_id": "max_wind_location",
+        "unit": "",
+        "value": "经度101.96991、纬度24.56751，离地10m"
+      },
+      {
+        "metric_id": "data_coverage",
+        "unit": "%",
+        "value": 100.0
+      }
+    ],
+    "historical_replay": true,
+    "processed_at_utc": "2026-10-10T02:35:46+00:00",
+    "research_product_id": "W01"
+  },
+  "derived_from": [
+    "DS_8764542A4E6F4CB0A238B440F30D0691"
+  ],
+  "assets": [
+    {
+      "asset_id": "ASSET_56C74689CFA84C68A171DA4BEFC0AB9E",
+      "dataset_id": "DS_8764542A4E6F4CB0A238B440F30D0691",
+      "asset_type": "netcdf",
+      "label": "10m原融合文件",
+      "sort_order": 0,
+      "descriptor_version": "1.0",
+      "file_name": "Wind3D_20240403T083300Z_100m_h010m.nc",
+      "size_bytes": 6294232,
+      "sha256": "dcce2e0506c7d5c23c89918fcb978e889b76b7d49610d82213c158a95530b08a",
+      "media_type": "application/x-netcdf",
+      "file_format": "nc",
+      "content_url": "/api/v1/datasets/DS_8764542A4E6F4CB0A238B440F30D0691/content",
+      "data_role": "wind_2d",
+      "purpose": "10m原融合文件",
+      "crs": "EPSG:4326",
+      "source_crs_wkt": "PROJCRS[\"WGS 84 / UTM zone 48N\",BASEGEOGCRS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",ELLIPSOID[\"WGS 84\",6378137,298.257223563,LENGTHUNIT[\"metre\",1]],ID[\"EPSG\",6326]],PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"Degree\",0.0174532925199433]]],CONVERSION[\"UTM zone 48N\",METHOD[\"Transverse Mercator\",ID[\"EPSG\",9807]],PARAMETER[\"Latitude of natural origin\",0,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8801]],PARAMETER[\"Longitude of natural origin\",105,ANGLEUNIT[\"Degree\",0.0174532925199433],ID[\"EPSG\",8802]],PARAMETER[\"Scale factor at natural origin\",0.9996,SCALEUNIT[\"unity\",1],ID[\"EPSG\",8805]],PARAMETER[\"False easting\",500000,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8806]],PARAMETER[\"False northing\",0,LENGTHUNIT[\"metre\",1],ID[\"EPSG\",8807]],ID[\"EPSG\",16048]],CS[Cartesian,2],AXIS[\"(E)\",east,ORDER[1],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]],AXIS[\"(N)\",north,ORDER[2],LENGTHUNIT[\"metre\",1,ID[\"EPSG\",9001]]]]",
+      "bbox": [
+        101.86401676217693,
+        24.567506313774018,
+        102.8759276022771,
+        25.484993054933632
+      ],
+      "container_format": "netcdf4_hdf5",
+      "variables": [
+        {
+          "dtype": "float32",
+          "name": "U_wind",
+          "shape": [
+            1,
+            1018,
+            1023
+          ],
+          "standard_name": "eastward_wind",
+          "unit": "m s-1"
+        },
+        {
+          "dtype": "float32",
+          "name": "V_wind",
+          "shape": [
+            1,
+            1018,
+            1023
+          ],
+          "standard_name": "northward_wind",
+          "unit": "m s-1"
+        },
+        {
+          "dtype": "float64",
+          "name": "lon",
+          "shape": [
+            1023
+          ],
+          "standard_name": "longitude",
+          "unit": "degrees_east"
+        },
+        {
+          "dtype": "float64",
+          "name": "lat",
+          "shape": [
+            1018
+          ],
+          "standard_name": "latitude",
+          "unit": "degrees_north"
+        },
+        {
+          "dtype": "float32",
+          "name": "height",
+          "shape": [
+            1
+          ],
+          "standard_name": "height",
+          "unit": "m"
+        },
+        {
+          "dtype": "int32",
+          "name": "crs",
+          "shape": [],
+          "standard_name": null,
+          "unit": null
+        }
+      ],
+      "height_levels_m": [
+        10.0
+      ],
+      "height_reference": "height above ground level",
+      "grid_shape": [
+        1,
+        1018,
+        1023
+      ],
+      "map_ready": false,
+      "render_blockers": [
+        "wind_loader_integration_required",
+        "netcdf3_only_browser_requires_conversion_or_hdf5_loader"
+      ],
+      "dimension_order": [
+        "height",
+        "lat",
+        "lon"
+      ],
+      "coordinates": {
+        "longitude": "lon",
+        "latitude": "lat",
+        "height": "height"
+      },
+      "wind_components": {
+        "eastward": "U_wind",
+        "northward": "V_wind"
+      },
+      "target_time_utc": "2024-04-03T08:33:00Z",
+      "vertical_velocity_available": false,
+      "recommended_display": "wind_adapter_required"
+    }
+  ],
+  "schema_version": "1.0"
+}

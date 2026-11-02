@@ -1,0 +1,488 @@
+{
+  "method": "GET",
+  "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=research",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:57 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "10510"
+  },
+  "response_json": {
+    "schema_version": "1.0",
+    "session_id": "SESSION_718DC54CB1D04377BAAB04E8A2E962BE",
+    "receiver_type": "command_center",
+    "role_id": "commander",
+    "selected_category": "wind",
+    "view": "research",
+    "categories": [
+      {
+        "category_id": "overview",
+        "label": "文字简报",
+        "description": "只显示本力量的核心数值和必要提示"
+      },
+      {
+        "category_id": "wind",
+        "label": "风场专题",
+        "description": "详细空间分布、分层变化和统计信息按需申请"
+      },
+      {
+        "category_id": "fire",
+        "label": "火势信息",
+        "description": "当前火线、预测火线和预计影响范围"
+      },
+      {
+        "category_id": "aviation",
+        "label": "航线专题",
+        "description": "沿程风场、侧风与顺逆风；缺少航线时不生成结论"
+      },
+      {
+        "category_id": "coverage",
+        "label": "补测与路线",
+        "description": "缺测区、补测点、车辆目标点和路线"
+      },
+      {
+        "category_id": "alerts",
+        "label": "告警",
+        "description": "当前有效告警和需要确认的信息"
+      },
+      {
+        "category_id": "system",
+        "label": "数据与系统",
+        "description": "设备原始数据、质量、覆盖和处理状态"
+      }
+    ],
+    "items": [],
+    "product_templates": [
+      {
+        "product_id": "W01",
+        "name": "指定高度风速风向图",
+        "decision_use": "直接查看某一高度风往哪里吹、风速多大",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "wind_speed",
+          "wind_direction",
+          "selected_height"
+        ],
+        "figures": [
+          "风速连续填色图叠加抽稀风矢量",
+          "风向环形配色图叠加等风速线"
+        ],
+        "default_receivers": [
+          "ground_group",
+          "command_center"
+        ],
+        "on_demand_receivers": [
+          "air_group"
+        ],
+        "availability": "direct",
+        "family_id": "spatial",
+        "family_label": "水平空间分布",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "现有标准风场可直接生成"
+      },
+      {
+        "product_id": "W03",
+        "name": "水平风速梯度与突变区图",
+        "decision_use": "发现同一高度上风速快速变化的区域",
+        "core_data": [
+          "wind_speed",
+          "horizontal_speed_gradient",
+          "wind_direction",
+          "selected_height"
+        ],
+        "figures": [
+          "风速梯度热力图叠加风矢量",
+          "突变区等值线叠加相邻网格矢量差"
+        ],
+        "default_receivers": [
+          "ground_group",
+          "command_center"
+        ],
+        "on_demand_receivers": [
+          "air_group"
+        ],
+        "availability": "derived",
+        "family_id": "spatial",
+        "family_label": "水平空间分布",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "由标准风场计算后生成"
+      },
+      {
+        "product_id": "W06",
+        "name": "垂直风切变产品",
+        "decision_use": "确定切变较强的高度层和空间区域",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "height",
+          "vertical_vector_shear"
+        ],
+        "figures": [
+          "切变强度随高度曲线",
+          "指定高度区间切变强度空间热力图"
+        ],
+        "default_receivers": [
+          "air_group",
+          "command_center"
+        ],
+        "on_demand_receivers": [],
+        "availability": "derived_no_vertical_wind",
+        "family_id": "vertical",
+        "family_label": "垂直结构",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "使用水平风矢量计算，不代表垂直气流"
+      },
+      {
+        "product_id": "W07",
+        "name": "风速时间高度图",
+        "decision_use": "观察连续过程中不同高度风速增强或减弱",
+        "core_data": [
+          "wind_speed",
+          "height",
+          "time_sequence",
+          "selected_location_or_area"
+        ],
+        "figures": [
+          "风速时间高度热力图",
+          "相对首帧风速距平时间高度图"
+        ],
+        "default_receivers": [
+          "command_center"
+        ],
+        "on_demand_receivers": [
+          "air_group",
+          "ground_group"
+        ],
+        "availability": "derived",
+        "family_id": "temporal",
+        "family_label": "连续变化",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "由标准风场计算后生成"
+      },
+      {
+        "product_id": "W10",
+        "name": "多高度风场切片组图",
+        "decision_use": "比较同一时刻不同高度的空间风场差异",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "wind_speed",
+          "wind_direction",
+          "representative_heights"
+        ],
+        "figures": [
+          "统一色标的六高度小倍图",
+          "经向或纬向风场垂直剖面"
+        ],
+        "default_receivers": [
+          "command_center"
+        ],
+        "on_demand_receivers": [
+          "air_group",
+          "ground_group"
+        ],
+        "availability": "direct",
+        "family_id": "multilevel_3d",
+        "family_label": "多高度与三维表达",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "现有标准风场可直接生成"
+      },
+      {
+        "product_id": "W11",
+        "name": "区域三维动态风场",
+        "decision_use": "在地形环境中查看多高度风场结构及其连续变化",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "height",
+          "time_sequence",
+          "DEM"
+        ],
+        "figures": [
+          "地形上方多高度半透明风场切片",
+          "Cesium多高度粒子或流线动画"
+        ],
+        "default_receivers": [
+          "command_center"
+        ],
+        "on_demand_receivers": [
+          "air_group"
+        ],
+        "availability": "needs_dem_and_cesium",
+        "family_id": "multilevel_3d",
+        "family_label": "多高度与三维表达",
+        "delivery_mode": "default",
+        "delivery_label": "默认提供",
+        "availability_label": "需要DEM和Cesium"
+      },
+      {
+        "product_id": "W02",
+        "name": "地形流线风场图",
+        "decision_use": "识别山谷引导、绕流、汇合和局地加速区",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "wind_speed",
+          "selected_height",
+          "DEM"
+        ],
+        "figures": [
+          "地形阴影叠加风速填色与流线",
+          "线积分卷积纹理叠加地形等高线"
+        ],
+        "default_receivers": [
+          "ground_group"
+        ],
+        "on_demand_receivers": [
+          "air_group",
+          "command_center"
+        ],
+        "availability": "needs_dem",
+        "family_id": "spatial",
+        "family_label": "水平空间分布",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "需要DEM"
+      },
+      {
+        "product_id": "W08",
+        "name": "风向时间高度图",
+        "decision_use": "观察不同高度风向转变和旋转过程",
+        "core_data": [
+          "U_wind",
+          "V_wind",
+          "wind_direction",
+          "height",
+          "time_sequence",
+          "selected_location_or_area"
+        ],
+        "figures": [
+          "风向环形色带时间高度图",
+          "风羽时间高度幕图"
+        ],
+        "default_receivers": [],
+        "on_demand_receivers": [
+          "air_group",
+          "ground_group",
+          "command_center"
+        ],
+        "availability": "derived",
+        "family_id": "temporal",
+        "family_label": "连续变化",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "由标准风场计算后生成"
+      },
+      {
+        "product_id": "W09",
+        "name": "短时风场变化图",
+        "decision_use": "识别连续帧之间风速和风向变化明显的区域",
+        "core_data": [
+          "speed_tendency",
+          "direction_change",
+          "selected_height",
+          "time_sequence"
+        ],
+        "figures": [
+          "相邻帧风速变化填色图",
+          "风向变化与风速变化联合分区图"
+        ],
+        "default_receivers": [
+          "ground_group"
+        ],
+        "on_demand_receivers": [
+          "air_group",
+          "command_center"
+        ],
+        "availability": "derived",
+        "family_id": "temporal",
+        "family_label": "连续变化",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "由标准风场计算后生成"
+      },
+      {
+        "product_id": "W12",
+        "name": "航线沿程风环境图",
+        "decision_use": "查看航线各段顺风、逆风和侧风情况",
+        "core_data": [
+          "route_geometry",
+          "route_heading",
+          "flight_height",
+          "U_wind",
+          "V_wind",
+          "headwind",
+          "crosswind"
+        ],
+        "figures": [
+          "按侧风强度着色的航线地图",
+          "沿航程顺风侧风双曲线"
+        ],
+        "default_receivers": [
+          "air_group"
+        ],
+        "on_demand_receivers": [
+          "command_center"
+        ],
+        "availability": "needs_route",
+        "family_id": "route",
+        "family_label": "航线应用",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "需要航线"
+      },
+      {
+        "product_id": "W13",
+        "name": "航线距离高度风场剖面",
+        "decision_use": "比较不同航段和不同飞行高度的风环境",
+        "core_data": [
+          "route_geometry",
+          "U_wind",
+          "V_wind",
+          "height",
+          "headwind",
+          "crosswind",
+          "DEM"
+        ],
+        "figures": [
+          "航程高度侧风幕图叠加飞行轨迹",
+          "地形飞行包线叠加分层风矢量"
+        ],
+        "default_receivers": [
+          "air_group"
+        ],
+        "on_demand_receivers": [
+          "command_center"
+        ],
+        "availability": "needs_route_and_dem",
+        "family_id": "route",
+        "family_label": "航线应用",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "需要航线和DEM"
+      },
+      {
+        "product_id": "W14",
+        "name": "风向风速频率统计",
+        "decision_use": "科研分析较长时段的主导风向和风速分布",
+        "core_data": [
+          "wind_speed",
+          "wind_direction",
+          "sufficient_time_window",
+          "selected_location_or_area"
+        ],
+        "figures": [
+          "风速分级堆叠风玫瑰",
+          "风向风速极坐标频率热力图"
+        ],
+        "default_receivers": [],
+        "on_demand_receivers": [
+          "air_group",
+          "ground_group",
+          "command_center"
+        ],
+        "availability": "requires_longer_window_not_current_13_minutes",
+        "family_id": "statistics",
+        "family_label": "科研统计",
+        "delivery_mode": "on_demand",
+        "delivery_label": "按需申请",
+        "availability_label": "需要更长时间序列"
+      }
+    ],
+    "request_options": [
+      {
+        "request_type": "wind3d_slice_latest",
+        "category_id": "wind",
+        "label": "指定高度风速风向专题图",
+        "description": "生成毛钧涵后端最新Wind3D指定高度风场图",
+        "owner": "分发服务绘图脚本",
+        "output_product_type": "wind3d_slice",
+        "default_parameters": {
+          "latest": true,
+          "height_m": 10
+        },
+        "required_parameters": [],
+        "product_code": "W01",
+        "assignee": "已完成",
+        "data_contents": [
+          "风速",
+          "风向",
+          "指定离地高度",
+          "经纬度"
+        ]
+      },
+      {
+        "request_type": "terrain_wind_analysis_latest",
+        "category_id": "wind",
+        "label": "地形背景风场专题图",
+        "description": "生成山谷、山脊和重点区域的风速、风向及地形绕流分析图",
+        "owner": "分发服务绘图脚本",
+        "output_product_type": "terrain_wind_analysis",
+        "default_parameters": {
+          "latest": true
+        },
+        "required_parameters": [],
+        "product_code": "W02",
+        "assignee": "马",
+        "data_contents": [
+          "地形阴影/等高线",
+          "风速",
+          "风向",
+          "指定离地高度"
+        ]
+      },
+      {
+        "request_type": "wind_time_height_latest",
+        "category_id": "wind",
+        "label": "固定雷达风场综合专题图",
+        "description": "由童的模块输出风速风向时高图、垂直气流时高图和最新时刻分层数值",
+        "owner": "分发服务绘图脚本",
+        "output_product_type": "wind_time_height",
+        "default_parameters": {
+          "latest": true,
+          "variable": "wind_speed"
+        },
+        "required_parameters": [],
+        "product_code": "W07/08",
+        "assignee": "童",
+        "data_contents": [
+          "风速风向时间—高度图",
+          "垂直气流时间—高度图",
+          "最新时刻分层数值",
+          "真实离地高度",
+          "缺测位置"
+        ]
+      },
+      {
+        "request_type": "wind_rose_latest",
+        "category_id": "wind",
+        "label": "风向风速频率统计专题图",
+        "description": "指定点或区域的风向频率与分级风速统计",
+        "owner": "杨",
+        "output_product_type": "wind_rose",
+        "default_parameters": {
+          "latest": true
+        },
+        "required_parameters": [],
+        "product_code": "W14",
+        "assignee": "杨",
+        "data_contents": [
+          "风向频率",
+          "风速分级",
+          "统计时段",
+          "样本数",
+          "静风比例"
+        ]
+      }
+    ],
+    "requests": []
+  }
+}

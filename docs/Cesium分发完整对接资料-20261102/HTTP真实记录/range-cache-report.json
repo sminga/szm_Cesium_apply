@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "25-range",
+      "status": 206
+    },
+    {
+      "name": "26-cache",
+      "status": 304
+    }
+  ],
+  "production_changed": false
+}

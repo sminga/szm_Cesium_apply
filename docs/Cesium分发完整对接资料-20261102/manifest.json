@@ -1,0 +1,368 @@
+{
+  "date": "2026-11-02",
+  "files": [
+    {
+      "path": "01-先读与需求逐项答复.md",
+      "size_bytes": 3995,
+      "sha256": "f25a76bc03d3738a07ae7fbef75fc3cc0469974863bef5e8545015390b0460e2"
+    },
+    {
+      "path": "02-接收端API契约.md",
+      "size_bytes": 10337,
+      "sha256": "d49602d335100a47e703d29c78ddc66b37d5d3192465e072117a3282df912a12"
+    },
+    {
+      "path": "03-实际响应字段清单.md",
+      "size_bytes": 14532,
+      "sha256": "19448922faee5e2b21bb14e7f248e8a74c4cf6af52c609c8b0bec374fc4aec4b"
+    },
+    {
+      "path": "04-资源与NC差异.md",
+      "size_bytes": 4161,
+      "sha256": "6e5461992b76d61e070d48d20cbcf30032ce61cd6d99bb8e995a7bf145c3025c"
+    },
+    {
+      "path": "05-网络证书与联调.md",
+      "size_bytes": 4638,
+      "sha256": "6629c75088416e595e71e7f66668cfd9c55f2494533b806f7cd08220ae94f9cb"
+    },
+    {
+      "path": "certificates/chain-0.pem",
+      "size_bytes": 672,
+      "sha256": "45df2f3c67dad160cde650317eea084551ec3015ed15c309672e2fc00026182a"
+    },
+    {
+      "path": "certificates/chain-1.pem",
+      "size_bytes": 688,
+      "sha256": "549255c0bd37b478d43642180c3c367e25f3b831a1e0827beba9b17d7356c55e"
+    },
+    {
+      "path": "certificates/chain-2.pem",
+      "size_bytes": 642,
+      "sha256": "405fafcb0a9f6496460c3de9dfd506487c90300cf6ff91cc8eb24d8b87ece7e2"
+    },
+    {
+      "path": "certificates/fireflow-lab-root.crt",
+      "size_bytes": 631,
+      "sha256": "72d2dabc82a17ad4068a627b44ea1d06deaf252f1a106141bad6896fc9141dc2"
+    },
+    {
+      "path": "certificates/verified-chain.pem",
+      "size_bytes": 2002,
+      "sha256": "c51ccf888e15c2e98a1cf1968331e23a0fabfa2018bcce2a089cdd6799768685"
+    },
+    {
+      "path": "fireflow-cesium-client.mjs",
+      "size_bytes": 3663,
+      "sha256": "7218513560f69b3fc2a552e6922e626ad3518783cb94f0094ab6eefa4fdb7231"
+    },
+    {
+      "path": "fireflow-service-client.mjs",
+      "size_bytes": 167,
+      "sha256": "91d76a8de0df4d8af2c966741e0df9bb4fab56f76edb34d6203583f4c553b4a5"
+    },
+    {
+      "path": "HTTP真实记录/01-profiles.json",
+      "size_bytes": 3959,
+      "sha256": "2f9e47686935ecff2c45b1e1023b0eeb20a0a1ed44b12c9b1c78b1e60bdfa0f3"
+    },
+    {
+      "path": "HTTP真实记录/02-identity.json",
+      "size_bytes": 6326,
+      "sha256": "6cbfd5b50d76de4e9e64d3678ebfa8f67ab54ca19f61d6b700f9e84d0421aa8f"
+    },
+    {
+      "path": "HTTP真实记录/03-catalog-before.json",
+      "size_bytes": 15492,
+      "sha256": "53340961f90b5ef1e820c0ec30e21775f372a16d5239179c9d6dabe538b033ca"
+    },
+    {
+      "path": "HTTP真实记录/04-create.json",
+      "size_bytes": 1616,
+      "sha256": "a8df6837d8bdcf8f4eb54551d791c96f1bcebb8cf9b57c49704b7f739c04bf10"
+    },
+    {
+      "path": "HTTP真实记录/05-pending.json",
+      "size_bytes": 1380,
+      "sha256": "5248059b6f310fbb25ef365b0394590d57b9fd51e2a466b6a3b62f25db91c9d9"
+    },
+    {
+      "path": "HTTP真实记录/06-idempotent-repeat.json",
+      "size_bytes": 1617,
+      "sha256": "7b99ba3392085c0a11beb22913cec8b32c2f8d7188d0e65a2fdba3f31f29839e"
+    },
+    {
+      "path": "HTTP真实记录/07-idempotent-conflict.json",
+      "size_bytes": 692,
+      "sha256": "83b51cbf10d8af1c19ab35d39d59031f81b33dbecc625a69768de402ff342f62"
+    },
+    {
+      "path": "HTTP真实记录/08-internal-worker-claim.json",
+      "size_bytes": 1728,
+      "sha256": "b89b64175cc076acab348e98b641aed364b9088e050b8dd4333a0029ad0cee14"
+    },
+    {
+      "path": "HTTP真实记录/09-running.json",
+      "size_bytes": 1446,
+      "sha256": "9f6dc6fe3fc33b93fbbaa0fab211877faffeb7c13e842226178275674e624644"
+    },
+    {
+      "path": "HTTP真实记录/10-internal-product-register.json",
+      "size_bytes": 4450,
+      "sha256": "2516872791d203e2eaad1698124c2065cd3d94d74f83d98c146fdec436bb79d1"
+    },
+    {
+      "path": "HTTP真实记录/11-completed.json",
+      "size_bytes": 1436,
+      "sha256": "2bd9b6080bce836260153abaa7bdfb757faa2d2320974c7dce604f6617ae1de0"
+    },
+    {
+      "path": "HTTP真实记录/12-product.json",
+      "size_bytes": 6776,
+      "sha256": "4deec86afe53a63647cb67b8e8c14d1335f6548a5c2a9c63fc9b333244b311ec"
+    },
+    {
+      "path": "HTTP真实记录/13-0-dataset.json",
+      "size_bytes": 1517,
+      "sha256": "a456190638948a7535d0ca40901391e332e05ac2d22a443dcb4ebe5cb4ad5f09"
+    },
+    {
+      "path": "HTTP真实记录/13-1-dataset.json",
+      "size_bytes": 1524,
+      "sha256": "498285287c3e3de6c477ba8c76d3249419dcb82ab988f89f239ac7aa683fc673"
+    },
+    {
+      "path": "HTTP真实记录/13-2-dataset.json",
+      "size_bytes": 1500,
+      "sha256": "6d7a45d64c58e8708c576546e564aa4ebb5792ee86c9c30b7db89cd0654aec36"
+    },
+    {
+      "path": "HTTP真实记录/13-3-dataset.json",
+      "size_bytes": 1515,
+      "sha256": "9c74a550074286a7020382b579be7e50f024c113aa6e097fe87ef25db0732325"
+    },
+    {
+      "path": "HTTP真实记录/13-4-dataset.json",
+      "size_bytes": 1509,
+      "sha256": "7410c6909ad3e6be1765185bbc2e88ddea551a0437aa671f456e1a342559238d"
+    },
+    {
+      "path": "HTTP真实记录/14-0-head.json",
+      "size_bytes": 601,
+      "sha256": "c59626e813801641494ab7e8df7a86bc91a970dab0ca71321ce256199bbdbe7d"
+    },
+    {
+      "path": "HTTP真实记录/14-1-head.json",
+      "size_bytes": 604,
+      "sha256": "d874fc247a9937f8f73f80c054a32eaf53b9fbfd60c0f93260b18689090a6d71"
+    },
+    {
+      "path": "HTTP真实记录/14-2-head.json",
+      "size_bytes": 598,
+      "sha256": "9d592d88c85daf6aa76489ea87184539bdfd093068118724ae168664aa706103"
+    },
+    {
+      "path": "HTTP真实记录/14-3-head.json",
+      "size_bytes": 606,
+      "sha256": "bd2629220cdabe843a253514ecd5c50524e75b90da77fede50cca1edfb44d1e7"
+    },
+    {
+      "path": "HTTP真实记录/14-4-head.json",
+      "size_bytes": 612,
+      "sha256": "566dd49fe9e4e99f4d3e019de332f3eb82caf4a4e1ca14fd1583650a98c5bc4d"
+    },
+    {
+      "path": "HTTP真实记录/15-0-download.json",
+      "size_bytes": 600,
+      "sha256": "06eace34820337a38b714fa34cfbbabdb385fedf6c2680a4fd7a97e45c0d93f5"
+    },
+    {
+      "path": "HTTP真实记录/15-1-download.json",
+      "size_bytes": 603,
+      "sha256": "6649c683ea05e76c710c14125e44ef41bf9b2927d5055576119bb75dc008566f"
+    },
+    {
+      "path": "HTTP真实记录/15-2-download.json",
+      "size_bytes": 2290,
+      "sha256": "efad016bc30133ad4d9e74e8607b4b425b8721128543501c8fb5ab6a7baf158b"
+    },
+    {
+      "path": "HTTP真实记录/15-3-download.json",
+      "size_bytes": 11638,
+      "sha256": "d1f5884542cd2a942876fc28192b4d546a92ad072c9dc98d8b232d4428ea7ffd"
+    },
+    {
+      "path": "HTTP真实记录/15-4-download.json",
+      "size_bytes": 611,
+      "sha256": "2424ab8e25c74457d91e3da0c3531f89f12432155a01291394485b2cb34c9410"
+    },
+    {
+      "path": "HTTP真实记录/16-catalog-completed.json",
+      "size_bytes": 24667,
+      "sha256": "65365b023b0734a31a5bfe1433db0f72879f10ce53359a546d945bbc0127e3b7"
+    },
+    {
+      "path": "HTTP真实记录/17-create-for-failure.json",
+      "size_bytes": 1616,
+      "sha256": "dc414610300692b58d8b9b00af72e4b7c406a3b529241d7cc117dfc1170386f7"
+    },
+    {
+      "path": "HTTP真实记录/18-internal-failure-claim.json",
+      "size_bytes": 1728,
+      "sha256": "d0295e6d77617342b749f63cecc2211837f92f637617e546d7ca9fa5b3c536bb"
+    },
+    {
+      "path": "HTTP真实记录/19-internal-failure-report.json",
+      "size_bytes": 1655,
+      "sha256": "aad63bdd5af59c5758c05d7887c2cb346e790158679a6543ec73cfaef0fbd8a2"
+    },
+    {
+      "path": "HTTP真实记录/20-failed.json",
+      "size_bytes": 1505,
+      "sha256": "40b4a93a2cd581db9fa3f985cad6ff550712e1a3afaec3c7839fd6828555a224"
+    },
+    {
+      "path": "HTTP真实记录/21-session-missing.json",
+      "size_bytes": 431,
+      "sha256": "bb72d6f9dfe13fea1a1e1cf03f01dbad0285df5b118a053a6edc603ae1d6638e"
+    },
+    {
+      "path": "HTTP真实记录/22-invalid-view.json",
+      "size_bytes": 509,
+      "sha256": "7abba4a982d9594e0c8cea33947073f2ecffdf7c66f76e13e302e93807838509"
+    },
+    {
+      "path": "HTTP真实记录/23-session-replacement.json",
+      "size_bytes": 6326,
+      "sha256": "ae66184e8cb8653ccb07c6ed84cc57d3957a97ab7b611736bc325ebdf8adc582"
+    },
+    {
+      "path": "HTTP真实记录/24-stale-session.json",
+      "size_bytes": 526,
+      "sha256": "fc23eb6eebb4e71108e7eea37a5c26e49baaee40c5b3f821bb0832aaf5c3caf3"
+    },
+    {
+      "path": "HTTP真实记录/25-range.json",
+      "size_bytes": 677,
+      "sha256": "c9eb541261bc1c76dd15330e611bddacb60c7656561c7480086febf6e284c28f"
+    },
+    {
+      "path": "HTTP真实记录/26-cache.json",
+      "size_bytes": 512,
+      "sha256": "a55813f9e7c8a39041fc09733213b9aed878ee231c6c054cd3a38f3d059b5bec"
+    },
+    {
+      "path": "HTTP真实记录/capture-report.json",
+      "size_bytes": 7896,
+      "sha256": "571b66eb3947889f9e2263f454e23e0c4eda2c330645e1e65d14ef91b401b170"
+    },
+    {
+      "path": "HTTP真实记录/files/DS_546C1C0E34284DC2B19CA0E8F891EF9D/vertical_time_height.png",
+      "size_bytes": 92210,
+      "sha256": "b29d8e60fd47e618d6c892565a99df9a05fee4a59c1fbaeee378092a3ab2baf5"
+    },
+    {
+      "path": "HTTP真实记录/files/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/wind_time_height.png",
+      "size_bytes": 200306,
+      "sha256": "585429bc31ec4252574ca19efbb878cb070cbb863ece505744d4fbbd467b957e"
+    },
+    {
+      "path": "HTTP真实记录/files/DS_9B2510ABA3A74DA19488937E4F071C1C/latest_profile.json",
+      "size_bytes": 10305,
+      "sha256": "9d2a1721be39fa3b1bc5528f9b5ac493f6785289b4efc2f710fc1cec453d8573"
+    },
+    {
+      "path": "HTTP真实记录/files/DS_A159C04FE3D7495D804CC5BB5657CEBF/observations.csv",
+      "size_bytes": 111785,
+      "sha256": "b84614061e7be0753a1362ebbf8e32766bbcfdd1a11ac3b39e8921229b885762"
+    },
+    {
+      "path": "HTTP真实记录/files/DS_ACBF7637713B4CF2BE0615306CB5B34F/summary.json",
+      "size_bytes": 1607,
+      "sha256": "0117608b6fb6b248d778da019f70b184db820204507a854e10b88f948eaed5e8"
+    },
+    {
+      "path": "HTTP真实记录/range-cache-report.json",
+      "size_bytes": 200,
+      "sha256": "616acca731c9a7e59ed9893a4fd00472ae50d113db8459fe9541703037c661f2"
+    },
+    {
+      "path": "NC变量与缺测实查.json",
+      "size_bytes": 2303,
+      "sha256": "d237eb41e14cd509c0f3201c4e206dcbc1a3ad4311142bb2777b3211cd4a3879"
+    },
+    {
+      "path": "TLS当日检查.json",
+      "size_bytes": 3399,
+      "sha256": "425434f7491b785d4f73f911f70d96db38dac017473a9778718a7167d1076ec3"
+    },
+    {
+      "path": "tools/check-cesium-tls.mjs",
+      "size_bytes": 2018,
+      "sha256": "cbd5a442a4c805472ecb72595f93a6ed95019f79a634f19e0397bf626d7da0ff"
+    },
+    {
+      "path": "现网只读HTTP/health.json",
+      "size_bytes": 329,
+      "sha256": "5c8d916a9af55e50868bf36d7d3fb67b702ca52bc40d6355ee351127e091091c"
+    },
+    {
+      "path": "现网只读HTTP/profiles.json",
+      "size_bytes": 3824,
+      "sha256": "70669e266913e2d2287493a951c219cec0728946b076bfc53130e6210024da8f"
+    },
+    {
+      "path": "现网只读HTTP/ready.json",
+      "size_bytes": 348,
+      "sha256": "260e3d55965f63f30d716b066048f93e917043bd805dd32464454c099845fea3"
+    },
+    {
+      "path": "真实历史NC产品/bundle.json",
+      "size_bytes": 849,
+      "sha256": "bfe4a62f4a41bce277548382e334b8e0d02fce64450d578a8862253a90e717c8"
+    },
+    {
+      "path": "真实历史NC产品/files/DS_8764542A4E6F4CB0A238B440F30D0691/Wind3D_20240403T083300Z_100m_h010m.nc",
+      "size_bytes": 6294232,
+      "sha256": "dcce2e0506c7d5c23c89918fcb978e889b76b7d49610d82213c158a95530b08a"
+    },
+    {
+      "path": "真实历史NC产品/product.enriched.json",
+      "size_bytes": 6185,
+      "sha256": "37bb5cfc9b2f24536eaf8492ceeca1b1e1d808dfe2edbaad8ad84efaa7c5703b"
+    },
+    {
+      "path": "真实历史NC产品/product.raw.json",
+      "size_bytes": 2437,
+      "sha256": "cce626d439c5626c19a48a7bdcb134491466f8b9eb79ad8f35af05ec1242afd3"
+    },
+    {
+      "path": "真实历史NC产品/README.md",
+      "size_bytes": 768,
+      "sha256": "4ff0c368a98d92faec9a6d2b30da7e5a645136f3f20bea6fe744da3b61b99ab3"
+    },
+    {
+      "path": "真实历史纯文字简报/bundle.json",
+      "size_bytes": 553,
+      "sha256": "a3d7b1481603481946fb2c4a476770303da23f564cfa71a37d090af239daa463"
+    },
+    {
+      "path": "真实历史纯文字简报/product.enriched.json",
+      "size_bytes": 7231,
+      "sha256": "e7b757ceb9d2a9c0b4725fac92300059b1a4e29776eeb5e8c1c81ca0306db257"
+    },
+    {
+      "path": "真实历史纯文字简报/product.raw.json",
+      "size_bytes": 7231,
+      "sha256": "e7b757ceb9d2a9c0b4725fac92300059b1a4e29776eeb5e8c1c81ca0306db257"
+    },
+    {
+      "path": "真实历史纯文字简报/README.md",
+      "size_bytes": 768,
+      "sha256": "4ff0c368a98d92faec9a6d2b30da7e5a645136f3f20bea6fe744da3b61b99ab3"
+    }
+  ],
+  "production_modified": false,
+  "private_keys_included": false,
+  "complete_live_write_acceptance": false
+}

@@ -1,0 +1,216 @@
+{
+  "product_id": "PRD_D4FA54F11A21438B8EC513CC0F413775",
+  "task_id": "HISTORY_20240403",
+  "request_id": null,
+  "product_type": "incident_briefing",
+  "product_key": "incident_briefing:receiver=air_group:zone=task",
+  "category_id": "overview",
+  "title": "【历史回放】空中力量风场安全简报",
+  "summary": "结论：代表高度10/50/100m（不是全部高度）；历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s；固定点风廓线（位置未知，观测16:32:32）\n关键风场：区域平均风速1.835 m/s；区域最大风速5.47 m/s；区域风向（来向）171.3 °；参考离地高度10 m；分高度平均风速10m:1.835m/s/171.3°，50m:2.846m/s/171.3°，100m:3.348m/s/171.2°；区域最大风位置经度101.96991、纬度24.56751，离地10m；固定点分层风速/风向200m:3.11m/s/174°/垂直+0.57m/s，100m:2.82m/s/191°/垂直+0.72m/s，50m:2.55m/s/188°/垂直+0.78m/s，10m:2.03m/s/176°/垂直+0.77m/s；固定点最大垂直风绝对值0.96 m/s；有效网格比例100 %\n风险位置或高度：风速大小不等于危险等级；尚无已确认的航线/风切变风险结果\n行动提示：本次为历史回放，不用于当前现场指挥；固定站位置未核实；尚缺最大侧风、最大风切变，不能据此判断安全",
+  "owner": "分发服务与简报负责人",
+  "version": "wind-products-and-briefings-v1",
+  "generated_at": "2024-04-03T08:33:00+00:00",
+  "valid_from": "2024-04-03T08:33:00+00:00",
+  "valid_until": "2024-04-03T08:37:32+00:00",
+  "processor_name": "briefing_composer",
+  "processor_version": "1.0",
+  "threshold_version": null,
+  "quality_status": "usable",
+  "quality_reason": null,
+  "created_at": "2026-10-10T02:35:46+00:00",
+  "extent": {},
+  "metadata": {
+    "attention": {
+      "level": "notice",
+      "message": "风速大小不等于危险等级；尚无已确认的航线/风切变风险结果；本次为历史回放，不用于当前现场指挥；固定站位置未核实",
+      "title": "初步留意"
+    },
+    "briefing_metrics": [
+      {
+        "label": "区域平均风速",
+        "metric_id": "wind_speed_mean",
+        "status": "available",
+        "unit": "m/s",
+        "value": 1.835
+      },
+      {
+        "label": "区域最大风速",
+        "metric_id": "wind_speed_max",
+        "status": "available",
+        "unit": "m/s",
+        "value": 5.47
+      },
+      {
+        "label": "区域风向（来向）",
+        "metric_id": "wind_direction",
+        "status": "available",
+        "unit": "°",
+        "value": 171.3
+      },
+      {
+        "label": "参考离地高度",
+        "metric_id": "height_agl",
+        "status": "available",
+        "unit": "m",
+        "value": 10
+      },
+      {
+        "label": "分高度平均风速",
+        "metric_id": "wind_profile",
+        "status": "available",
+        "unit": "",
+        "value": "10m:1.835m/s/171.3°，50m:2.846m/s/171.3°，100m:3.348m/s/171.2°"
+      },
+      {
+        "label": "航线平均风速",
+        "metric_id": "route_wind_speed_mean",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "航线最大风速",
+        "metric_id": "route_wind_speed_max",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "最大侧风",
+        "metric_id": "crosswind_max",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "顺逆风分量",
+        "metric_id": "head_tail_wind",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "最大垂直风",
+        "metric_id": "vertical_wind_max",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "最大风切变",
+        "metric_id": "wind_shear_max",
+        "status": "pending",
+        "unit": "m/s/100m",
+        "value": null
+      },
+      {
+        "label": "重点高度",
+        "metric_id": "risk_height",
+        "status": "pending",
+        "unit": "m",
+        "value": null
+      },
+      {
+        "label": "重点航段",
+        "metric_id": "risk_segment",
+        "status": "pending",
+        "unit": "",
+        "value": null
+      },
+      {
+        "label": "区域最大风位置",
+        "metric_id": "max_wind_location",
+        "status": "available",
+        "unit": "",
+        "value": "经度101.96991、纬度24.56751，离地10m"
+      },
+      {
+        "label": "固定点分层风速/风向",
+        "metric_id": "fixed_profile",
+        "status": "available",
+        "unit": "",
+        "value": "200m:3.11m/s/174°/垂直+0.57m/s，100m:2.82m/s/191°/垂直+0.72m/s，50m:2.55m/s/188°/垂直+0.78m/s，10m:2.03m/s/176°/垂直+0.77m/s"
+      },
+      {
+        "label": "固定点最大垂直风绝对值",
+        "metric_id": "fixed_vertical_wind_max",
+        "status": "available",
+        "unit": "m/s",
+        "value": 0.96
+      },
+      {
+        "label": "无人机采样点风速",
+        "metric_id": "uav_wind_speed",
+        "status": "pending",
+        "unit": "m/s",
+        "value": null
+      },
+      {
+        "label": "无人机采样点风向",
+        "metric_id": "uav_wind_direction",
+        "status": "pending",
+        "unit": "°",
+        "value": null
+      },
+      {
+        "label": "无人机采样点离地高度",
+        "metric_id": "uav_height_agl",
+        "status": "pending",
+        "unit": "m",
+        "value": null
+      },
+      {
+        "label": "无人机采样点温度",
+        "metric_id": "uav_temperature",
+        "status": "pending",
+        "unit": "℃",
+        "value": null
+      },
+      {
+        "label": "无人机采样点湿度",
+        "metric_id": "uav_humidity",
+        "status": "pending",
+        "unit": "%",
+        "value": null
+      },
+      {
+        "label": "无人机采样点气压",
+        "metric_id": "uav_pressure",
+        "status": "pending",
+        "unit": "hPa",
+        "value": null
+      },
+      {
+        "label": "有效网格比例",
+        "metric_id": "data_coverage",
+        "status": "available",
+        "unit": "%",
+        "value": 100.0
+      }
+    ],
+    "char_count": 519,
+    "content_sha256": "694bd119f16bb50acfcc1cee4febc000eef0901d9f442e08a51fb2e3dd395894",
+    "historical_replay": true,
+    "media_type": "text/plain; charset=utf-8",
+    "priority": "normal",
+    "receiver_type": "air_group",
+    "replay_at": "2024-04-03T08:33:00+00:00",
+    "requires_ack": false,
+    "source_product_ids": [
+      "PRD_FB3B5BFE051844089E4DFB6163CEFA33",
+      "PRD_403B9B16236742C3836E560D2C0B1D48",
+      "PRD_F95762BA5163413C957A438B3E9E54A7"
+    ],
+    "source_research_product_ids": [
+      "W10",
+      "W01",
+      "W04"
+    ],
+    "transport": "plain_text",
+    "trigger": "scheduled",
+    "zone_id": null
+  },
+  "derived_from": [],
+  "assets": [],
+  "schema_version": "1.0"
+}

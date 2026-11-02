@@ -1,0 +1,7 @@
+# Cesium真实附件样例
+
+product.raw.json为原登记产品的既有字段；product.enriched.json为本地新代码补齐的展示描述。新增字段尚未部署生产服务器。bundle.json映射本包实际文件路径。
+
+产品和dataset_id真实来自本机历史登记库，不保证在正式服务器存在。联调时用本包文件做fixture或经批准的独立研究服务，不直接把样例ID拼到生产地址。本包未生成新科研图、未转换NC、未修改原库或文件时间。
+
+data_role只用于选择展示方式，不代表浏览器已有对应解码器或风险算法。chart进侧栏；map_overlay须有真实地理配准；NetCDF4/HDF5不能直接交给只支持NetCDF3的解析器。缺信息或未知值保持下载。

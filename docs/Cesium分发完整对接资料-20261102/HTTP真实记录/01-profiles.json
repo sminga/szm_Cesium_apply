@@ -1,0 +1,144 @@
+{
+  "method": "GET",
+  "path": "/api/v1/receiver-profiles",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:57 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "2141"
+  },
+  "response_json": {
+    "schema_version": "1.0",
+    "config_version": "receiver-portal-v1-20261016",
+    "receiver_types": [
+      {
+        "receiver_type": "command_center",
+        "label": "指挥中心",
+        "description": "查看区域风场简报和专题图",
+        "roles": [
+          {
+            "role_id": "commander",
+            "label": "指挥员",
+            "categories": [
+              "overview",
+              "wind",
+              "fire",
+              "aviation",
+              "coverage",
+              "alerts",
+              "system"
+            ]
+          }
+        ]
+      },
+      {
+        "receiver_type": "air_group",
+        "label": "空中组",
+        "description": "查看飞行参考风场和航线专题图",
+        "roles": [
+          {
+            "role_id": "uav_operator",
+            "label": "无人机操作员",
+            "categories": [
+              "overview",
+              "aviation",
+              "wind",
+              "fire",
+              "alerts"
+            ]
+          },
+          {
+            "role_id": "helicopter_pilot",
+            "label": "直升机飞行员",
+            "categories": [
+              "overview",
+              "aviation",
+              "wind",
+              "fire",
+              "alerts"
+            ]
+          }
+        ]
+      },
+      {
+        "receiver_type": "ground_group",
+        "label": "地面应急组",
+        "description": "查看近地风简报和地形风场专题图",
+        "roles": [
+          {
+            "role_id": "ground_commander",
+            "label": "地面指挥员",
+            "categories": [
+              "overview",
+              "wind",
+              "fire",
+              "coverage",
+              "alerts"
+            ]
+          },
+          {
+            "role_id": "frontline_responder",
+            "label": "一线救援人员",
+            "categories": [
+              "overview",
+              "wind",
+              "fire",
+              "coverage",
+              "alerts"
+            ]
+          },
+          {
+            "role_id": "vehicle_driver",
+            "label": "车辆驾驶员",
+            "categories": [
+              "overview",
+              "wind",
+              "coverage",
+              "fire",
+              "alerts"
+            ]
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "category_id": "overview",
+        "label": "文字简报",
+        "description": "只显示本力量的核心数值和必要提示"
+      },
+      {
+        "category_id": "wind",
+        "label": "风场专题",
+        "description": "详细空间分布、分层变化和统计信息按需申请"
+      },
+      {
+        "category_id": "fire",
+        "label": "火势信息",
+        "description": "当前火线、预测火线和预计影响范围"
+      },
+      {
+        "category_id": "aviation",
+        "label": "航线专题",
+        "description": "沿程风场、侧风与顺逆风；缺少航线时不生成结论"
+      },
+      {
+        "category_id": "coverage",
+        "label": "补测与路线",
+        "description": "缺测区、补测点、车辆目标点和路线"
+      },
+      {
+        "category_id": "alerts",
+        "label": "告警",
+        "description": "当前有效告警和需要确认的信息"
+      },
+      {
+        "category_id": "system",
+        "label": "数据与系统",
+        "description": "设备原始数据、质量、覆盖和处理状态"
+      }
+    ]
+  }
+}

@@ -1,0 +1,264 @@
+{
+  "passed": true,
+  "source": "actual_isolated_loopback_http_not_production",
+  "scientific_processing_executed": false,
+  "worker_transitions": "acceptance_driver",
+  "same_success_request_id": "JOB_5313DECBB5354433A554768DE29E4026",
+  "states": [
+    "pending",
+    "running",
+    "completed"
+  ],
+  "production_changed": false,
+  "files": [
+    {
+      "dataset_id": "DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+      "path": "files/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/wind_time_height.png",
+      "sha256": "585429bc31ec4252574ca19efbb878cb070cbb863ece505744d4fbbd467b957e",
+      "size_bytes": 200306
+    },
+    {
+      "dataset_id": "DS_546C1C0E34284DC2B19CA0E8F891EF9D",
+      "path": "files/DS_546C1C0E34284DC2B19CA0E8F891EF9D/vertical_time_height.png",
+      "sha256": "b29d8e60fd47e618d6c892565a99df9a05fee4a59c1fbaeee378092a3ab2baf5",
+      "size_bytes": 92210
+    },
+    {
+      "dataset_id": "DS_ACBF7637713B4CF2BE0615306CB5B34F",
+      "path": "files/DS_ACBF7637713B4CF2BE0615306CB5B34F/summary.json",
+      "sha256": "0117608b6fb6b248d778da019f70b184db820204507a854e10b88f948eaed5e8",
+      "size_bytes": 1607
+    },
+    {
+      "dataset_id": "DS_9B2510ABA3A74DA19488937E4F071C1C",
+      "path": "files/DS_9B2510ABA3A74DA19488937E4F071C1C/latest_profile.json",
+      "sha256": "9d2a1721be39fa3b1bc5528f9b5ac493f6785289b4efc2f710fc1cec453d8573",
+      "size_bytes": 10305
+    },
+    {
+      "dataset_id": "DS_A159C04FE3D7495D804CC5BB5657CEBF",
+      "path": "files/DS_A159C04FE3D7495D804CC5BB5657CEBF/observations.csv",
+      "sha256": "b84614061e7be0753a1362ebbf8e32766bbcfdd1a11ac3b39e8921229b885762",
+      "size_bytes": 111785
+    }
+  ],
+  "records": [
+    {
+      "name": "01-profiles",
+      "method": "GET",
+      "path": "/api/v1/receiver-profiles",
+      "status": 200
+    },
+    {
+      "name": "02-identity",
+      "method": "POST",
+      "path": "/api/v1/identity-selections",
+      "status": 201
+    },
+    {
+      "name": "03-catalog-before",
+      "method": "GET",
+      "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=research",
+      "status": 200
+    },
+    {
+      "name": "04-create",
+      "method": "POST",
+      "path": "/api/v1/processing-requests",
+      "status": 201
+    },
+    {
+      "name": "05-pending",
+      "method": "GET",
+      "path": "/api/v1/processing-requests/JOB_5313DECBB5354433A554768DE29E4026",
+      "status": 200
+    },
+    {
+      "name": "06-idempotent-repeat",
+      "method": "POST",
+      "path": "/api/v1/processing-requests",
+      "status": 200
+    },
+    {
+      "name": "07-idempotent-conflict",
+      "method": "POST",
+      "path": "/api/v1/processing-requests",
+      "status": 400
+    },
+    {
+      "name": "08-internal-worker-claim",
+      "method": "POST",
+      "path": "/api/v1/processing-requests/claim",
+      "status": 200
+    },
+    {
+      "name": "09-running",
+      "method": "GET",
+      "path": "/api/v1/processing-requests/JOB_5313DECBB5354433A554768DE29E4026",
+      "status": 200
+    },
+    {
+      "name": "10-internal-product-register",
+      "method": "POST",
+      "path": "/api/v1/products",
+      "status": 201
+    },
+    {
+      "name": "11-completed",
+      "method": "GET",
+      "path": "/api/v1/processing-requests/JOB_5313DECBB5354433A554768DE29E4026",
+      "status": 200
+    },
+    {
+      "name": "12-product",
+      "method": "GET",
+      "path": "/api/v1/products/PRD_B4088565F4F140919062145A3553F047",
+      "status": 200
+    },
+    {
+      "name": "13-0-dataset",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+      "status": 200
+    },
+    {
+      "name": "14-0-head",
+      "method": "HEAD",
+      "path": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/content",
+      "status": 200
+    },
+    {
+      "name": "15-0-download",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/content",
+      "status": 200
+    },
+    {
+      "name": "13-1-dataset",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_546C1C0E34284DC2B19CA0E8F891EF9D",
+      "status": 200
+    },
+    {
+      "name": "14-1-head",
+      "method": "HEAD",
+      "path": "/api/v1/datasets/DS_546C1C0E34284DC2B19CA0E8F891EF9D/content",
+      "status": 200
+    },
+    {
+      "name": "15-1-download",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_546C1C0E34284DC2B19CA0E8F891EF9D/content",
+      "status": 200
+    },
+    {
+      "name": "13-2-dataset",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_ACBF7637713B4CF2BE0615306CB5B34F",
+      "status": 200
+    },
+    {
+      "name": "14-2-head",
+      "method": "HEAD",
+      "path": "/api/v1/datasets/DS_ACBF7637713B4CF2BE0615306CB5B34F/content",
+      "status": 200
+    },
+    {
+      "name": "15-2-download",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_ACBF7637713B4CF2BE0615306CB5B34F/content",
+      "status": 200
+    },
+    {
+      "name": "13-3-dataset",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C",
+      "status": 200
+    },
+    {
+      "name": "14-3-head",
+      "method": "HEAD",
+      "path": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C/content",
+      "status": 200
+    },
+    {
+      "name": "15-3-download",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C/content",
+      "status": 200
+    },
+    {
+      "name": "13-4-dataset",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_A159C04FE3D7495D804CC5BB5657CEBF",
+      "status": 200
+    },
+    {
+      "name": "14-4-head",
+      "method": "HEAD",
+      "path": "/api/v1/datasets/DS_A159C04FE3D7495D804CC5BB5657CEBF/content",
+      "status": 200
+    },
+    {
+      "name": "15-4-download",
+      "method": "GET",
+      "path": "/api/v1/datasets/DS_A159C04FE3D7495D804CC5BB5657CEBF/content",
+      "status": 200
+    },
+    {
+      "name": "16-catalog-completed",
+      "method": "GET",
+      "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=research",
+      "status": 200
+    },
+    {
+      "name": "17-create-for-failure",
+      "method": "POST",
+      "path": "/api/v1/processing-requests",
+      "status": 201
+    },
+    {
+      "name": "18-internal-failure-claim",
+      "method": "POST",
+      "path": "/api/v1/processing-requests/claim",
+      "status": 200
+    },
+    {
+      "name": "19-internal-failure-report",
+      "method": "POST",
+      "path": "/api/v1/processing-requests/JOB_E4F66241B7574961AB91224543D4BF54/status",
+      "status": 200
+    },
+    {
+      "name": "20-failed",
+      "method": "GET",
+      "path": "/api/v1/processing-requests/JOB_E4F66241B7574961AB91224543D4BF54",
+      "status": 200
+    },
+    {
+      "name": "21-session-missing",
+      "method": "GET",
+      "path": "/api/v1/identity-selections/SESSION_NOT_FOUND",
+      "status": 404
+    },
+    {
+      "name": "22-invalid-view",
+      "method": "GET",
+      "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=invalid",
+      "status": 400
+    },
+    {
+      "name": "23-session-replacement",
+      "method": "POST",
+      "path": "/api/v1/identity-selections",
+      "status": 201
+    },
+    {
+      "name": "24-stale-session",
+      "method": "GET",
+      "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=research",
+      "status": 409
+    }
+  ],
+  "note": "Existing reviewed historical outputs; no map-overlay sample, no real slow-model SLA, no native production authentication test."
+}

@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "path": "/api/v1/ready",
+  "http_status": 200,
+  "response_json": {
+    "status": "ready",
+    "schema_version": "1.0",
+    "issues": [],
+    "scope": "database_and_storage_only",
+    "machine_auth": "required"
+  },
+  "tls_verified": true,
+  "redaction": "only nonempty personal name/id values; keys preserved"
+}

@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-02",
+  "host": "10.11.203.182",
+  "port": 8443,
+  "read_only": true,
+  "ca_file_sha256": "72d2dabc82a17ad4068a627b44ea1d06deaf252f1a106141bad6896fc9141dc2",
+  "verified": true,
+  "check_hostname": true,
+  "production_changed": false,
+  "protocol": "TLSv1.3",
+  "chain": [
+    {
+      "issuer": "CN=Caddy Local Authority - ECC Intermediate",
+      "fingerprint256": "01:48:F7:7F:5F:A4:2D:5C:0D:25:91:8C:BC:28:45:2E:0C:DB:EA:B0:5F:EE:A4:E9:77:68:FC:E4:35:A4:8B:0E",
+      "valid_from": "Nov  2 02:51:31 2026 GMT",
+      "valid_to": "Nov  2 14:51:31 2026 GMT",
+      "subject_alt_name": "IP Address:10.11.203.182",
+      "pem": "-----BEGIN CERTIFICATE-----\nMIIBujCCAV+gAwIBAgIRAOcBjoWt+mOSkINSvGzfgK0wCgYIKoZIzj0EAwIwMzEx\nMC8GA1UEAxMoQ2FkZHkgTG9jYWwgQXV0aG9yaXR5IC0gRUNDIEludGVybWVkaWF0\nZTAeFw0yNjExMDIwMjUxMzFaFw0yNjExMDIxNDUxMzFaMAAwWTATBgcqhkjOPQIB\nBggqhkjOPQMBBwNCAASy6TOnVmP761C7AlyDcsbwsbLgXXmOyuEhvx4EZS82iva1\nVpJpotjLoEqPIpEGYxVrSIfA7iCQrCBduvEyd4pao4GGMIGDMA4GA1UdDwEB/wQE\nAwIHgDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFKou\ngOoCNy6jJNDKjxaWOvFxGxBzMB8GA1UdIwQYMBaAFMAm0PREapO1oueCdhGgWrnq\n2cWBMBIGA1UdEQEB/wQIMAaHBAoLy7YwCgYIKoZIzj0EAwIDSQAwRgIhAK2Yjrfg\nJ2emGuv9Jw2O1Rkehq60FEbO0hNJgMTUUdauAiEAwm/GTQnspl8mWLLPtlCAXxmL\nFPVAYIkuMibhnRvQzwY=\n-----END CERTIFICATE-----\n"
+    },
+    {
+      "subject": "CN=Caddy Local Authority - ECC Intermediate",
+      "issuer": "CN=Caddy Local Authority - 2026 ECC Root",
+      "fingerprint256": "7B:BE:83:11:17:A1:E9:4F:0B:4E:E0:28:E4:AA:3D:9E:B0:17:80:0C:81:73:32:C0:46:9D:AB:E8:4C:68:B2:AB",
+      "valid_from": "Oct 30 19:41:30 2026 GMT",
+      "valid_to": "Nov  6 19:41:30 2026 GMT",
+      "pem": "-----BEGIN CERTIFICATE-----\nMIIBxzCCAW2gAwIBAgIQTXb+XJUXuB2kd7EdHei58zAKBggqhkjOPQQDAjAwMS4w\nLAYDVQQDEyVDYWRkeSBMb2NhbCBBdXRob3JpdHkgLSAyMDI2IEVDQyBSb290MB4X\nDTI2MTAzMDE5NDEzMFoXDTI2MTEwNjE5NDEzMFowMzExMC8GA1UEAxMoQ2FkZHkg\nTG9jYWwgQXV0aG9yaXR5IC0gRUNDIEludGVybWVkaWF0ZTBZMBMGByqGSM49AgEG\nCCqGSM49AwEHA0IABFauYgcATrziCJ/YnrYf+oZDRTGB2vV0L8C7BylFjCWSzN5n\npgBZCUwEjjxXuJBSmaFLIvk7L7Am+amDNsPXOCCjZjBkMA4GA1UdDwEB/wQEAwIB\nBjASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBTAJtD0RGqTtaLngnYRoFq5\n6tnFgTAfBgNVHSMEGDAWgBTy/PjT4TL3F0ggKGWPKLJT9Wu1VjAKBggqhkjOPQQD\nAgNIADBFAiEA1aUK12rE+WkQkvuuwD5t7j+Jfxw6wwJbiKcOAYQZFlsCIE4lbZl1\n+EzsS4UZQBFGXY5Gm9yaV6xji0Tf3SJeZiw4\n-----END CERTIFICATE-----\n"
+    },
+    {
+      "subject": "CN=Caddy Local Authority - 2026 ECC Root",
+      "issuer": "CN=Caddy Local Authority - 2026 ECC Root",
+      "fingerprint256": "13:4B:04:11:13:80:91:C4:E1:51:BE:67:8D:E6:3C:A8:34:7B:D7:17:8B:D1:97:EB:54:95:DB:0E:06:EA:35:46",
+      "valid_from": "Oct 19 14:44:50 2026 GMT",
+      "valid_to": "Aug 27 14:44:50 2036 GMT",
+      "pem": "-----BEGIN CERTIFICATE-----\nMIIBpTCCAUqgAwIBAgIRAM+sbQPZc15O0IKXFyIRgL0wCgYIKoZIzj0EAwIwMDEu\nMCwGA1UEAxMlQ2FkZHkgTG9jYWwgQXV0aG9yaXR5IC0gMjAyNiBFQ0MgUm9vdDAe\nFw0yNjEwMTkxNDQ0NTBaFw0zNjA4MjcxNDQ0NTBaMDAxLjAsBgNVBAMTJUNhZGR5\nIExvY2FsIEF1dGhvcml0eSAtIDIwMjYgRUNDIFJvb3QwWTATBgcqhkjOPQIBBggq\nhkjOPQMBBwNCAAQnxMY23X9JG1NSi6rVfwjTOU+R5Eg2hA5Kx7B6fd7Dwq9xKLke\nVGxz+YF4D06wYJgGYyAijiLwGJuQ3zF0DVouo0UwQzAOBgNVHQ8BAf8EBAMCAQYw\nEgYDVR0TAQH/BAgwBgEB/wIBATAdBgNVHQ4EFgQU8vz40+Ey9xdIIChljyiyU/Vr\ntVYwCgYIKoZIzj0EAwIDSQAwRgIhAPYUc5D6YG/XYrDFP11NLiit62Fc1xbCcOQl\nqiOzz8GxAiEAhoeUq42/zq1D4sLq6o0j7yf1Nx3Ujc/lWgyo/b7p/JE=\n-----END CERTIFICATE-----\n"
+    }
+  ]
+}

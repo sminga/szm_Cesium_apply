@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>风场实验台 | Cesium 多层风场与公开地形</title>
   <link rel="stylesheet" href="./ui/index.css" />
-
-  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="icon" type="image/png" href="favicon.png">
 </head>
 
 <body>
@@ -18,96 +17,187 @@
         <span class="brand-copy"><strong>风场实验台</strong><small>Cesium 3D Wind Workspace</small></span>
       </div>
       <nav class="panel-tabs workspace-tabs" aria-label="工作区模式">
-        <button class="panel-tab active" type="button" data-panel="wind" aria-selected="true"><i data-lucide="wind"></i><span>风场</span></button>
-        <button class="panel-tab" type="button" data-panel="layers" aria-selected="false"><i data-lucide="layers-3"></i><span>场景</span></button>
-        <button class="panel-tab" type="button" data-panel="terrain" aria-selected="false"><i data-lucide="mountain-snow"></i><span>地形</span></button>
-        <button class="panel-tab" type="button" data-panel="tools" aria-selected="false"><i data-lucide="wrench"></i><span>工具</span></button>
+        <button class="panel-tab active" type="button" data-panel="wind" aria-selected="true"><i
+            data-lucide="wind"></i><span>风场</span></button>
+        <button class="panel-tab" type="button" data-panel="layers" aria-selected="false"><i
+            data-lucide="layers-3"></i><span>场景</span></button>
+        <button class="panel-tab" type="button" data-panel="terrain" aria-selected="false"><i
+            data-lucide="mountain-snow"></i><span>地形</span></button>
+        <button class="panel-tab" type="button" data-panel="tools" aria-selected="false"><i
+            data-lucide="wrench"></i><span>工具</span></button>
       </nav>
-      <div class="header-summary" aria-live="polite"><span class="summary-dot"></span><span id="data-summary">等待数据</span></div>
+      <div class="header-summary" aria-live="polite"><span class="summary-dot"></span><span
+          id="data-summary">等待数据</span></div>
       <div class="header-actions">
-        <button id="zoom" class="icon-button" type="button" title="定位当前图层" aria-label="定位当前图层"><i data-lucide="locate-fixed"></i></button>
-        <button id="toggle-panels" class="icon-button" type="button" title="收起两侧面板" aria-label="收起两侧面板"><i data-lucide="panel-left-close"></i></button>
+        <button id="zoom" class="icon-button" type="button" title="定位当前图层" aria-label="定位当前图层"><i
+            data-lucide="locate-fixed"></i></button>
+        <button id="toggle-panels" class="icon-button" type="button" title="收起两侧面板" aria-label="收起两侧面板"><i
+            data-lucide="panel-left-close"></i></button>
       </div>
     </header>
 
     <div class="app-workspace">
       <aside id="panel" class="workspace-panel panel-left" aria-label="风场与场景控制">
         <div class="workspace-panel-heading">
-          <div><span class="eyebrow">CONTROL DECK</span><h1>参数与工具</h1></div>
-          <button id="close-left-panel" class="panel-close-button" type="button" title="收起参数面板" aria-label="收起参数面板"><i data-lucide="panel-left-close"></i></button>
+          <div><span class="eyebrow">CONTROL DECK</span>
+            <h1>参数与工具</h1>
+          </div>
+          <button id="close-left-panel" class="panel-close-button" type="button" title="收起参数面板" aria-label="收起参数面板"><i
+              data-lucide="panel-left-close"></i></button>
         </div>
         <div class="workspace-pages">
           <div class="panel-page active" data-page="wind">
             <section class="panel-section section-command">
-              <div class="section-heading"><div><span class="section-kicker">DEVELOPER TOOL</span><h2>处理风场数据</h2></div><span>NetCDF / 本机 Python</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">DEVELOPER TOOL</span>
+                  <h2>处理风场数据</h2>
+                </div><span>NetCDF / 本机 Python</span>
+              </div>
               <input id="convert-file-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
-              <button id="convert-file" class="primary-command secondary-command" type="button"><i data-lucide="folder-cog"></i><span>选择并处理 NC</span></button>
-              <div id="conversion-result" class="conversion-result" role="status"><b>本地服务待命</b><span>运行 npm run local:server 后可转换 NC</span></div>
+              <button id="convert-file" class="primary-command secondary-command" type="button"><i
+                  data-lucide="folder-cog"></i><span>选择并处理 NC</span></button>
+              <div id="conversion-result" class="conversion-result" role="status"><b>本地服务待命</b><span>运行 npm run
+                  local:server 后可转换 NC</span></div>
               <p class="tool-hint">仅供开发者离线预处理。公开站点不会连接访客电脑上的本地服务。</p>
             </section>
             <section class="panel-section section-command">
-              <div class="section-heading"><div><span class="section-kicker">DATA INPUT</span><h2>加载风场</h2></div><span class="section-index">01</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">DATA INPUT</span>
+                  <h2>加载风场</h2>
+                </div><span class="section-index">01</span>
+              </div>
               <div class="command-grid">
-                <button id="open-2d-catalog" class="primary-command" type="button"><i data-lucide="layers-2"></i><span>二维风场</span></button>
-                <button id="open-3d-catalog" class="secondary-command" type="button"><i data-lucide="box"></i><span>三维风场</span></button>
+                <button id="open-2d-catalog" class="primary-command" type="button"><i
+                    data-lucide="layers-2"></i><span>二维风场</span></button>
+                <button id="open-3d-catalog" class="secondary-command" type="button"><i
+                    data-lucide="box"></i><span>三维风场</span></button>
               </div>
               <input id="browse-2d-input" type="file" accept=".nc,.cdf,application/x-netcdf" multiple hidden />
               <input id="browse-3d-input" type="file" accept=".nc,.cdf,application/x-netcdf" hidden />
               <p class="tool-hint">公开站点可浏览本机 NC 文件；开发环境还可读取 <code>tools/converted</code>。</p>
             </section>
             <section class="panel-section legend-section" aria-labelledby="legend-title">
-              <div class="section-heading"><div><span class="section-kicker">FIELD SCALE</span><h2 id="legend-title">当前风速</h2></div><span>m/s</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">FIELD SCALE</span>
+                  <h2 id="legend-title">当前风速</h2>
+                </div><span>m/s</span>
+              </div>
               <div id="speed-gradient" class="speed-gradient"></div>
               <div id="speed-ticks" class="speed-ticks"></div>
             </section>
             <section id="vertical-controls" class="panel-section" hidden>
-              <div class="section-heading"><div><span class="section-kicker">VERTICAL SLICE</span><h2>三维高度</h2></div><span id="vertical-data-range">--</span></div>
-              <div class="segmented-control" role="radiogroup" aria-label="三维高度模式"><button type="button" data-height-mode="all" class="active">全部</button><button type="button" data-height-mode="range">范围</button><button type="button" data-height-mode="level">单层</button></div>
-              <div id="height-range-controls" class="compact-grid" hidden><label>最低高度<input id="height-min" type="number" step="1" /></label><label>最高高度<input id="height-max" type="number" step="1" /></label><button id="apply-height-range" class="small-command" type="button">应用高度范围</button></div>
-              <label id="height-level-control" class="select-control" hidden><span>离散高度层</span><select id="height-level"></select></label>
+              <div class="section-heading">
+                <div><span class="section-kicker">VERTICAL SLICE</span>
+                  <h2>三维高度</h2>
+                </div><span id="vertical-data-range">--</span>
+              </div>
+              <div class="segmented-control" role="radiogroup" aria-label="三维高度模式"><button type="button"
+                  data-height-mode="all" class="active">全部</button><button type="button"
+                  data-height-mode="range">范围</button><button type="button" data-height-mode="level">单层</button></div>
+              <div id="height-range-controls" class="compact-grid" hidden><label>最低高度<input id="height-min"
+                    type="number" step="1" /></label><label>最高高度<input id="height-max" type="number"
+                    step="1" /></label><button id="apply-height-range" class="small-command"
+                  type="button">应用高度范围</button></div>
+              <label id="height-level-control" class="select-control" hidden><span>离散高度层</span><select
+                  id="height-level"></select></label>
             </section>
             <section class="panel-section controls-section">
-              <div class="section-heading rendering-heading"><div><span class="section-kicker">RENDERING</span><h2>渲染参数</h2></div><button id="reset-rendering-parameters" class="parameter-reset-button" type="button" title="恢复渲染参数默认值"><i data-lucide="refresh-cw"></i><span>恢复默认</span></button></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="particles">粒子密度 <small>默认 256</small></label><input id="particles-value" class="parameter-number" type="number" min="64" max="512" step="64" value="256" aria-label="粒子密度数值" /></div><input id="particles" type="range" min="64" max="512" step="64" value="256" aria-label="粒子密度滑块" /></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="speed">流动速度 <small>默认 0.3</small></label><input id="speed-value" class="parameter-number" type="number" min="0.05" max="5" step="0.01" value="0.3" aria-label="流动速度数值" /></div><input id="speed" type="range" min="0" max="200" step="1" value="78" aria-label="流动速度滑块" aria-valuetext="0.3" /></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="low-speed-opacity">低速显眼度 <small>默认 0.72</small></label><input id="low-speed-opacity-value" class="parameter-number" type="number" min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度数值" /></div><input id="low-speed-opacity" type="range" min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度滑块" /></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="height">高度拉伸 <small>默认 10</small></label><input id="height-value" class="parameter-number" type="number" min="1" max="50" step="1" value="10" aria-label="高度拉伸数值" /></div><input id="height" type="range" min="1" max="50" step="1" value="10" aria-label="高度拉伸滑块" /></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="length">最大线长 <small>默认 80</small></label><input id="length-value" class="parameter-number" type="number" min="20" max="240" step="5" value="80" aria-label="最大线长数值" /></div><input id="length" type="range" min="20" max="240" step="5" value="80" aria-label="最大线长滑块" /></div>
-              <div class="range-control"><div class="parameter-control-header"><label for="density">高速区密度 <small>默认 1.5</small></label><input id="density-value" class="parameter-number" type="number" min="0.2" max="3" step="0.1" value="1.5" aria-label="高速区密度数值" /></div><input id="density" type="range" min="0.2" max="3" step="0.1" value="1.5" aria-label="高速区密度滑块" /></div>
-              <div class="toggle-row"><label><input id="density-enabled" type="checkbox" checked /><span>按风速加密</span></label><label><input id="dynamic" type="checkbox" checked /><span>动画</span></label></div>
+              <div class="section-heading rendering-heading">
+                <div><span class="section-kicker">RENDERING</span>
+                  <h2>渲染参数</h2>
+                </div><button id="reset-rendering-parameters" class="parameter-reset-button" type="button"
+                  title="恢复渲染参数默认值"><i data-lucide="refresh-cw"></i><span>恢复默认</span></button>
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="particles">粒子密度 <small>默认 256</small></label><input
+                    id="particles-value" class="parameter-number" type="number" min="64" max="512" step="64" value="256"
+                    aria-label="粒子密度数值" /></div><input id="particles" type="range" min="64" max="512" step="64"
+                  value="256" aria-label="粒子密度滑块" />
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="speed">流动速度 <small>默认 0.3</small></label><input
+                    id="speed-value" class="parameter-number" type="number" min="0.05" max="5" step="0.01" value="0.3"
+                    aria-label="流动速度数值" /></div><input id="speed" type="range" min="0" max="200" step="1" value="78"
+                  aria-label="流动速度滑块" aria-valuetext="0.3" />
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="low-speed-opacity">低速显眼度 <small>默认
+                      0.72</small></label><input id="low-speed-opacity-value" class="parameter-number" type="number"
+                    min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度数值" /></div><input
+                  id="low-speed-opacity" type="range" min="0.2" max="1" step="0.02" value="0.72" aria-label="低速显眼度滑块" />
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="height">高度拉伸 <small>默认 10</small></label><input
+                    id="height-value" class="parameter-number" type="number" min="1" max="50" step="1" value="10"
+                    aria-label="高度拉伸数值" /></div><input id="height" type="range" min="1" max="50" step="1" value="10"
+                  aria-label="高度拉伸滑块" />
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="length">最大线长 <small>默认 80</small></label><input
+                    id="length-value" class="parameter-number" type="number" min="20" max="240" step="5" value="80"
+                    aria-label="最大线长数值" /></div><input id="length" type="range" min="20" max="240" step="5" value="80"
+                  aria-label="最大线长滑块" />
+              </div>
+              <div class="range-control">
+                <div class="parameter-control-header"><label for="density">高速区密度 <small>默认 1.5</small></label><input
+                    id="density-value" class="parameter-number" type="number" min="0.2" max="3" step="0.1" value="1.5"
+                    aria-label="高速区密度数值" /></div><input id="density" type="range" min="0.2" max="3" step="0.1"
+                  value="1.5" aria-label="高速区密度滑块" />
+              </div>
+              <div class="toggle-row"><label><input id="density-enabled" type="checkbox"
+                    checked /><span>按风速加密</span></label><label><input id="dynamic" type="checkbox"
+                    checked /><span>动画</span></label></div>
             </section>
           </div>
 
           <div class="panel-page" data-page="layers" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">BASEMAP</span><h2>底图</h2></div><span id="basemap-status">OpenStreetMap</span></div>
-              <div class="mode-list" role="radiogroup" aria-label="底图选择">
-                <button class="mode-button" type="button" data-basemap="ion"><i data-lucide="satellite"></i><span><b>Cesium 影像</b><small>需要 Cesium ion Token</small></span></button>
-                <button class="mode-button active" type="button" data-basemap="osm"><i data-lucide="map"></i><span><b>OpenStreetMap</b><small>无需项目 Token</small></span></button>
-                <button class="mode-button" type="button" data-basemap="none"><i data-lucide="circle-off"></i><span><b>无底图</b><small>仅显示地球与风场</small></span></button>
+              <div class="section-heading">
+                <div><span class="section-kicker">BASEMAP SOURCES</span>
+                  <h2>基础底图</h2>
+                </div><span id="basemap-status">OpenStreetMap</span>
+              </div>
+              <div class="basemap-control-grid">
+                <label class="select-control"><span>地图服务</span><select id="basemap-provider-select"
+                    aria-label="选择地图服务"></select></label>
+                <label class="select-control"><span>地图样式</span><select id="basemap-style-select"
+                    aria-label="选择地图样式"></select></label>
+              </div>
+              <div class="basemap-option-list" role="group" aria-label="底图辅助图层">
+                <label class="basemap-option"><input id="basemap-labels-toggle" type="checkbox" checked /><span><b>中文注记</b><small>天地图按当前样式加载配套注记</small></span></label>
+                <label class="basemap-option"><input id="basemap-boundaries-toggle" type="checkbox" /><span><b>境界线</b><small>仅天地图支持独立境界线层</small></span></label>
+              </div>
+              <div id="basemap-coordinate" class="conversion-result"><b>WGS84 / Web Mercator</b><span>风场、DEM 与矢量数据坐标不会随底图改变</span></div>
+              <p id="basemap-message" class="inline-message" role="status">底图服务待命</p>
+            </section>
+            <section class="panel-section">
+              <div class="section-heading">
+                <div><span class="section-kicker">IMAGERY OVERLAY</span>
+                  <h2>专题影像</h2>
+                </div><span>可与底图同时显示</span>
+              </div>
+              <div class="ion-asset-list">
+                <label class="layer-switch"><span class="layer-copy"><i
+                      data-lucide="image"></i><span><b>Sentinel-2</b><small>专题影像 · ion 资产 3954</small></span></span><input
+                    type="checkbox" data-ion-imagery="3954" data-ion-label="Sentinel-2" /><span
+                    class="switch-track"></span></label>
               </div>
             </section>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">ION IMAGERY</span><h2>公共影像</h2></div><span>Cesium ion</span></div>
-              <div class="ion-asset-list">
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="map"></i><span><b>Google Maps 等高线</b><small>ion 资产 3830186</small></span></span><input type="checkbox" data-ion-imagery="3830186" data-ion-label="Google Maps 等高线" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="tags"></i><span><b>Google Maps 仅标签</b><small>ion 资产 3830185</small></span></span><input type="checkbox" data-ion-imagery="3830185" data-ion-label="Google Maps 仅标签" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="map"></i><span><b>Google Maps 道路</b><small>ion 资产 3830184</small></span></span><input type="checkbox" data-ion-imagery="3830184" data-ion-label="Google Maps 道路" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="satellite"></i><span><b>Google Maps 卫星含标签</b><small>ion 资产 3830183</small></span></span><input type="checkbox" data-ion-imagery="3830183" data-ion-label="Google Maps 卫星含标签" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="satellite"></i><span><b>Google Maps 卫星</b><small>ion 资产 3830182</small></span></span><input type="checkbox" data-ion-imagery="3830182" data-ion-label="Google Maps 卫星" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="image"></i><span><b>Sentinel-2</b><small>ion 资产 3954</small></span></span><input type="checkbox" data-ion-imagery="3954" data-ion-label="Sentinel-2" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="moon-star"></i><span><b>Earth at Night</b><small>ion 资产 3812</small></span></span><input type="checkbox" data-ion-imagery="3812" data-ion-label="Earth at Night" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="map"></i><span><b>Bing Maps 道路</b><small>ion 资产 4</small></span></span><input type="checkbox" data-ion-imagery="4" data-ion-label="Bing Maps 道路" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="tags"></i><span><b>Bing Maps 航空含标签</b><small>ion 资产 3</small></span></span><input type="checkbox" data-ion-imagery="3" data-ion-label="Bing Maps 航空含标签" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="satellite"></i><span><b>Bing Maps 航空</b><small>ion 资产 2</small></span></span><input type="checkbox" data-ion-imagery="2" data-ion-label="Bing Maps 航空" /><span class="switch-track"></span></label>
+              <div class="section-heading">
+                <div><span class="section-kicker">3D CONTENT</span>
+                  <h2>三维内容</h2>
+                </div><span>Cesium ion</span>
               </div>
-            </section>
-            <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">ION SCENE</span><h2>三维与地形</h2></div><span>Cesium ion</span></div>
               <div class="ion-asset-list">
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="landmark"></i><span><b>Google Photorealistic 3D Tiles</b><small>ion 资产 2275207</small></span></span><input id="google-photorealistic-toggle" type="checkbox" data-ion-tileset="2275207" data-ion-label="Google Photorealistic 3D Tiles" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="building-2"></i><span><b>Cesium OSM Buildings</b><small>ion 资产 96188</small></span></span><input id="buildings-toggle" type="checkbox" data-ion-tileset="96188" data-ion-label="Cesium OSM Buildings" /><span class="switch-track"></span></label>
-                <label class="layer-switch"><span class="layer-copy"><i data-lucide="mountain"></i><span><b>Cesium World Terrain</b><small>ion 资产 1</small></span></span><input id="terrain-toggle" type="checkbox" data-ion-terrain="1" /><span class="switch-track"></span></label>
+                <label class="layer-switch"><span class="layer-copy"><i data-lucide="landmark"></i><span><b>Google
+                        Photorealistic 3D Tiles</b><small>高负载 · ion 资产 2275207</small></span></span><input
+                    id="google-photorealistic-toggle" type="checkbox" data-ion-tileset="2275207"
+                    data-ion-label="Google Photorealistic 3D Tiles" /><span class="switch-track"></span></label>
+                <label class="layer-switch"><span class="layer-copy"><i data-lucide="building-2"></i><span><b>Cesium OSM
+                        Buildings</b><small>ion 资产 96188</small></span></span><input id="buildings-toggle"
+                    type="checkbox" data-ion-tileset="96188" data-ion-label="Cesium OSM Buildings" /><span
+                    class="switch-track"></span></label>
               </div>
               <p id="ion-layer-message" class="inline-message" role="status">在线图层待命</p>
             </section>
@@ -115,48 +205,86 @@
 
           <div class="panel-page" data-page="terrain" hidden>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">BROWSER LOCAL</span><h2>处理本地高程数据</h2></div><span>GeoTIFF / Worker</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">BROWSER LOCAL</span>
+                  <h2>处理本地高程数据</h2>
+                </div><span>GeoTIFF / Worker</span>
+              </div>
               <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" hidden />
-              <button id="convert-dem" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并加载 DEM</span></button>
+              <button id="convert-dem" class="primary-command secondary-command" type="button"><i
+                  data-lucide="file-up"></i><span>选择并加载 DEM</span></button>
               <button id="cancel-dem-processing" class="text-command" type="button" hidden>取消本次 DEM 处理</button>
-              <div id="dem-result" class="conversion-result" role="status"><b>浏览器 DEM 待命</b><span>GeoTIFF 将在当前浏览器处理，文件不会上传</span></div>
-              <p class="tool-hint">公开网站支持 WGS84 与 WGS84 UTM GeoTIFF，并在 Web Worker 中按需生成 Cesium heightmap。IMG、ASC、DEM 或需要发布 quantized-mesh 时仍使用开发者离线工具。</p>
+              <div id="dem-result" class="conversion-result" role="status"><b>浏览器 DEM 待命</b><span>GeoTIFF
+                  将在当前浏览器处理，文件不会上传</span></div>
+              <p class="tool-hint">公开网站支持 WGS84 与 WGS84 UTM GeoTIFF，并在 Web Worker 中按需生成 Cesium heightmap。IMG、ASC、DEM
+                或需要发布 quantized-mesh 时仍使用开发者离线工具。</p>
             </section>
             <section class="panel-section">
-              <div class="section-heading"><div><span class="section-kicker">TERRAIN MANAGEMENT</span><h2>地形管理</h2></div><span>quantized-mesh</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">TERRAIN MANAGEMENT</span>
+                  <h2>地形管理</h2>
+                </div><span>在线与本地来源</span>
+              </div>
+              <label class="layer-switch"><span class="layer-copy"><i data-lucide="mountain"></i><span><b>Cesium World
+                      Terrain</b><small>全球在线高程 · ion 资产 1</small></span></span><input id="terrain-toggle"
+                  type="checkbox" data-ion-terrain="1" /><span class="switch-track"></span></label>
+              <p id="terrain-online-message" class="inline-message" role="status">世界地形待命</p>
               <p class="tool-hint">本地文件夹适合临时检查电脑中的处理结果；目录地形适合加载已经发布或由本地服务提供的数据。</p>
-              <label class="select-control"><span>已发布或本地地形</span><select id="local-terrain-select"><option value="">暂无已发布地形</option></select></label>
+              <label class="select-control"><span>已发布或本地地形</span><select id="local-terrain-select">
+                  <option value="">暂无已发布地形</option>
+                </select></label>
               <div id="terrain-state" class="conversion-result" role="status"><b>当前：椭球地形</b><span>当前未启用高程地形</span></div>
               <div class="command-grid">
-                <button id="load-local-terrain-folder" class="primary-command terrain-wide-command" type="button"><i data-lucide="folder-open"></i><span>加载本地文件夹</span></button>
-                <button id="refresh-terrains" class="secondary-command" type="button"><i data-lucide="refresh-cw"></i><span>刷新地形目录</span></button>
-                <button id="open-local-terrain-catalog" class="secondary-command" type="button"><i data-lucide="list-checks"></i><span>选择目录地形</span></button>
-                <button id="load-local-terrain" class="secondary-command" type="button" disabled><i data-lucide="mountain-snow"></i><span>应用所选地形</span></button>
-                <button id="locate-terrain" class="secondary-command" type="button" disabled><i data-lucide="locate-fixed"></i><span>定位当前地形</span></button>
+                <button id="load-local-terrain-folder" class="primary-command terrain-wide-command" type="button"><i
+                    data-lucide="folder-open"></i><span>加载本地文件夹</span></button>
+                <button id="refresh-terrains" class="secondary-command" type="button"><i
+                    data-lucide="refresh-cw"></i><span>刷新地形目录</span></button>
+                <button id="open-local-terrain-catalog" class="secondary-command" type="button"><i
+                    data-lucide="list-checks"></i><span>选择目录地形</span></button>
+                <button id="load-local-terrain" class="secondary-command" type="button" disabled><i
+                    data-lucide="mountain-snow"></i><span>应用所选地形</span></button>
+                <button id="locate-terrain" class="secondary-command" type="button" disabled><i
+                    data-lucide="locate-fixed"></i><span>定位当前地形</span></button>
               </div>
               <button id="disable-terrain" class="text-command" type="button">关闭高程地形，恢复椭球</button>
               <input id="local-terrain-folder-input" type="file" webkitdirectory directory multiple hidden />
-              <div id="local-terrain-folder-result" class="conversion-result" role="status"><b>本地文件夹待命</b><span>选择包含 layer.json 和 .terrain 瓦片的处理结果</span></div>
+              <div id="local-terrain-folder-result" class="conversion-result" role="status"><b>本地文件夹待命</b><span>选择包含
+                  layer.json 和 .terrain 瓦片的处理结果</span></div>
               <p id="layer-message" class="inline-message" role="status">地形目录待命</p>
             </section>
           </div>
 
           <div class="panel-page" data-page="tools" hidden>
             <section class="panel-section section-command" aria-labelledby="scene-tools-title">
-              <div class="section-heading"><div><span class="section-kicker">SCENE TOOLS</span><h2 id="scene-tools-title">地图标注与路线</h2></div><span>浏览器会话</span></div>
-              <div class="scene-tool-mode-grid" role="group" aria-label="地图操作模式">
-                <button class="secondary-command" type="button" data-scene-mode="point" aria-pressed="false"><i data-lucide="map-pin"></i><span>创建点</span></button>
-                <button class="secondary-command" type="button" data-scene-mode="route" aria-pressed="false"><i data-lucide="route"></i><span>绘制路线</span></button>
-                <button class="secondary-command scene-tool-wide" type="button" data-scene-mode="coordinate" aria-pressed="false"><i data-lucide="crosshair"></i><span>点击获取坐标</span></button>
+              <div class="section-heading">
+                <div><span class="section-kicker">SCENE TOOLS</span>
+                  <h2 id="scene-tools-title">地图标注与路线</h2>
+                </div><span>浏览器会话</span>
               </div>
-              <div id="scene-tool-mode-status" class="conversion-result" role="status" aria-live="polite"><b>地图工具待命</b><span>选择一种模式后在地图上操作</span></div>
+              <div class="scene-tool-mode-grid" role="group" aria-label="地图操作模式">
+                <button class="secondary-command" type="button" data-scene-mode="point" aria-pressed="false"><i
+                    data-lucide="map-pin"></i><span>创建点</span></button>
+                <button class="secondary-command" type="button" data-scene-mode="route" aria-pressed="false"><i
+                    data-lucide="route"></i><span>绘制路线</span></button>
+                <button class="secondary-command scene-tool-wide" type="button" data-scene-mode="coordinate"
+                  aria-pressed="false"><i data-lucide="crosshair"></i><span>点击获取坐标</span></button>
+              </div>
+              <div id="scene-tool-mode-status" class="conversion-result" role="status" aria-live="polite">
+                <b>地图工具待命</b><span>选择一种模式后在地图上操作</span></div>
               <button id="scene-tool-cancel" class="text-command" type="button" hidden>退出地图操作</button>
             </section>
 
             <section class="panel-section" aria-labelledby="scene-point-title">
-              <div class="section-heading"><div><span class="section-kicker">POINT ANNOTATIONS</span><h2 id="scene-point-title">点位标注</h2></div><span id="scene-point-count">0 个</span></div>
-              <label class="tool-field"><span>当前点位</span><select id="scene-point-select" aria-label="选择点位"><option value="">暂无点位</option></select></label>
-              <label class="tool-field"><span>名称</span><input id="scene-point-name" type="text" maxlength="80" placeholder="选择或创建点位后编辑" /></label>
+              <div class="section-heading">
+                <div><span class="section-kicker">POINT ANNOTATIONS</span>
+                  <h2 id="scene-point-title">点位标注</h2>
+                </div><span id="scene-point-count">0 个</span>
+              </div>
+              <label class="tool-field"><span>当前点位</span><select id="scene-point-select" aria-label="选择点位">
+                  <option value="">暂无点位</option>
+                </select></label>
+              <label class="tool-field"><span>名称</span><input id="scene-point-name" type="text" maxlength="80"
+                  placeholder="选择或创建点位后编辑" /></label>
               <div class="scene-tool-actions">
                 <button id="scene-point-save" class="small-command" type="button" disabled>保存名称</button>
                 <button id="scene-point-remove" class="small-command" type="button" disabled>删除点位</button>
@@ -164,37 +292,60 @@
             </section>
 
             <section class="panel-section" aria-labelledby="scene-route-title">
-              <div class="section-heading"><div><span class="section-kicker">MODEL ROUTE</span><h2 id="scene-route-title">模型移动路线</h2></div><span id="scene-route-count">0 条</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">MODEL ROUTE</span>
+                  <h2 id="scene-route-title">模型移动路线</h2>
+                </div><span id="scene-route-count">0 条</span>
+              </div>
               <p class="tool-hint">选择“绘制路线”后依次点击地图，至少添加两个点，再结束路线。选择单文件 GLB 绑定模型；文件仅在当前浏览器使用，不会上传。</p>
-              <label class="tool-field"><span>当前路线</span><select id="scene-route-select" aria-label="选择路线"><option value="">暂无路线</option></select></label>
-              <label class="tool-field"><span>路线名称</span><input id="scene-route-name" type="text" maxlength="80" placeholder="选择或完成路线后编辑" /></label>
-              <label class="tool-field"><span>移动速度（米/秒）</span><input id="scene-route-speed" type="number" min="0.1" max="10000" step="1" value="60" /></label>
+              <label class="tool-field"><span>当前路线</span><select id="scene-route-select" aria-label="选择路线">
+                  <option value="">暂无路线</option>
+                </select></label>
+              <label class="tool-field"><span>路线名称</span><input id="scene-route-name" type="text" maxlength="80"
+                  placeholder="选择或完成路线后编辑" /></label>
+              <label class="tool-field"><span>移动速度（米/秒）</span><input id="scene-route-speed" type="number" min="0.1"
+                  max="10000" step="1" value="60" /></label>
               <div class="scene-tool-actions">
                 <button id="scene-route-finish" class="small-command" type="button" disabled>结束路线</button>
                 <button id="scene-route-save" class="small-command" type="button" disabled>保存名称</button>
                 <button id="scene-route-remove" class="small-command" type="button" disabled>删除路线</button>
               </div>
-              <label class="small-command scene-model-file" for="scene-model-file">选择 GLB 模型<input id="scene-model-file" type="file" accept=".glb,model/gltf-binary" hidden /></label>
+              <label class="small-command scene-model-file" for="scene-model-file">选择 GLB 模型<input id="scene-model-file"
+                  type="file" accept=".glb,model/gltf-binary" hidden /></label>
               <div class="scene-tool-actions">
                 <button id="scene-route-play" class="small-command" type="button" disabled>播放</button>
                 <button id="scene-route-pause" class="small-command" type="button" disabled>暂停</button>
                 <button id="scene-route-resume" class="small-command" type="button" disabled>继续</button>
                 <button id="scene-route-stop" class="small-command" type="button" disabled>停止</button>
               </div>
-              <div id="scene-route-status" class="conversion-result" role="status" aria-live="polite"><b>尚无路线</b><span>路线与模型只保存在当前浏览器会话</span></div>
+              <div id="scene-route-status" class="conversion-result" role="status" aria-live="polite">
+                <b>尚无路线</b><span>路线与模型只保存在当前浏览器会话</span></div>
             </section>
 
             <section class="panel-section" aria-labelledby="scene-coordinate-title">
-              <div class="section-heading"><div><span class="section-kicker">COORDINATE PICK</span><h2 id="scene-coordinate-title">坐标拾取结果</h2></div><span>WGS84</span></div>
-              <output id="scene-coordinate-result" class="scene-coordinate-result" aria-live="polite">点击“点击获取坐标”，再选择地图位置</output>
+              <div class="section-heading">
+                <div><span class="section-kicker">COORDINATE PICK</span>
+                  <h2 id="scene-coordinate-title">坐标拾取结果</h2>
+                </div><span>WGS84</span>
+              </div>
+              <output id="scene-coordinate-result" class="scene-coordinate-result"
+                aria-live="polite">点击“点击获取坐标”，再选择地图位置</output>
               <p class="tool-hint">优先读取可用的场景深度位置，其次读取地形表面；最后回退到 WGS84 椭球。结果会标明高度来源。</p>
             </section>
 
             <section class="panel-section" aria-labelledby="scene-vector-title">
-              <div class="section-heading"><div><span class="section-kicker">LOCAL VECTOR DATA</span><h2 id="scene-vector-title">加载矢量文件</h2></div><span>GeoJSON / TopoJSON / Shapefile</span></div>
-              <button id="scene-vector-load" class="primary-command secondary-command" type="button"><i data-lucide="file-up"></i><span>选择并加载矢量文件</span></button>
-              <input id="scene-vector-file" type="file" accept=".geojson,.json,.zip,.shp,.dbf,.prj,.cpg,.shx,application/geo+json,application/json,application/zip" multiple hidden />
-              <div id="scene-vector-status" class="conversion-result" role="status" aria-live="polite"><b>矢量文件待命</b><span>支持 GeoJSON、TopoJSON 与 Shapefile ZIP；单次选择总大小最大 50 MiB</span></div>
+              <div class="section-heading">
+                <div><span class="section-kicker">LOCAL VECTOR DATA</span>
+                  <h2 id="scene-vector-title">加载矢量文件</h2>
+                </div><span>GeoJSON / TopoJSON / Shapefile</span>
+              </div>
+              <button id="scene-vector-load" class="primary-command secondary-command" type="button"><i
+                  data-lucide="file-up"></i><span>选择并加载矢量文件</span></button>
+              <input id="scene-vector-file" type="file"
+                accept=".geojson,.json,.zip,.shp,.dbf,.prj,.cpg,.shx,application/geo+json,application/json,application/zip"
+                multiple hidden />
+              <div id="scene-vector-status" class="conversion-result" role="status" aria-live="polite">
+                <b>矢量文件待命</b><span>支持 GeoJSON、TopoJSON 与 Shapefile ZIP；单次选择总大小最大 50 MiB</span></div>
               <p class="tool-hint">文件在浏览器本地解析，不会上传。Shapefile 建议选择包含 .shp、.dbf、.prj 等配套文件的 ZIP；也可同时选择同名配套文件。</p>
             </section>
           </div>
@@ -206,35 +357,74 @@
         <div class="map-vignette" aria-hidden="true"></div>
         <div id="status" role="status">正在加载示例风场</div>
         <div class="map-toolbar" aria-label="地图工具">
-          <button id="home-view" class="map-tool-button" type="button" title="回到初始视角" aria-label="回到初始视角"><i data-lucide="home"></i></button>
-          <button id="zoom-in" class="map-tool-button" type="button" title="放大" aria-label="放大"><i data-lucide="zoom-in"></i></button>
-          <button id="zoom-out" class="map-tool-button" type="button" title="缩小" aria-label="缩小"><i data-lucide="zoom-out"></i></button>
+          <button id="home-view" class="map-tool-button" type="button" title="回到初始视角" aria-label="回到初始视角"><i
+              data-lucide="home"></i></button>
+          <button id="zoom-in" class="map-tool-button" type="button" title="放大" aria-label="放大"><i
+              data-lucide="zoom-in"></i></button>
+          <button id="zoom-out" class="map-tool-button" type="button" title="缩小" aria-label="缩小"><i
+              data-lucide="zoom-out"></i></button>
           <span class="toolbar-divider"></span>
-          <button id="map-locate" class="map-tool-button" type="button" title="定位当前风场" aria-label="定位当前风场"><i data-lucide="locate-fixed"></i></button>
+          <button id="map-locate" class="map-tool-button" type="button" title="定位当前风场" aria-label="定位当前风场"><i
+              data-lucide="locate-fixed"></i></button>
         </div>
-        <button id="toggle-left-panel" class="panel-handle panel-handle-left" type="button" title="切换参数面板" aria-label="切换参数面板"><i data-lucide="panel-left-close"></i></button>
-        <button id="toggle-right-panel" class="panel-handle panel-handle-right" type="button" title="切换图层面板" aria-label="切换图层面板"><i data-lucide="panel-right-close"></i></button>
-        <div class="map-caption"><span class="live-dot"></span><span>实时视图</span><span class="caption-separator"></span><span>Cesium Globe</span></div>
+        <button id="toggle-left-panel" class="panel-handle panel-handle-left" type="button" title="切换参数面板"
+          aria-label="切换参数面板"><i data-lucide="panel-left-close"></i></button>
+        <button id="toggle-right-panel" class="panel-handle panel-handle-right" type="button" title="切换图层面板"
+          aria-label="切换图层面板"><i data-lucide="panel-right-close"></i></button>
+        <div class="map-caption"><span class="live-dot"></span><span>实时视图</span><span
+            class="caption-separator"></span><span>Cesium Globe</span></div>
       </main>
 
       <aside id="layer-panel" class="workspace-panel panel-right" aria-label="图层管理">
-        <div class="workspace-panel-heading"><div><span class="eyebrow">SCENE STACK</span><h1>图层管理</h1></div><button id="close-right-panel" class="panel-close-button" type="button" title="收起图层面板" aria-label="收起图层面板"><i data-lucide="panel-right-close"></i></button></div>
-        <div class="layer-panel-summary"><span class="layer-summary-icon"><i data-lucide="layers-3"></i></span><span><b>场景资源</b><small>分类型管理显隐、定位、顺序与移除</small></span><strong id="scene-layer-count">0 项</strong></div>
-        <div id="scene-layer-list" class="scene-layer-list" aria-live="polite"><p class="empty-message">正在初始化场景资源</p></div>
+        <div class="workspace-panel-heading">
+          <div><span class="eyebrow">SCENE STACK</span>
+            <h1>图层管理</h1>
+          </div><button id="close-right-panel" class="panel-close-button" type="button" title="收起图层面板"
+            aria-label="收起图层面板"><i data-lucide="panel-right-close"></i></button>
+        </div>
+        <div class="layer-panel-summary"><span class="layer-summary-icon"><i
+              data-lucide="layers-3"></i></span><span><b>场景资源</b><small>分类型管理显隐、定位、顺序与移除</small></span><strong
+            id="scene-layer-count">0 项</strong></div>
+        <div id="scene-layer-list" class="scene-layer-list" aria-live="polite">
+          <p class="empty-message">正在初始化场景资源</p>
+        </div>
       </aside>
     </div>
 
     <footer class="app-statusbar">
-      <div class="statusbar-left"><span><i data-lucide="server"></i><b id="service-status">运行环境待命</b></span><span><i data-lucide="globe-2"></i><b id="render-status">WebGL2</b></span></div>
-      <div class="statusbar-right"><span id="coordLng">经度 --°</span><span id="coordLat">纬度 --°</span><span id="coordAlt">高度 --m</span><span id="fpsCounter">FPS --</span></div>
+      <div class="statusbar-left"><span><i data-lucide="server"></i><b id="service-status">运行环境待命</b></span><span><i
+            data-lucide="globe-2"></i><b id="render-status">WebGL2</b></span></div>
+      <div class="statusbar-right"><span id="coordLng">经度 --°</span><span id="coordLat">纬度 --°</span><span
+          id="coordAlt">高度 --m</span><span id="fpsCounter">FPS --</span></div>
     </footer>
   </div>
 
   <dialog id="wind-catalog-dialog" class="catalog-dialog">
-    <form method="dialog"><header><div><h2 id="catalog-title">选择风场文件</h2><p id="catalog-directory"></p></div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button></header><div id="catalog-options" class="catalog-options"></div><div id="catalog-files" class="catalog-files"></div><footer><button id="browse-other" class="secondary-command" value="browse" type="submit">浏览其他位置</button><button id="load-selected-files" class="primary-command" value="load" type="submit">加载所选文件</button></footer></form>
+    <form method="dialog">
+      <header>
+        <div>
+          <h2 id="catalog-title">选择风场文件</h2>
+          <p id="catalog-directory"></p>
+        </div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div id="catalog-options" class="catalog-options"></div>
+      <div id="catalog-files" class="catalog-files"></div>
+      <footer><button id="browse-other" class="secondary-command" value="browse" type="submit">浏览其他位置</button><button
+          id="load-selected-files" class="primary-command" value="load" type="submit">加载所选文件</button></footer>
+    </form>
   </dialog>
   <dialog id="terrain-catalog-dialog" class="catalog-dialog terrain-catalog-dialog">
-    <form method="dialog"><header><div><h2>从地形目录选择</h2><p id="terrain-catalog-directory"></p></div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button></header><div id="terrain-catalog-files" class="catalog-files"></div><footer><button id="refresh-terrain-catalog" class="secondary-command" type="button">刷新目录</button><button id="load-selected-terrain" class="primary-command" value="load" type="submit">应用所选地形</button></footer></form>
+    <form method="dialog">
+      <header>
+        <div>
+          <h2>从地形目录选择</h2>
+          <p id="terrain-catalog-directory"></p>
+        </div><button value="cancel" class="icon-button" type="submit" aria-label="关闭"><i data-lucide="x"></i></button>
+      </header>
+      <div id="terrain-catalog-files" class="catalog-files"></div>
+      <footer><button id="refresh-terrain-catalog" class="secondary-command" type="button">刷新目录</button><button
+          id="load-selected-terrain" class="primary-command" value="load" type="submit">应用所选地形</button></footer>
+    </form>
   </dialog>
 
   <script type="module" src="./app/main.js"></script>

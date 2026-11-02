@@ -1,0 +1,17 @@
+{
+  "method": "HEAD",
+  "path": "/api/v1/datasets/DS_9B2510ABA3A74DA19488937E4F071C1C/content",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "accept-ranges": "bytes",
+    "content-type": "application/json",
+    "content-disposition": "attachment; filename*=UTF-8''latest_profile.json",
+    "etag": "\"9d2a1721be39fa3b1bc5528f9b5ac493f6785289b4efc2f710fc1cec453d8573\"",
+    "cache-control": "private, no-cache",
+    "content-length": "10305"
+  },
+  "response_json": null
+}

@@ -1,0 +1,46 @@
+{
+  "source_start": "2024-04-03T15:00:30",
+  "source_end": "2024-04-03T17:05:33",
+  "source_end_utc": "2024-04-03T09:05:33+00:00",
+  "timezone": "+08:00",
+  "height_basis": "AGL",
+  "wind_unit": "m/s",
+  "raw_wind_unit": "cm/s",
+  "missing_value_raw": 999,
+  "records": 2646,
+  "latest_layer_count": 21,
+  "invalid_counts": {
+    "height": 0,
+    "wind_speed": 0,
+    "wind_direction": 0,
+    "vertical_airflow": 0
+  },
+  "horizontal_window_minutes": 60,
+  "vertical_window_minutes": 20,
+  "horizontal_available": true,
+  "vertical_available": true,
+  "direction_mean": "equal-weight circular direction mean; scalar mean speed; not speed-weighted vector mean",
+  "vertical_color_limits_m_s": [
+    -3,
+    3
+  ],
+  "vertical_sign": "positive_up",
+  "vertical_sign_note": "正值向上、负值向下；2026-10-22由用户确认；0为有效值，999为原始缺测值",
+  "vertical_out_of_color_range": 0,
+  "horizontal_out_of_color_range": 0,
+  "station_coordinates": null,
+  "station_note": "经纬度需每次架设录入；未用9999定位，本产品不是区域风场",
+  "input_sha256": "ed5d2c1375f60ae8e4c0b5a6b942403c9a4115d47d9e3fa6068802508a1d038e",
+  "briefing_metrics": [
+    {
+      "metric_id": "fixed_profile",
+      "value": "10m:3.65m/s/177°/垂直+0.57m/s（向上），50m:4.59m/s/179°/垂直+0.97m/s（向上），100m:5.07m/s/172°/垂直+0.91m/s（向上），200m:5.59m/s/162°/垂直+0.68m/s（向上）",
+      "unit": ""
+    },
+    {
+      "metric_id": "fixed_vertical_wind_max",
+      "value": 0.99,
+      "unit": "m/s"
+    }
+  ]
+}

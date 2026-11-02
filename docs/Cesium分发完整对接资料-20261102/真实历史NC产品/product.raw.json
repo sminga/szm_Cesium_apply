@@ -1,0 +1,77 @@
+{
+  "product_id": "PRD_403B9B16236742C3836E560D2C0B1D48",
+  "task_id": "HISTORY_20240403",
+  "request_id": null,
+  "product_type": "wind3d_slice",
+  "product_key": "wind3d_slice:height=10m",
+  "category_id": "wind",
+  "title": "【历史回放】历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+  "summary": "历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+  "owner": "历史回放数值摘要",
+  "version": "replay-v1",
+  "generated_at": "2024-04-03T08:33:00+00:00",
+  "valid_from": "2024-04-03T08:33:00+00:00",
+  "valid_until": "2024-04-03T08:38:00+00:00",
+  "processor_name": "historical_replay",
+  "processor_version": "1.0",
+  "threshold_version": null,
+  "quality_status": "usable",
+  "quality_reason": null,
+  "created_at": "2026-10-10T02:35:46+00:00",
+  "extent": {},
+  "metadata": {
+    "briefing_lines": {
+      "结论": "历史风场 2024-04-03 16:33:00 北京时间；10m区域平均1.835m/s、最大5.47m/s",
+      "行动提示": "本次为历史回放，不用于当前现场指挥；固定站位置未核实",
+      "风险位置或高度": "风速大小不等于危险等级；尚无已确认的航线/风切变风险结果"
+    },
+    "briefing_metrics": [
+      {
+        "metric_id": "wind_speed_mean",
+        "unit": "m/s",
+        "value": 1.835
+      },
+      {
+        "metric_id": "wind_speed_max",
+        "unit": "m/s",
+        "value": 5.47
+      },
+      {
+        "metric_id": "wind_direction",
+        "unit": "°",
+        "value": 171.3
+      },
+      {
+        "metric_id": "height_agl",
+        "unit": "m",
+        "value": 10
+      },
+      {
+        "metric_id": "max_wind_location",
+        "unit": "",
+        "value": "经度101.96991、纬度24.56751，离地10m"
+      },
+      {
+        "metric_id": "data_coverage",
+        "unit": "%",
+        "value": 100.0
+      }
+    ],
+    "historical_replay": true,
+    "processed_at_utc": "2026-10-10T02:35:46+00:00",
+    "research_product_id": "W01"
+  },
+  "derived_from": [
+    "DS_8764542A4E6F4CB0A238B440F30D0691"
+  ],
+  "assets": [
+    {
+      "asset_id": "ASSET_56C74689CFA84C68A171DA4BEFC0AB9E",
+      "dataset_id": "DS_8764542A4E6F4CB0A238B440F30D0691",
+      "asset_type": "netcdf",
+      "label": "10m原融合文件",
+      "sort_order": 0
+    }
+  ],
+  "schema_version": "1.0"
+}

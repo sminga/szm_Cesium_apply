@@ -187,11 +187,11 @@ npm run local:server
 
 ### Cesium 服务配置
 
-复制 `example/.env.example` 为 `example/.env.local`，通过 `VITE_CESIUM_ION_TOKEN` 配置 Cesium ion。未配置时示例默认使用 OpenStreetMap。
+复制 `example/.env.example` 为 `example/.env.local`。`VITE_CESIUM_ION_TOKEN` 用于 Cesium World Imagery、Google ion 底图、Sentinel-2、3D Tiles 和 Cesium World Terrain；未配置时示例默认使用 OpenStreetMap。天地图、高德、百度、腾讯和星图按需配置各自的 `VITE_*` Token 或授权 HTTPS 瓦片模板。
 
 `VITE_*` 会进入浏览器包，只能保存面向浏览器的公开 Token。请在 Cesium ion 后台限制允许域名，不能放置私密服务端密钥。旧 `example/config/serviceTokens.js` 已不再由示例入口依赖。
 
-配置 Token 后，“场景”页可按需打开截图所列的 Google Maps、Bing Maps、Sentinel-2、Earth at Night、Google Photorealistic 3D Tiles、Cesium OSM Buildings 和 Cesium World Terrain。地图右下角的 Cesium credit 容器必须保持可见，以满足数据提供者署名要求。
+“场景”页支持 Cesium、OpenStreetMap、天地图、高德、百度、腾讯、Google ion、星图和无底图，并保留 Sentinel-2、Google Photorealistic 3D Tiles 与 Cesium OSM Buildings。World Terrain 已归入“地形”页。风场、DEM 与矢量数据始终保持 WGS84，GCJ-02/BD-09 只在厂商瓦片 Provider 内适配。地图右下角的 Cesium credit 容器必须保持可见。完整配置、坐标边界和许可说明见 [`docs/多厂商底图与坐标系适配.md`](docs/多厂商底图与坐标系适配.md)。
 
 ### Vercel 公开部署
 

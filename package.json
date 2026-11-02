@@ -53,6 +53,7 @@
     "cesium": "^1.142.0"
   },
   "devDependencies": {
+    "@cesium-china/cesium-map": "^1.0.0",
     "cesium": "^1.142.0",
     "geotiff": "3.0.5",
     "lucide": "^1.47.0",

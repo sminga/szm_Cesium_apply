@@ -40,21 +40,31 @@ export function windLayerDefinition(entry, manager, options = {}) {
   };
 }
 
-export function basemapLayerDefinition({ mode, name, layer }) {
+export function basemapLayerDefinition({
+  mode,
+  name,
+  layers = [],
+  manager,
+  source,
+  detail,
+  coordinateSystem,
+}) {
+  const activeLayers = layers.filter(Boolean);
   return {
     id: "basemap:current",
     group: "basemap",
     type: mode,
     name,
-    source: mode === "none" ? "场景设置" : "在线影像服务",
-    detail: mode === "none" ? "当前未显示底图" : "固定在影像栈底部",
-    visible: Boolean(layer?.show ?? layer),
-    opacity: layer?.alpha ?? 1,
-    capabilities: { visible: Boolean(layer), opacity: Boolean(layer) },
+    source: source ?? (mode === "none" ? "场景设置" : "在线影像服务"),
+    detail: mode === "none" ? "当前未显示底图" : (detail ?? "固定在影像栈底部"),
+    visible: activeLayers.length > 0 && activeLayers.every((layer) => layer.show !== false),
+    opacity: activeLayers[0]?.alpha ?? 1,
+    capabilities: { visible: activeLayers.length > 0, opacity: activeLayers.length > 0 },
     removable: false,
+    metadata: { coordinateSystem, layerCount: activeLayers.length },
     actions: {
-      setVisible: (_entry, visible) => { layer.show = visible; },
-      setOpacity: (_entry, opacity) => { layer.alpha = opacity; },
+      setVisible: (_entry, visible) => manager.setVisible(visible),
+      setOpacity: (_entry, opacity) => manager.setOpacity(opacity),
     },
   };
 }

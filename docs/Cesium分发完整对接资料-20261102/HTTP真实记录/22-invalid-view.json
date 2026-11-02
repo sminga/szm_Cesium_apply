@@ -1,0 +1,16 @@
+{
+  "method": "GET",
+  "path": "/api/v1/receiver-catalog?session_id=SESSION_718DC54CB1D04377BAAB04E8A2E962BE&category=wind&view=invalid",
+  "request_json": null,
+  "http_status": 400,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "connection": "close",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "54"
+  },
+  "response_json": {
+    "error": "view必须是operational、research或all"
+  }
+}

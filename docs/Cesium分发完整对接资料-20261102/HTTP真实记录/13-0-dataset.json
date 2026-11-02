@@ -1,0 +1,45 @@
+{
+  "method": "GET",
+  "path": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "968"
+  },
+  "response_json": {
+    "dataset_id": "DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+    "task_id": "CESIUM_HISTORY_HANDOFF",
+    "stage": "processed",
+    "source_type": "module_product",
+    "source_id": "HANDOFF_HISTORY_OUTPUT",
+    "owner": "分发服务绘图脚本",
+    "file_name": "wind_time_height.png",
+    "format": "png",
+    "size_bytes": 200306,
+    "sha256": "585429bc31ec4252574ca19efbb878cb070cbb863ece505744d4fbbd467b957e",
+    "capture_start": null,
+    "capture_end": null,
+    "process_name": "existing_history_output_handoff",
+    "process_version": "1.0",
+    "created_at": "2026-11-02T07:12:57+00:00",
+    "metadata": {
+      "original_file_name": "wind_time_height.png",
+      "upload_id": "UP_AF7883FAD45A43C9A808CB7007BF511A"
+    },
+    "derived_from": [],
+    "sync": {
+      "queue_id": 1,
+      "dataset_id": "DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+      "status": "synced",
+      "priority": 100,
+      "attempts": 0,
+      "last_error": null,
+      "updated_at": "2026-11-02T07:12:57+00:00"
+    },
+    "schema_version": "1.0",
+    "content_url": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/content"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "format": "netcdf4_hdf5",
+  "is_raw_wrf": false,
+  "data_role": "wind_2d",
+  "dimensions_order": [
+    "height",
+    "lat",
+    "lon"
+  ],
+  "time_variable": null,
+  "time_source": "global attribute target_time_utc",
+  "target_time_utc": "2024-04-03T08:33:00Z",
+  "has_vertical_W": false,
+  "requested_NC3_U_V_W_contract_satisfied": false,
+  "variables": {
+    "height": {
+      "shape": [
+        1
+      ],
+      "dtype": "float32",
+      "attributes": {
+        "standard_name": "height",
+        "long_name": "height above ground level",
+        "units": "m"
+      }
+    },
+    "lon": {
+      "shape": [
+        1023
+      ],
+      "dtype": "float64",
+      "attributes": {
+        "standard_name": "longitude",
+        "units": "degrees_east"
+      }
+    },
+    "lat": {
+      "shape": [
+        1018
+      ],
+      "dtype": "float64",
+      "attributes": {
+        "standard_name": "latitude",
+        "units": "degrees_north"
+      }
+    },
+    "U_wind": {
+      "shape": [
+        1,
+        1018,
+        1023
+      ],
+      "dtype": "float32",
+      "attributes": {
+        "_FillValue": [
+          -9999.0
+        ],
+        "standard_name": "eastward_wind",
+        "units": "m s-1",
+        "grid_mapping": "crs"
+      }
+    },
+    "V_wind": {
+      "shape": [
+        1,
+        1018,
+        1023
+      ],
+      "dtype": "float32",
+      "attributes": {
+        "_FillValue": [
+          -9999.0
+        ],
+        "standard_name": "northward_wind",
+        "units": "m s-1",
+        "grid_mapping": "crs"
+      }
+    }
+  },
+  "height_reference": "height above ground level",
+  "longitude_range": [
+    101.86401676217693,
+    102.8759276022771
+  ],
+  "longitude_monotonic_increasing": true,
+  "latitude_monotonic_increasing": false,
+  "antimeridian_crossing": false,
+  "sample_size_bytes": 6294232,
+  "sha256": "dcce2e0506c7d5c23c89918fcb978e889b76b7d49610d82213c158a95530b08a",
+  "note": "No fabricated W. Raw WRF geopotential/staggering conversion is not part of this sample. Native grid CRS stored separately from lon/lat.",
+  "latitude_monotonic_decreasing": true,
+  "latitude_order": "north_to_south",
+  "latitude_first_last": [
+    25.484993054933632,
+    24.567506313774018
+  ]
+}

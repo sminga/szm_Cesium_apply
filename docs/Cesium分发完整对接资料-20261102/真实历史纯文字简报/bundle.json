@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "sample_namespace": "local_registered_product_not_production_ids",
+  "product_id": "PRD_D4FA54F11A21438B8EC513CC0F413775",
+  "database_opened_read_only": true,
+  "production_changed": false,
+  "copied_existing_files_only": true,
+  "created_new_scientific_figures": false,
+  "historical_research": true,
+  "total_asset_bytes": 0,
+  "local_files": [],
+  "note": "Local IDs are real in source DB, not guaranteed on production. Use files paths for offline fixture loading; do not treat old observations as live."
+}

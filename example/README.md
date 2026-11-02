@@ -25,8 +25,8 @@ npm run local:server
 ### 顶部模式栏
 
 - **风场**：在页面顶部选择并处理 NC 文件，加载二维/三维风场，设置高度范围和渲染参数。
-- **场景**：切换基础底图，并按需打开 10 个 Cesium ion 公共影像、Google Photorealistic 3D Tiles、Cesium OSM Buildings 和 Cesium World Terrain。
-- **地形**：在页面顶部选择并加载本机 GeoTIFF，或从电脑文件夹直接加载处理后的 quantized-mesh 地形；同时管理公开地形目录、刷新、应用、定位和恢复椭球地形。
+- **场景**：选择 Cesium、OpenStreetMap、天地图、高德、百度、腾讯、Google ion、星图或无底图；按需打开 Sentinel-2、Google Photorealistic 3D Tiles 和 Cesium OSM Buildings。
+- **地形**：启用 Cesium World Terrain，在页面顶部选择并加载本机 GeoTIFF，或从电脑文件夹直接加载处理后的 quantized-mesh 地形；同时管理公开地形目录、刷新、应用、定位和恢复椭球地形。
 - **工具**：创建和命名临时地图点位、绘制并播放 GLB 模型路线、点击拾取经纬度，以及从本地 GeoJSON/TopoJSON/Shapefile 文件加载矢量数据。文件不上传，刷新页面后清除。
 
 顶部右侧显示当前二维/三维风场数量，并提供定位当前图层和同时开合两侧面板的快捷按钮。
@@ -53,6 +53,8 @@ npm run local:server
 - 影像叠加层可以调整实际影像栈顺序；风场和 3D Tiles 的列表次序不改变深度遮挡；底图固定在影像底部。
 - 地形栏可保留多个候选源，但 Cesium 同时只有一个活动 `terrainProvider`；失败切换会保留原地形。
 - 二维风场可以直接修改固定显示高度。场景状态同时显示底图、影像、3D Tiles 和地形状态。
+
+基础底图可能由多个内部影像层组成，例如天地图“影像 + 境界线 + 中文注记”，但右侧只显示一个逻辑底图条目。隐藏或调整透明度会同时作用于整组；切换底图不会删除 Sentinel-2 等独立影像叠加层。天地图的“地形晕渲图”只是二维影像，真实高程仍在“地形”页管理。
 
 ### 底部状态栏
 
@@ -98,11 +100,13 @@ npm run local:server
 
 ## 环境变量与生产构建
 
-- 复制 `example/.env.example` 为 `example/.env.local`，可配置 `VITE_CESIUM_ION_TOKEN` 和本地服务地址。
-- 未配置 ion Token 时默认使用 OpenStreetMap，并禁用场景页全部 ion 公共资产和世界地形开关，同时提供可见错误提示。
-- `VITE_*` 会进入浏览器包，Cesium ion Token 必须限制允许域名，不能放置私密服务端密钥。
-- Cesium credit 容器必须保持可见，以显示 Bing、Google、Sentinel、OpenStreetMap 和 Cesium ion 数据提供者署名。
+- 复制 `example/.env.example` 为 `example/.env.local`，可配置 Cesium ion、天地图和部署者授权的高德/百度/腾讯/星图瓦片服务，以及本地开发服务地址。
+- 未配置 ion Token 时默认使用 OpenStreetMap，并禁用 Google ion、Sentinel-2、3D Tiles 和世界地形；未配置其他厂商时，对应下拉项显示“未配置”并禁用。
+- `VITE_*` 会进入浏览器包，所有 Token/Key 都必须限制允许域名、服务范围和配额，不能放置私密服务端密钥。
+- Cesium credit 容器必须保持可见，以显示 OpenStreetMap、Google、Sentinel、Cesium ion 和其他数据提供者署名。
 - `npm run build:vercel` 构建公开工作台到 `site-dist`；`npm run build` 仍负责 npm 库产物。
+
+多厂商底图、坐标系和 URL 模板详见 [`docs/多厂商底图与坐标系适配.md`](../docs/多厂商底图与坐标系适配.md)。
 
 ## 维护约束
 

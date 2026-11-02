@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "path": "/api/v1/datasets/DS_5E7CC506126B4A1387CB9ED1B1FF2B3D/content",
+  "request_json": null,
+  "http_status": 200,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "accept-ranges": "bytes",
+    "content-type": "image/png",
+    "content-disposition": "attachment; filename*=UTF-8''wind_time_height.png",
+    "etag": "\"585429bc31ec4252574ca19efbb878cb070cbb863ece505744d4fbbd467b957e\"",
+    "cache-control": "private, no-cache",
+    "content-length": "200306"
+  },
+  "response_json": null
+}

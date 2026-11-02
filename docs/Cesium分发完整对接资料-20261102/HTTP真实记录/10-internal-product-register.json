@@ -1,0 +1,125 @@
+{
+  "method": "POST",
+  "path": "/api/v1/products",
+  "request_json": {
+    "request_id": "JOB_5313DECBB5354433A554768DE29E4026",
+    "task_id": "CESIUM_HISTORY_HANDOFF",
+    "worker_id": "HANDOFF_HISTORY_WORKER",
+    "product_type": "wind_time_height",
+    "category_id": "wind",
+    "owner": "分发服务绘图脚本",
+    "title": "【历史研究】接口交付验收：固定雷达综合专题",
+    "summary": "复用既有历史两图和数值文件，不重新计算，不作实况。",
+    "version": "handoff-1",
+    "processor_name": "existing_history_output_handoff",
+    "processor_version": "1.0",
+    "quality_status": "caution",
+    "metadata": {
+      "historical_replay": true,
+      "sample_only": true,
+      "source_end_utc": "2024-04-03T09:05:33+00:00",
+      "lineage_status": "reviewed_output_only_not_original_raw_recomputed"
+    },
+    "assets": [
+      {
+        "dataset_id": "DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+        "asset_type": "image",
+        "label": "风速风向时间—高度图"
+      },
+      {
+        "dataset_id": "DS_546C1C0E34284DC2B19CA0E8F891EF9D",
+        "asset_type": "image",
+        "label": "垂直气流时间—高度图（正向上、负向下）"
+      },
+      {
+        "dataset_id": "DS_ACBF7637713B4CF2BE0615306CB5B34F",
+        "asset_type": "data",
+        "label": "数值与质量说明"
+      },
+      {
+        "dataset_id": "DS_9B2510ABA3A74DA19488937E4F071C1C",
+        "asset_type": "data",
+        "label": "最新观测时刻分层数值"
+      },
+      {
+        "dataset_id": "DS_A159C04FE3D7495D804CC5BB5657CEBF",
+        "asset_type": "data",
+        "label": "标准化历史观测"
+      }
+    ]
+  },
+  "http_status": 201,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "1989"
+  },
+  "response_json": {
+    "product_id": "PRD_B4088565F4F140919062145A3553F047",
+    "task_id": "CESIUM_HISTORY_HANDOFF",
+    "request_id": "JOB_5313DECBB5354433A554768DE29E4026",
+    "product_type": "wind_time_height",
+    "product_key": "wind_time_height:c809f38b27e2417b",
+    "category_id": "wind",
+    "title": "【历史研究】接口交付验收：固定雷达综合专题",
+    "summary": "复用既有历史两图和数值文件，不重新计算，不作实况。",
+    "owner": "分发服务绘图脚本",
+    "version": "handoff-1",
+    "generated_at": "2026-11-02T07:12:58+00:00",
+    "valid_from": null,
+    "valid_until": null,
+    "processor_name": "existing_history_output_handoff",
+    "processor_version": "1.0",
+    "threshold_version": null,
+    "quality_status": "caution",
+    "quality_reason": null,
+    "created_at": "2026-11-02T07:12:58+00:00",
+    "extent": {},
+    "metadata": {
+      "historical_replay": true,
+      "lineage_status": "reviewed_output_only_not_original_raw_recomputed",
+      "sample_only": true,
+      "source_end_utc": "2024-04-03T09:05:33+00:00"
+    },
+    "derived_from": [],
+    "assets": [
+      {
+        "asset_id": "ASSET_CD182D8A7E5F4AFB86F6B417D90C83E6",
+        "dataset_id": "DS_5E7CC506126B4A1387CB9ED1B1FF2B3D",
+        "asset_type": "image",
+        "label": "风速风向时间—高度图",
+        "sort_order": 0
+      },
+      {
+        "asset_id": "ASSET_DFAA73C122204AA4BD1F6182E6F3C053",
+        "dataset_id": "DS_546C1C0E34284DC2B19CA0E8F891EF9D",
+        "asset_type": "image",
+        "label": "垂直气流时间—高度图（正向上、负向下）",
+        "sort_order": 1
+      },
+      {
+        "asset_id": "ASSET_A48165E030F44F69ABDA793C567E99BB",
+        "dataset_id": "DS_ACBF7637713B4CF2BE0615306CB5B34F",
+        "asset_type": "data",
+        "label": "数值与质量说明",
+        "sort_order": 2
+      },
+      {
+        "asset_id": "ASSET_42B503D30B6F4AD9BD5615AD3B21EDE5",
+        "dataset_id": "DS_9B2510ABA3A74DA19488937E4F071C1C",
+        "asset_type": "data",
+        "label": "最新观测时刻分层数值",
+        "sort_order": 3
+      },
+      {
+        "asset_id": "ASSET_E06883B214F0479CA13A6D5EE6039B85",
+        "dataset_id": "DS_A159C04FE3D7495D804CC5BB5657CEBF",
+        "asset_type": "data",
+        "label": "标准化历史观测",
+        "sort_order": 4
+      }
+    ],
+    "schema_version": "1.0"
+  }
+}

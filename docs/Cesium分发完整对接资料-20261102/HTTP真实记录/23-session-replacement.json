@@ -1,0 +1,180 @@
+{
+  "method": "POST",
+  "path": "/api/v1/identity-selections",
+  "request_json": {
+    "terminal_id": "HANDOFF_TERMINAL",
+    "receiver_type": "command_center",
+    "role_id": "commander"
+  },
+  "http_status": 201,
+  "response_headers": {
+    "server": "BaseHTTP/0.6 Python/3.11.9",
+    "date": "Mon, 02 Nov 2026 07:12:58 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "content-length": "4493"
+  },
+  "response_json": {
+    "schema_version": "1.0",
+    "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+    "terminal_id": "HANDOFF_TERMINAL",
+    "person_id": null,
+    "receiver_type": "command_center",
+    "receiver_label": "指挥中心",
+    "role_id": "commander",
+    "role_label": "指挥员",
+    "display_name": null,
+    "mission_bound": true,
+    "categories": [
+      {
+        "category_id": "overview",
+        "label": "文字简报",
+        "description": "只显示本力量的核心数值和必要提示"
+      },
+      {
+        "category_id": "wind",
+        "label": "风场专题",
+        "description": "详细空间分布、分层变化和统计信息按需申请"
+      },
+      {
+        "category_id": "fire",
+        "label": "火势信息",
+        "description": "当前火线、预测火线和预计影响范围"
+      },
+      {
+        "category_id": "aviation",
+        "label": "航线专题",
+        "description": "沿程风场、侧风与顺逆风；缺少航线时不生成结论"
+      },
+      {
+        "category_id": "coverage",
+        "label": "补测与路线",
+        "description": "缺测区、补测点、车辆目标点和路线"
+      },
+      {
+        "category_id": "alerts",
+        "label": "告警",
+        "description": "当前有效告警和需要确认的信息"
+      },
+      {
+        "category_id": "system",
+        "label": "数据与系统",
+        "description": "设备原始数据、质量、覆盖和处理状态"
+      }
+    ],
+    "selected_at": "2026-11-02T07:12:58+00:00",
+    "subscriptions": [
+      {
+        "subscription_id": "SUB_149EF7432C7F478081BBC24E559B2549",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "alerts",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_CB6DBE92751448B0B5302FC17D7A6485",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "aviation",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_01C4253048774967AA63FE1A9D1EED03",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "coverage",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_F7BCB664995244838B1A4FFBE6AA03DE",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "fire",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_C4911FE9E625403FBF9A9ED8938C81EE",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "overview",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_35AA5578F5D14CE69C10BF13F5E7468F",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "system",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      },
+      {
+        "subscription_id": "SUB_1C9E038CA7AD4376B82EF076E10B53AF",
+        "session_id": "SESSION_874AD314F3E54E7EB053C662EE3A9973",
+        "terminal_id": "HANDOFF_TERMINAL",
+        "mission_id": "CESIUM_HISTORY_HANDOFF",
+        "receiver_type": "command_center",
+        "role_id": "commander",
+        "category_id": "wind",
+        "product_type": null,
+        "product_key": null,
+        "zone_id": "*",
+        "active": true,
+        "created_at": "2026-11-02T07:12:58+00:00",
+        "updated_at": "2026-11-02T07:12:58+00:00",
+        "schema_version": "1.0"
+      }
+    ]
+  }
+}

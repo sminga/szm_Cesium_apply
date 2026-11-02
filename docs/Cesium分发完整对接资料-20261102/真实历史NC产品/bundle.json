@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "sample_namespace": "local_registered_product_not_production_ids",
+  "product_id": "PRD_403B9B16236742C3836E560D2C0B1D48",
+  "database_opened_read_only": true,
+  "production_changed": false,
+  "copied_existing_files_only": true,
+  "created_new_scientific_figures": false,
+  "historical_research": true,
+  "total_asset_bytes": 6294232,
+  "local_files": [
+    {
+      "dataset_id": "DS_8764542A4E6F4CB0A238B440F30D0691",
+      "path": "files/DS_8764542A4E6F4CB0A238B440F30D0691/Wind3D_20240403T083300Z_100m_h010m.nc",
+      "size_bytes": 6294232,
+      "sha256": "dcce2e0506c7d5c23c89918fcb978e889b76b7d49610d82213c158a95530b08a"
+    }
+  ],
+  "note": "Local IDs are real in source DB, not guaranteed on production. Use files paths for offline fixture loading; do not treat old observations as live."
+}

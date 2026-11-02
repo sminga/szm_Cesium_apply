@@ -7,6 +7,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `main.js` | 网站入口：创建 Viewer、初始化风场和地形管理器、绑定 DOM、加载示例数据、维护状态栏与图层列表。 |
+| `basemaps/` | 多厂商底图目录、Cesium Provider 工厂、GCJ-02/BD-09 瓦片对齐和复合底图生命周期。 |
 | `ionAssetLayerManager.js` | 按需加载/释放 Cesium ion 影像与 3D Tiles，并用请求版本号避免异步加载完成后恢复已关闭图层。 |
 | `sceneToolsController.js` | 管理工具页点位、路线、GLB Entity、坐标拾取、浏览器文件关联、Viewer 时钟恢复和 Cesium/DOM 资源释放。 |
 | `layers/` | 统一场景资源注册、能力适配、地形切换竞态保护和右侧面板渲染，详见该目录 README。 |
@@ -18,7 +19,7 @@
 虽然当前入口仍集中在一个文件中，但逻辑按以下职责组织：
 
 1. 读取 `VITE_*` 公开配置并创建 Cesium Viewer。
-2. 创建 `WindLayerManager`、`TerrainController` 和 `IonAssetLayerManager`。
+2. 创建 `WindLayerManager`、`TerrainController`、`BasemapManager` 和 `IonAssetLayerManager`。
 3. 渲染风场图层、高度控件、地形状态和场景摘要。
 4. 绑定顶部模式、左右面板、地图工具、状态栏和参数控件。
 5. 连接 `services/` 的公开目录、本地开发服务、浏览器 GeoTIFF 和浏览器文件夹地形能力。
@@ -27,6 +28,12 @@
 渲染参数控件遵循“单一参数状态、多个输入入口”：滑块和数值填写框都通过 `main.js` 中同一个提交函数更新 `sharedOptions`，再同步到所有已加载图层。填写框只在提交时校正，避免用户键入中间值时被滑块回写打断；“恢复默认”先同步六项页面状态，再一次性通知图层，减少连续资源更新。
 
 新增复杂业务时，优先抽到独立模块，不要继续把网络客户端、通用解析器或可测试状态机直接写入 `main.js`。
+
+## 多厂商底图
+
+底图配置、样式和 Provider 创建位于 `basemaps/`。`BasemapManager` 把天地图“基础层 + 境界线 + 注记”等内部层作为一个逻辑底图管理，所有新层成功后才释放旧底图；失败或过期请求不会清空当前地图。高德、腾讯的 GCJ-02 和百度的 BD-09 只在瓦片 tiling scheme 内对齐，风场、DEM、SHP 和工具点位仍保持 WGS84。
+
+右侧 `SceneLayerRegistry` 只接收不含 Token 和授权 URL 的摘要。完整配置、依赖与扩展规则见 [`basemaps/README.md`](basemaps/README.md) 和 [`docs/多厂商底图与坐标系适配.md`](../../docs/多厂商底图与坐标系适配.md)。
 
 右侧图层面板仅负责呈现 `SceneLayerRegistry` 状态。适配器调用既有资源管理器，不另行拥有 Cesium 对象。只有影像叠加层声明实际排序能力；地形切换由 `terrainActivation.js` 保证失败/过期请求不会改变成功的活动源。具体阶段与能力矩阵见 `docs/统一场景图层管理方案.md`。
 
@@ -61,7 +68,7 @@ manager.destroy();
 ## Vercel 与配置边界
 
 - `main.js` 随 Vite 构建到 `site-dist`，不能依赖开发者绝对路径。
-- `VITE_CESIUM_ION_TOKEN` 会进入浏览器包，只能使用限制域名的公开 Token。
+- Cesium ion 和各厂商 `VITE_*` Token/URL 会进入浏览器包，只能使用限制域名、服务范围和配额的公开配置。
 - `VITE_ENABLE_LOCAL_TOOLS` 和 `VITE_LOCAL_SERVICE_URL` 只用于开发者本地工具；公开构建默认不请求访客的 localhost。
 - GeoTIFF 浏览器会话不使用 `VITE_LOCAL_SERVICE_URL`，也不经过 Vercel Function；模块 Worker 由 Vite 与页面一起发布。
 - 所有网络或浏览器能力失败都应转化为可见提示。
@@ -70,6 +77,7 @@ manager.destroy();
 ## 测试与学习
 
 - `tests/example/ionAssetLayerManager.test.js` 覆盖 ion 图层增删、异步取消和资源销毁。
+- `tests/example/basemapManager.test.js` 和 `basemapProviders.test.js` 覆盖复合底图、失败回退、坐标 Provider 参数、配置错误和生产 URL 边界。
 - `tests/example/browserDemTerrain.test.js` 和 `demRasterMath.test.js` 覆盖浏览器 DEM 会话、投影、瓦片编号、NoData 与资源释放。
 - 页面完整交互通过 `npm run build:vercel` 后的生产预览验证；本次还使用 `D:\下载\内蒙古自治区` 的 WGS84 Polygon Shapefile 文件组完成浏览器导入，页面显示 12 个要素并在右侧“矢量数据”组登记。
 - 建议先读 `example/index.html` 了解控件，再按 `main()` 调用顺序阅读 `main.js`，最后查看 `services/`。
