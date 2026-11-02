@@ -7,6 +7,7 @@
 | 文件 | 作用 |
 | --- | --- |
 | `main.js` | 网站入口：创建 Viewer、初始化风场和地形管理器、绑定 DOM、加载示例数据、维护状态栏与图层列表。 |
+| `workspaceTabs.js` | 统一同步顶部工作区页签的视觉状态、ARIA 状态、漫游焦点、键盘切换和内容面板显隐。 |
 | `basemaps/` | 多厂商底图目录、Cesium Provider 工厂、GCJ-02/BD-09 瓦片对齐和复合底图生命周期。 |
 | `ionAssetLayerManager.js` | 按需加载/释放 Cesium ion 影像与 3D Tiles，并用请求版本号避免异步加载完成后恢复已关闭图层。 |
 | `sceneToolsController.js` | 管理工具页点位、路线、GLB Entity、坐标拾取、浏览器文件关联、Viewer 时钟恢复和 Cesium/DOM 资源释放。 |
@@ -79,5 +80,6 @@ manager.destroy();
 - `tests/example/ionAssetLayerManager.test.js` 覆盖 ion 图层增删、异步取消和资源销毁。
 - `tests/example/basemapManager.test.js` 和 `basemapProviders.test.js` 覆盖复合底图、失败回退、坐标 Provider 参数、配置错误和生产 URL 边界。
 - `tests/example/browserDemTerrain.test.js` 和 `demRasterMath.test.js` 覆盖浏览器 DEM 会话、投影、瓦片编号、NoData 与资源释放。
+- `tests/example/workspaceTabs.test.js` 覆盖页签状态同步、键盘循环和 HTML 中的 `tablist/tab/tabpanel` 关联。
 - 页面完整交互通过 `npm run build:vercel` 后的生产预览验证；本次还使用 `D:\下载\内蒙古自治区` 的 WGS84 Polygon Shapefile 文件组完成浏览器导入，页面显示 12 个要素并在右侧“矢量数据”组登记。
 - 建议先读 `example/index.html` 了解控件，再按 `main()` 调用顺序阅读 `main.js`，最后查看 `services/`。

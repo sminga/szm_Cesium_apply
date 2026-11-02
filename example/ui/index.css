@@ -9,7 +9,7 @@
   --border-strong: rgba(196, 218, 226, 0.26);
   --text-1: #edf5f6;
   --text-2: #9fb2b9;
-  --text-3: #657a83;
+  --text-3: #849da5;
   --accent: #63d4c8;
   --accent-strong: #7de3d8;
   --accent-dim: rgba(99, 212, 200, 0.13);
@@ -387,7 +387,7 @@ body.right-panel-closed .panel-right {
 }
 
 .section-heading .section-index {
-  color: rgba(99, 212, 200, 0.42);
+  color: #4fa69e;
   font-size: 20px;
   font-weight: 650;
   line-height: 1;
@@ -1025,11 +1025,10 @@ button:disabled {
   gap: 7px;
   padding: 6px 9px;
   color: var(--text-2);
-  background: rgba(9, 22, 28, 0.82);
+  background: var(--map-fallback);
   border: 1px solid var(--border-soft);
   border-radius: 4px;
   font-size: 9px;
-  backdrop-filter: blur(8px);
 }
 
 .caption-separator {

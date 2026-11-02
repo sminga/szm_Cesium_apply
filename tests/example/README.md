@@ -4,6 +4,7 @@
 
 | 文件 | 覆盖行为 |
 | --- | --- |
+| `workspaceTabs.test.js` | 顶部工作区页签的 ARIA 状态、内容面板显隐、方向键循环、`Home`/`End` 键和 HTML 关联。 |
 | `terrainCatalogClient.test.js` | 公开目录解析、相对 URL、空目录、HTTP 失败、公开/本地合并和生产模式边界。 |
 | `localTerrainFolderLoader.test.js` | 中文/嵌套路径、`layer.json` 校验、`valid_bounds` 优先定位、无效范围回退、瓦片存在性、gzip 文件、多地形拒绝和路径规范化。 |
 | `demRasterMath.test.js` | EPSG:4326 与 WGS84 UTM 识别、UTM 范围转换、Cesium 全球瓦片编号、层级推导和 NoData 插值。 |

@@ -72,6 +72,7 @@ import {
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
 import { BasemapManager } from "./basemaps/BasemapManager.js";
+import { bindWorkspaceTabs } from "./workspaceTabs.js";
 import {
   getBasemapAvailability,
   getBasemapCatalog,
@@ -512,19 +513,13 @@ function bindHeightControls() {
 function bindPanelTabs() {
   const tabs = Array.from(document.querySelectorAll(".panel-tab"));
   const pages = Array.from(document.querySelectorAll(".panel-page"));
-  tabs.forEach((tab) => tab.addEventListener("click", () => {
-    tabs.forEach((item) => {
-      const selected = item === tab;
-      item.classList.toggle("active", selected);
-      item.setAttribute("aria-selected", String(selected));
-    });
-    pages.forEach((page) => {
-      const selected = page.dataset.page === tab.dataset.panel;
-      page.classList.toggle("active", selected);
-      page.hidden = !selected;
-    });
-    if (window.matchMedia("(max-width: 900px)").matches) setPanelOpen("left", true);
-  }));
+  bindWorkspaceTabs({
+    tabs,
+    pages,
+    onSelect: () => {
+      if (window.matchMedia("(max-width: 900px)").matches) setPanelOpen("left", true);
+    },
+  });
 }
 
 function setPanelOpen(side, open) {

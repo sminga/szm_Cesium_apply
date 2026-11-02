@@ -12,18 +12,22 @@
 <body>
   <div class="wind-app">
     <header class="app-header">
-      <div class="app-brand" aria-label="风场实验台">
+      <div class="app-brand">
         <span class="brand-mark"><i data-lucide="wind"></i></span>
         <span class="brand-copy"><strong>风场实验台</strong><small>Cesium 3D Wind Workspace</small></span>
       </div>
-      <nav class="panel-tabs workspace-tabs" aria-label="工作区模式">
-        <button class="panel-tab active" type="button" data-panel="wind" aria-selected="true"><i
+      <nav class="panel-tabs workspace-tabs" role="tablist" aria-label="工作区模式">
+        <button id="workspace-tab-wind" class="panel-tab active" type="button" role="tab" data-panel="wind"
+          aria-controls="workspace-panel-wind" aria-selected="true" tabindex="0"><i
             data-lucide="wind"></i><span>风场</span></button>
-        <button class="panel-tab" type="button" data-panel="layers" aria-selected="false"><i
+        <button id="workspace-tab-layers" class="panel-tab" type="button" role="tab" data-panel="layers"
+          aria-controls="workspace-panel-layers" aria-selected="false" tabindex="-1"><i
             data-lucide="layers-3"></i><span>场景</span></button>
-        <button class="panel-tab" type="button" data-panel="terrain" aria-selected="false"><i
+        <button id="workspace-tab-terrain" class="panel-tab" type="button" role="tab" data-panel="terrain"
+          aria-controls="workspace-panel-terrain" aria-selected="false" tabindex="-1"><i
             data-lucide="mountain-snow"></i><span>地形</span></button>
-        <button class="panel-tab" type="button" data-panel="tools" aria-selected="false"><i
+        <button id="workspace-tab-tools" class="panel-tab" type="button" role="tab" data-panel="tools"
+          aria-controls="workspace-panel-tools" aria-selected="false" tabindex="-1"><i
             data-lucide="wrench"></i><span>工具</span></button>
       </nav>
       <div class="header-summary" aria-live="polite"><span class="summary-dot"></span><span
@@ -46,7 +50,8 @@
               data-lucide="panel-left-close"></i></button>
         </div>
         <div class="workspace-pages">
-          <div class="panel-page active" data-page="wind">
+          <div id="workspace-panel-wind" class="panel-page active" data-page="wind" role="tabpanel"
+            aria-labelledby="workspace-tab-wind">
             <section class="panel-section section-command">
               <div class="section-heading">
                 <div><span class="section-kicker">DEVELOPER TOOL</span>
@@ -150,7 +155,8 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="layers" hidden>
+          <div id="workspace-panel-layers" class="panel-page" data-page="layers" role="tabpanel"
+            aria-labelledby="workspace-tab-layers" hidden>
             <section class="panel-section">
               <div class="section-heading">
                 <div><span class="section-kicker">BASEMAP SOURCES</span>
@@ -203,7 +209,8 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="terrain" hidden>
+          <div id="workspace-panel-terrain" class="panel-page" data-page="terrain" role="tabpanel"
+            aria-labelledby="workspace-tab-terrain" hidden>
             <section class="panel-section">
               <div class="section-heading">
                 <div><span class="section-kicker">BROWSER LOCAL</span>
@@ -254,7 +261,8 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="tools" hidden>
+          <div id="workspace-panel-tools" class="panel-page" data-page="tools" role="tabpanel"
+            aria-labelledby="workspace-tab-tools" hidden>
             <section class="panel-section section-command" aria-labelledby="scene-tools-title">
               <div class="section-heading">
                 <div><span class="section-kicker">SCENE TOOLS</span>
@@ -356,7 +364,7 @@
         <div id="cesiumContainer"></div>
         <div class="map-vignette" aria-hidden="true"></div>
         <div id="status" role="status">正在加载示例风场</div>
-        <div class="map-toolbar" aria-label="地图工具">
+        <div class="map-toolbar" role="toolbar" aria-label="地图工具">
           <button id="home-view" class="map-tool-button" type="button" title="回到初始视角" aria-label="回到初始视角"><i
               data-lucide="home"></i></button>
           <button id="zoom-in" class="map-tool-button" type="button" title="放大" aria-label="放大"><i
