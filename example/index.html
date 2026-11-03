@@ -12,18 +12,25 @@
 <body>
   <div class="wind-app">
     <header class="app-header">
-      <div class="app-brand" aria-label="风场实验台">
+      <div class="app-brand">
         <span class="brand-mark"><i data-lucide="wind"></i></span>
         <span class="brand-copy"><strong>风场实验台</strong><small>Cesium 3D Wind Workspace</small></span>
       </div>
-      <nav class="panel-tabs workspace-tabs" aria-label="工作区模式">
-        <button class="panel-tab active" type="button" data-panel="wind" aria-selected="true"><i
+      <nav class="panel-tabs workspace-tabs" role="tablist" aria-label="工作区模式">
+        <button id="workspace-tab-wind" class="panel-tab active" type="button" role="tab" data-panel="wind"
+          aria-controls="workspace-panel-wind" aria-selected="true" tabindex="0"><i
             data-lucide="wind"></i><span>风场</span></button>
-        <button class="panel-tab" type="button" data-panel="layers" aria-selected="false"><i
+        <button id="workspace-tab-layers" class="panel-tab" type="button" role="tab" data-panel="layers"
+          aria-controls="workspace-panel-layers" aria-selected="false" tabindex="-1"><i
             data-lucide="layers-3"></i><span>场景</span></button>
-        <button class="panel-tab" type="button" data-panel="terrain" aria-selected="false"><i
+        <button id="workspace-tab-terrain" class="panel-tab" type="button" role="tab" data-panel="terrain"
+          aria-controls="workspace-panel-terrain" aria-selected="false" tabindex="-1"><i
             data-lucide="mountain-snow"></i><span>地形</span></button>
-        <button class="panel-tab" type="button" data-panel="tools" aria-selected="false"><i
+        <button id="workspace-tab-fireflow" class="panel-tab" type="button" role="tab" data-panel="fireflow"
+          aria-controls="fireflow-panel" aria-selected="false" tabindex="-1"><i
+            data-lucide="flame"></i><span>火场服务</span></button>
+        <button id="workspace-tab-tools" class="panel-tab" type="button" role="tab" data-panel="tools"
+          aria-controls="workspace-panel-tools" aria-selected="false" tabindex="-1"><i
             data-lucide="wrench"></i><span>工具</span></button>
       </nav>
       <div class="header-summary" aria-live="polite"><span class="summary-dot"></span><span
@@ -46,7 +53,8 @@
               data-lucide="panel-left-close"></i></button>
         </div>
         <div class="workspace-pages">
-          <div class="panel-page active" data-page="wind">
+          <div id="workspace-panel-wind" class="panel-page active" data-page="wind" role="tabpanel"
+            aria-labelledby="workspace-tab-wind">
             <section class="panel-section section-command">
               <div class="section-heading">
                 <div><span class="section-kicker">DEVELOPER TOOL</span>
@@ -150,7 +158,8 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="layers" hidden>
+          <div id="workspace-panel-layers" class="panel-page" data-page="layers" role="tabpanel"
+            aria-labelledby="workspace-tab-layers" hidden>
             <section class="panel-section">
               <div class="section-heading">
                 <div><span class="section-kicker">BASEMAP SOURCES</span>
@@ -203,16 +212,17 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="terrain" hidden>
+          <div id="workspace-panel-terrain" class="panel-page" data-page="terrain" role="tabpanel"
+            aria-labelledby="workspace-tab-terrain" hidden>
             <section class="panel-section">
               <div class="section-heading">
                 <div><span class="section-kicker">BROWSER LOCAL</span>
                   <h2>处理本地高程数据</h2>
                 </div><span>GeoTIFF / Worker</span>
               </div>
-              <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" hidden />
+              <input id="dem-file-input" type="file" accept=".tif,.tiff,.img,.asc,.dem" multiple hidden />
               <button id="convert-dem" class="primary-command secondary-command" type="button"><i
-                  data-lucide="file-up"></i><span>选择并加载 DEM</span></button>
+                  data-lucide="file-up"></i><span>选择并加载 DEM（可多选）</span></button>
               <button id="cancel-dem-processing" class="text-command" type="button" hidden>取消本次 DEM 处理</button>
               <div id="dem-result" class="conversion-result" role="status"><b>浏览器 DEM 待命</b><span>GeoTIFF
                   将在当前浏览器处理，文件不会上传</span></div>
@@ -254,7 +264,55 @@
             </section>
           </div>
 
-          <div class="panel-page" data-page="tools" hidden>
+          <div id="fireflow-panel" class="panel-page" data-page="fireflow" role="tabpanel"
+            aria-labelledby="workspace-tab-fireflow" hidden>
+            <section class="panel-section section-command" aria-labelledby="fireflow-title">
+              <div class="section-heading">
+                <div><span class="section-kicker">FIREFLOW DELIVERY</span>
+                  <h2 id="fireflow-title">火场信息服务</h2>
+                </div><span>同源 API</span>
+              </div>
+              <div id="fireflow-service-result" class="conversion-result" role="status" aria-live="polite">
+                <b>分发服务待命</b><span>当前构建未开启分发接口</span>
+              </div>
+              <p class="tool-hint">身份、目录和申请状态来自分发服务；本页面不会保存机器令牌，也不会自动把未知附件放到地图。</p>
+            </section>
+
+            <section class="panel-section" aria-labelledby="fireflow-identity-title">
+              <div class="section-heading">
+                <div><span class="section-kicker">IDENTITY</span><h2 id="fireflow-identity-title">选择接收身份</h2></div>
+                <span id="fireflow-session">尚未选择</span>
+              </div>
+              <label class="select-control"><span>接收力量</span><select id="fireflow-receiver" aria-label="选择接收力量"><option value="">加载中</option></select></label>
+              <label class="select-control"><span>岗位</span><select id="fireflow-role" aria-label="选择岗位"><option value="">请先选择接收力量</option></select></label>
+              <button id="fireflow-identity-button" class="primary-command" type="button"><i data-lucide="user-round-check"></i><span>确认身份</span></button>
+            </section>
+
+            <section class="panel-section" aria-labelledby="fireflow-catalog-title">
+              <div class="section-heading">
+                <div><span class="section-kicker">PRODUCT CATALOG</span><h2 id="fireflow-catalog-title">可申请产品</h2></div>
+                <button id="fireflow-catalog-refresh" class="icon-button" type="button" title="刷新产品目录" aria-label="刷新产品目录"><i data-lucide="refresh-cw"></i></button>
+              </div>
+              <label class="select-control"><span>产品分类</span><select id="fireflow-category" aria-label="选择产品分类" disabled><option value="">选择身份后加载分类</option></select></label>
+              <label class="select-control"><span>申请类型</span><select id="fireflow-request-type" aria-label="选择申请类型" disabled><option value="">选择分类后加载产品</option></select></label>
+              <p id="fireflow-request-description" class="tool-hint"></p>
+              <button id="fireflow-request-button" class="secondary-command" type="button" disabled><i data-lucide="send"></i><span>申请当前产品</span></button>
+              <div id="fireflow-request-result" class="conversion-result" role="status" aria-live="polite"><b>尚未申请</b><span>确认身份并选择产品后提交</span></div>
+            </section>
+
+            <section class="panel-section" aria-labelledby="fireflow-result-title">
+              <div class="section-heading">
+                <div><span class="section-kicker">DELIVERED RESULT</span><h2 id="fireflow-result-title">分发结果</h2></div>
+                <span>文字 / 图表 / 附件</span>
+              </div>
+              <div id="fireflow-product-result" class="fireflow-product-result" aria-live="polite">
+                <p class="fireflow-empty">申请完成后显示产品摘要和附件。</p>
+              </div>
+            </section>
+          </div>
+
+          <div id="workspace-panel-tools" class="panel-page" data-page="tools" role="tabpanel"
+            aria-labelledby="workspace-tab-tools" hidden>
             <section class="panel-section section-command" aria-labelledby="scene-tools-title">
               <div class="section-heading">
                 <div><span class="section-kicker">SCENE TOOLS</span>
@@ -356,7 +414,7 @@
         <div id="cesiumContainer"></div>
         <div class="map-vignette" aria-hidden="true"></div>
         <div id="status" role="status">正在加载示例风场</div>
-        <div class="map-toolbar" aria-label="地图工具">
+        <div class="map-toolbar" role="toolbar" aria-label="地图工具">
           <button id="home-view" class="map-tool-button" type="button" title="回到初始视角" aria-label="回到初始视角"><i
               data-lucide="home"></i></button>
           <button id="zoom-in" class="map-tool-button" type="button" title="放大" aria-label="放大"><i

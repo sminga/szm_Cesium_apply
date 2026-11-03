@@ -1,6 +1,6 @@
 import { fromArrayBuffer } from "geotiff";
 import {
-  bilinearElevation,
+  bilinearElevationSample,
   boundsIntersect,
   DEM_TILE_SIZE,
   deriveTerrainMaxLevel,
@@ -23,9 +23,9 @@ function boundsObject(values) {
   return { west: values[0], south: values[1], east: values[2], north: values[3] };
 }
 
-function rememberTile(key, heights) {
+function rememberTile(key, samples) {
   tileCache.delete(key);
-  tileCache.set(key, heights);
+  tileCache.set(key, samples);
   while (tileCache.size > TILE_CACHE_LIMIT) tileCache.delete(tileCache.keys().next().value);
 }
 
@@ -114,9 +114,11 @@ function sampleTile(x, y, level) {
 
   const tileBounds = geographicTileBounds(x, y, level);
   const heights = new Float32Array(DEM_TILE_SIZE * DEM_TILE_SIZE);
+  const validMask = new Uint8Array(DEM_TILE_SIZE * DEM_TILE_SIZE);
   if (!boundsIntersect(tileBounds, dem.bounds)) {
-    rememberTile(key, heights);
-    return heights;
+    const samples = { heights, validMask };
+    rememberTile(key, samples);
+    return samples;
   }
 
   const longitudeStep = (tileBounds.east - tileBounds.west) / (DEM_TILE_SIZE - 1);
@@ -130,7 +132,7 @@ function sampleTile(x, y, level) {
       const [sourceX, sourceY] = wgs84ToSourceCoordinate(longitude, latitude, dem.projection);
       const pixelX = (sourceX - dem.origin[0]) / dem.resolution[0] - dem.pixelOffset;
       const pixelY = (sourceY - dem.origin[1]) / dem.resolution[1] - dem.pixelOffset;
-      heights[row * DEM_TILE_SIZE + column] = bilinearElevation(
+      const sample = bilinearElevationSample(
         dem.raster,
         dem.width,
         dem.height,
@@ -138,10 +140,15 @@ function sampleTile(x, y, level) {
         pixelY,
         dem.noData,
       );
+      if (!sample.valid) continue;
+      const index = row * DEM_TILE_SIZE + column;
+      heights[index] = sample.value;
+      validMask[index] = 1;
     }
   }
-  rememberTile(key, heights);
-  return heights;
+  const samples = { heights, validMask };
+  rememberTile(key, samples);
+  return samples;
 }
 
 self.addEventListener("message", async (event) => {
@@ -153,10 +160,10 @@ self.addEventListener("message", async (event) => {
       return;
     }
     if (message.type === "tile") {
-      const heights = sampleTile(message.x, message.y, message.level);
-      // 单瓦片只有约 17 KB。保留 Worker 内的 LRU 缓存并让 structured clone
-      // 复制小数组，比 transfer 后缓存 buffer 被 detach 更利于 Cesium 重复请求。
-      self.postMessage({ type: "result", requestId: message.requestId, value: heights });
+      const samples = sampleTile(message.x, message.y, message.level);
+      // 高度与有效掩码合计约 21 KB。保留 Worker 内的 LRU 缓存并让 structured
+      // clone 复制小数组，比 transfer 后缓存 buffer 被 detach 更利于重复请求。
+      self.postMessage({ type: "result", requestId: message.requestId, value: samples });
       return;
     }
     if (message.type === "dispose") {

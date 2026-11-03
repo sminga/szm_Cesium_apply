@@ -26,10 +26,12 @@ npm run local:server
 
 - **风场**：在页面顶部选择并处理 NC 文件，加载二维/三维风场，设置高度范围和渲染参数。
 - **场景**：选择 Cesium、OpenStreetMap、天地图、高德、百度、腾讯、Google ion、星图或无底图；按需打开 Sentinel-2、Google Photorealistic 3D Tiles 和 Cesium OSM Buildings。
-- **地形**：启用 Cesium World Terrain，在页面顶部选择并加载本机 GeoTIFF，或从电脑文件夹直接加载处理后的 quantized-mesh 地形；同时管理公开地形目录、刷新、应用、定位和恢复椭球地形。
+- **地形**：启用 Cesium World Terrain，一次选择多份本机 GeoTIFF 作为局部 DEM，或从电脑文件夹加载处理后的 quantized-mesh 基础地形；同时管理公开目录、定位、恢复椭球和局部 DEM 优先级。
 - **工具**：创建和命名临时地图点位、绘制并播放 GLB 模型路线、点击拾取经纬度，以及从本地 GeoJSON/TopoJSON/Shapefile 文件加载矢量数据。文件不上传，刷新页面后清除。
 
 顶部右侧显示当前二维/三维风场数量，并提供定位当前图层和同时开合两侧面板的快捷按钮。
+
+顶部模式栏使用标准页签语义。键盘焦点位于模式按钮时，可以使用左右方向键切换相邻模式，使用 `Home` 跳到“风场”，使用 `End` 跳到最后一个模式；当前模式和左侧内容面板会同步更新。
 
 ### 左侧参数面板
 
@@ -47,11 +49,11 @@ npm run local:server
 
 ### 右侧图层面板
 
-右侧“图层管理”按数据任务、底图、影像叠加、矢量、风场、3D 内容和地形源分组显示：
+右侧“图层管理”按数据任务、底图、影像叠加、矢量、风场、3D 内容、基础地形和局部 DEM 分组显示：
 
 - 资源按能力提供显隐、定位、移除、透明度、设置或激活；数据任务提供适用的取消、重试和移除。
 - 影像叠加层可以调整实际影像栈顺序；风场和 3D Tiles 的列表次序不改变深度遮挡；底图固定在影像底部。
-- 地形栏可保留多个候选源，但 Cesium 同时只有一个活动 `terrainProvider`；失败切换会保留原地形。
+- “基础地形”保留多个候选但只激活一个；“局部 DEM”可以同时启用多个，列表越靠上，重叠区优先级越高。Cesium 最终仍只接收一个组合 `terrainProvider`。
 - 二维风场可以直接修改固定显示高度。场景状态同时显示底图、影像、3D Tiles 和地形状态。
 
 基础底图可能由多个内部影像层组成，例如天地图“影像 + 境界线 + 中文注记”，但右侧只显示一个逻辑底图条目。隐藏或调整透明度会同时作用于整组；切换底图不会删除 Sentinel-2 等独立影像叠加层。天地图的“地形晕渲图”只是二维影像，真实高程仍在“地形”页管理。
@@ -59,6 +61,10 @@ npm run local:server
 ### 底部状态栏
 
 状态栏显示本地服务状态、WebGL 版本、鼠标位置经纬度、相机高度和实时 FPS。
+
+### 火场服务
+
+“火场服务”页签用于接入 Fireflow 分发 API，提供身份选择、产品目录、幂等申请、状态轮询、摘要、科研图预览和附件下载。功能默认关闭；只有内网同源 HTTPS 入口配置 `VITE_FIREFLOW_ENABLED=true` 时启用。当前不自动加载 NetCDF-4，也不把没有真实地理配准的图片放到地图，完整边界见 `docs/Fireflow分发服务侧栏接入.md`。
 
 ## 响应式行为
 
@@ -77,11 +83,11 @@ npm run local:server
 
 ## 浏览器预览本地 DEM
 
-公开网站和开发环境都可以在“地形”页点击“选择并加载 DEM”，选择 `.tif` 或 `.tiff`：
+公开网站和开发环境都可以在“地形”页点击“选择并加载 DEM（可多选）”，选择一份或多份 `.tif` / `.tiff`：
 
 - EPSG:4326 和 WGS84 UTM 南北半球分区在 Web Worker 中解析、重投影和采样。
 - 文件不会上传，也不需要 `npm run local:server`、Python 或 Docker。
-- 成功后自动定位到 GeoTIFF 覆盖范围；取消、切换地形或关闭页面会终止 Worker。
+- 成功后自动定位到已启用 DEM 的联合范围，并在右侧逐项显示；关闭某一 DEM 会释放其 Worker，切换基础地形不会移除其他 DEM。
 - 结果只存在于当前标签页，刷新后不会保留，也不会生成 `.terrain` 文件。
 - `.img`、`.asc`、`.dem`、其他投影和需要长期发布的数据仍走离线工具。
 
@@ -100,7 +106,7 @@ npm run local:server
 
 ## 环境变量与生产构建
 
-- 复制 `example/.env.example` 为 `example/.env.local`，可配置 Cesium ion、天地图和部署者授权的高德/百度/腾讯/星图瓦片服务，以及本地开发服务地址。
+- 复制 `example/.env.example` 为 `example/.env.local`，可配置 Cesium ion、天地图和部署者授权的高德/百度/腾讯/星图瓦片服务、本地开发服务及受控同源 Fireflow 入口。
 - 未配置 ion Token 时默认使用 OpenStreetMap，并禁用 Google ion、Sentinel-2、3D Tiles 和世界地形；未配置其他厂商时，对应下拉项显示“未配置”并禁用。
 - `VITE_*` 会进入浏览器包，所有 Token/Key 都必须限制允许域名、服务范围和配额，不能放置私密服务端密钥。
 - Cesium credit 容器必须保持可见，以显示 OpenStreetMap、Google、Sentinel、Cesium ion 和其他数据提供者署名。

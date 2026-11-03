@@ -27,7 +27,7 @@ Cesium World Imagery 仍通过 `createWorldImageryAsync()` 作为基础底图提
 | 文件 | 职责 |
 | --- | --- |
 | `example/index.html` | 声明 Sentinel-2、两个 3D Tiles 和 World Terrain 开关。 |
-| `example/app/main.js` | 绑定开关、更新状态提示、登记右侧图层和处理地形互斥。 |
+| `example/app/main.js` | 绑定开关、更新状态提示、登记右侧图层，并把基础地形与启用的局部 DEM 组合。 |
 | `example/app/ionAssetLayerManager.js` | 管理 ion 影像与 3D Tiles 的异步加载、取消、移除和释放。 |
 | `example/app/basemaps/` | 管理 Cesium/Google ion 等互斥基础底图，不把底图当普通影像叠加层。 |
 | `tests/example/ionAssetLayerManager.test.js` | 验证 ion 影像/3D Tiles 资源生命周期。 |
@@ -47,7 +47,7 @@ Cesium World Imagery 仍通过 `createWorldImageryAsync()` 作为基础底图提
 
 ### 4.3 世界地形
 
-World Terrain 由 `TerrainController` 管理，不由 `IonAssetLayerManager` 持有。它与椭球、浏览器 DEM、本地文件夹和公开目录地形互斥。启用/关闭状态同时同步到地形页和右侧“地形源”。
+World Terrain 由 `TerrainController` 管理，不由 `IonAssetLayerManager` 持有。它与椭球、本地 quantized-mesh 文件夹和公开目录地形同属互斥的“基础地形”；浏览器 GeoTIFF 属于“局部 DEM”，可以在 World Terrain 上方同时启用多份。启用/关闭状态会同步到地形页和右侧两个地形分组。
 
 ### 4.4 异步取消
 
@@ -74,7 +74,7 @@ VITE_CESIUM_ION_TOKEN=由部署维护者提供的浏览器 Token
 1. 在“场景 > 基础底图”选择 Cesium 或 Google，或者使用 OSM/其他已配置厂商。
 2. 需要专题影像时打开 Sentinel-2；切换基础底图后它仍然保留。
 3. 按需打开 Cesium OSM Buildings。Google Photorealistic 3D Tiles 数据量大，使用后及时关闭。
-4. 进入“地形”页启用 Cesium World Terrain；需要本地 DEM 或 quantized-mesh 时从同一页面切换。
+4. 进入“地形”页选择 Cesium World Terrain 或 quantized-mesh 作为基础地形；需要本地 GeoTIFF 时可多选加载为局部 DEM，不会替换 World Terrain。
 5. 在右侧“图层管理”查看、隐藏、调透明度、定位或移除对应资源。
 
 ## 7. 验证

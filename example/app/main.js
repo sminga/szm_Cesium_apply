@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff,
   FileUp,
+  Flame,
   FolderOpen,
   FolderCog,
   Globe2,
@@ -41,10 +42,12 @@ import {
   RotateCcw,
   Route,
   Satellite,
+  Send,
   Server,
   Shapes,
   Trash2,
   TriangleAlert,
+  UserRoundCheck,
   Wind,
   Wrench,
   X,
@@ -69,9 +72,12 @@ import {
   createBrowserDemTerrainSession,
   supportsBrowserDemTerrain,
 } from "../services/browserDemTerrain.js";
+import { MultiDemTerrainProvider } from "../services/multiDemTerrainProvider.js";
 import { createLocalTerrainSession } from "../services/localTerrainFolderLoader.js";
+import { FireflowController } from "./FireflowController.js";
 import { IonAssetLayerManager } from "./ionAssetLayerManager.js";
 import { BasemapManager } from "./basemaps/BasemapManager.js";
+import { bindWorkspaceTabs } from "./workspaceTabs.js";
 import {
   getBasemapAvailability,
   getBasemapCatalog,
@@ -92,6 +98,7 @@ import {
   demSessionDetail,
   ionImageryLayerDefinition,
   ionTilesetLayerDefinition,
+  localDemLayerDefinition,
   taskLayerDefinition,
   terrainSourceDefinition,
   windLayerDefinition,
@@ -154,6 +161,7 @@ const basemaps = new BasemapManager(
 let activeLayerId = null;
 let activeTerrainSourceId = "terrain:ellipsoid";
 let sceneTools = null;
+let fireflow = null;
 let activeBasemapSelection = null;
 let catalogMode = "3d";
 let catalogEntries = [];
@@ -161,11 +169,19 @@ let terrainEntries = [];
 let localTerrainSession = null;
 let localTerrainSourceId = null;
 const localTerrainSources = new Map();
-let browserDemSession = null;
 let demProcessingAbortController = null;
 let demLocalConversionAbortController = null;
 const browserDemSources = new Map();
 let demTaskSequence = 0;
+let desiredBaseTerrain = {
+  id: "terrain:ellipsoid",
+  type: "ellipsoid",
+  name: "椭球地形",
+  bounds: undefined,
+  url: undefined,
+  providerPromise: Promise.resolve(ellipsoidTerrainProvider),
+};
+let latestTerrainStackApply = Promise.resolve({ applied: true });
 
 const WIND_COLORS = [
   "rgb(74, 152, 255)", "rgb(46, 184, 229)", "rgb(56, 205, 176)",
@@ -235,9 +251,9 @@ function renderTerrainState(state) {
   const localMessage = document.getElementById("layer-message");
   const summary = document.getElementById("terrain-state");
   const locateButton = document.getElementById("locate-terrain");
-  const requestedWorld = state.status === "loading" && state.requestedType === "world";
-  worldToggle.checked = requestedWorld || (state.status !== "loading" && state.type === "world");
-  locateButton.disabled = !state.bounds || state.type !== "local";
+  const requestedWorld = state.status === "loading" && desiredBaseTerrain.id === "terrain:world";
+  worldToggle.checked = requestedWorld || activeTerrainSourceId === "terrain:world";
+  locateButton.disabled = !state.bounds;
   summary.querySelector("b").textContent = `当前：${state.name}`;
 
   let detail = "地形已就绪";
@@ -267,11 +283,11 @@ function renderTerrainState(state) {
     });
   }
 
-  const target = state.requestedType === "world" || state.type === "world"
+  const target = desiredBaseTerrain.id === "terrain:world" || activeTerrainSourceId === "terrain:world"
     ? worldMessage
     : localMessage;
   setInlineMessage(target, detail, messageState);
-  if (state.type !== "world" && state.requestedType !== "world") {
+  if (desiredBaseTerrain.id !== "terrain:world" && activeTerrainSourceId !== "terrain:world") {
     setInlineMessage(worldMessage, "世界地形已关闭");
   }
 }
@@ -512,19 +528,13 @@ function bindHeightControls() {
 function bindPanelTabs() {
   const tabs = Array.from(document.querySelectorAll(".panel-tab"));
   const pages = Array.from(document.querySelectorAll(".panel-page"));
-  tabs.forEach((tab) => tab.addEventListener("click", () => {
-    tabs.forEach((item) => {
-      const selected = item === tab;
-      item.classList.toggle("active", selected);
-      item.setAttribute("aria-selected", String(selected));
-    });
-    pages.forEach((page) => {
-      const selected = page.dataset.page === tab.dataset.panel;
-      page.classList.toggle("active", selected);
-      page.hidden = !selected;
-    });
-    if (window.matchMedia("(max-width: 900px)").matches) setPanelOpen("left", true);
-  }));
+  bindWorkspaceTabs({
+    tabs,
+    pages,
+    onSelect: () => {
+      if (window.matchMedia("(max-width: 900px)").matches) setPanelOpen("left", true);
+    },
+  });
 }
 
 function setPanelOpen(side, open) {
@@ -928,16 +938,109 @@ function flyToBounds(bounds, duration = 1.2) {
   return true;
 }
 
+function boundsValues(bounds) {
+  if (!bounds) return undefined;
+  const values = Array.isArray(bounds)
+    ? bounds
+    : [bounds.west, bounds.south, bounds.east, bounds.north];
+  return values.length === 4 && values.every(Number.isFinite) ? values : undefined;
+}
+
+function unionTerrainBounds(baseBounds, sources) {
+  const values = sources
+    .map((source) => boundsValues(source.metadata?.bounds))
+    .filter(Boolean);
+  if (!values.length) return baseBounds;
+  return {
+    west: Math.min(...values.map((bounds) => bounds[0])),
+    south: Math.min(...values.map((bounds) => bounds[1])),
+    east: Math.max(...values.map((bounds) => bounds[2])),
+    north: Math.max(...values.map((bounds) => bounds[3])),
+  };
+}
+
+function enabledBrowserDemSources(orderedIds) {
+  const ids = orderedIds ?? sceneLayers.list("terrainDem").map((entry) => entry.id);
+  return ids
+    .map((id) => browserDemSources.get(id))
+    .filter((source) => source?.enabled && source.session);
+}
+
 /**
- * TerrainController 保证异步请求只有最后一次能够进入场景；这里再把请求状态映射到
- * 统一地形源条目。只有新 Provider 成功应用后才释放活动的浏览器 DEM Worker，
- * 因而失败切换不会破坏仍在显示的旧地形。
+ * 每次基础地形、DEM 显隐或优先级变化都创建新的组合 Provider。给 Cesium 一个新对象
+ * 可以使 Globe 丢弃旧瓦片缓存并按新栈重新请求；TerrainController 仍负责最后请求优先、
+ * 失败保留旧 Provider、状态和瓦片错误监听。
+ */
+function applyTerrainStack(options = {}) {
+  const base = options.base ?? desiredBaseTerrain;
+  const sources = enabledBrowserDemSources(options.orderedIds);
+  let resolvedBaseProvider;
+  const bounds = unionTerrainBounds(base.bounds, sources);
+  const name = sources.length
+    ? `${base.name} + ${sources.length} 个局部 DEM`
+    : base.name;
+  const loadPromise = terrainController.loadProvider({
+    type: sources.length ? "composite" : base.type,
+    name,
+    url: base.url,
+    bounds,
+  }, async () => {
+    resolvedBaseProvider = await base.providerPromise;
+    if (!sources.length) return resolvedBaseProvider;
+    return new MultiDemTerrainProvider({
+      baseProvider: resolvedBaseProvider,
+      sources: sources.map((source) => ({
+        id: source.id,
+        name: source.metadata.name,
+        provider: source.session.provider,
+      })),
+    });
+  });
+  const committedPromise = loadPromise.then((result) => {
+    if (result.applied && desiredBaseTerrain === base) {
+      base.providerPromise = Promise.resolve(resolvedBaseProvider);
+    }
+    return result;
+  });
+  // settleTerrainStackApply() 需要比较调用方等待的 Promise 与“最新请求”。存储装饰后的
+  // 同一个 Promise，避免原始 loadPromise 与返回值身份不同而误判已经是最新的请求。
+  latestTerrainStackApply = committedPromise;
+  return committedPromise;
+}
+
+async function settleTerrainStackApply(applyPromise, desiredStateMatches) {
+  const result = await applyPromise;
+  if (result?.reason !== "superseded" || latestTerrainStackApply === applyPromise) return result;
+  const latestResult = await latestTerrainStackApply;
+  return latestResult.applied && desiredStateMatches()
+    ? latestResult
+    : result;
+}
+
+async function activateBaseTerrain(definition, createProvider) {
+  const previous = desiredBaseTerrain;
+  const candidate = {
+    ...definition,
+    providerPromise: Promise.resolve().then(createProvider),
+  };
+  desiredBaseTerrain = candidate;
+  const applyPromise = applyTerrainStack({ base: candidate });
+  const result = await settleTerrainStackApply(applyPromise, () => desiredBaseTerrain === candidate);
+  if (!result.applied && desiredBaseTerrain === candidate) desiredBaseTerrain = previous;
+  return result;
+}
+
+/**
+ * 基础地形仍然互斥；局部 DEM 已迁移到独立 terrainDem 分组，不再在切换基础地形时
+ * 释放。这样 World Terrain、目录地形或椭球都可以作为多个局部 DEM 的回退表面。
  */
 const runTerrainActivation = createTerrainActivationRunner({
   registry: sceneLayers,
   getActiveId: () => activeTerrainSourceId,
-  setActiveId: (id) => { activeTerrainSourceId = id; },
-  releasePrevious: releaseBrowserDemSession,
+  setActiveId: (id) => {
+    activeTerrainSourceId = id;
+    renderTerrainState(terrainController.getState());
+  },
 });
 
 function registerCatalogTerrainSource(terrain) {
@@ -951,11 +1054,16 @@ function registerCatalogTerrainSource(terrain) {
     bounds: terrain.bounds,
     active: id === activeTerrainSourceId,
     activate: () => runTerrainActivation(id, async () => {
-      cancelPendingBrowserDemProcessing();
-      const result = await terrainController.loadLocal(terrain, {
+      const result = await activateBaseTerrain({
+        id,
+        type: "local",
+        name: terrain.name || "目录地形",
+        url: terrain.url,
+        bounds: terrain.bounds,
+      }, () => terrainController.createLocalProvider(terrain, {
         requestVertexNormals: viewer.scene.globe.enableLighting,
         requestWaterMask: false,
-      });
+      }));
       if (result.applied) ensureTerrainOption(terrain);
       return result;
     }),
@@ -989,10 +1097,16 @@ function registerLocalFolderTerrainSource(session) {
     bounds: session.bounds,
     localOnly: true,
     removable: true,
-    activate: () => runTerrainActivation(id, () => terrainController.loadLocal(terrain, {
+    activate: () => runTerrainActivation(id, () => activateBaseTerrain({
+      id,
+      type: "local",
+      name: session.name,
+      url: session.url,
+      bounds: session.bounds,
+    }, () => terrainController.createLocalProvider(terrain, {
       requestVertexNormals: viewer.scene.globe.enableLighting,
       requestWaterMask: false,
-    })),
+    }))),
     locate: session.bounds ? () => flyToBounds(session.bounds) : undefined,
     remove: async () => {
       if (activeTerrainSourceId === id) await sceneLayers.perform("terrain:ellipsoid", "activate");
@@ -1018,10 +1132,13 @@ function registerCoreTerrainSources() {
     source: "Cesium Ellipsoid",
     detail: "使用椭球表面，不加载高程瓦片",
     active: activeTerrainSourceId === "terrain:ellipsoid",
-    activate: () => runTerrainActivation("terrain:ellipsoid", async () => {
-      cancelPendingBrowserDemProcessing();
-      return { applied: true, state: terrainController.useEllipsoid() };
-    }),
+    activate: () => runTerrainActivation("terrain:ellipsoid", () => activateBaseTerrain({
+      id: "terrain:ellipsoid",
+      type: "ellipsoid",
+      name: "椭球地形",
+      bounds: undefined,
+      url: undefined,
+    }, () => ellipsoidTerrainProvider)),
   }));
   sceneLayers.upsert(terrainSourceDefinition({
     id: "terrain:world",
@@ -1030,27 +1147,29 @@ function registerCoreTerrainSources() {
     source: "Cesium ion 1",
     detail: CESIUM_ION_TOKEN ? "在线全球地形" : "缺少公开浏览器 Token，当前不可用",
     active: activeTerrainSourceId === "terrain:world",
-    activate: CESIUM_ION_TOKEN ? () => runTerrainActivation("terrain:world", async () => {
-      cancelPendingBrowserDemProcessing();
-      return terrainController.loadWorld({
+    activate: CESIUM_ION_TOKEN ? () => runTerrainActivation("terrain:world", () => activateBaseTerrain({
+      id: "terrain:world",
+      type: "world",
+      name: "Cesium World Terrain",
+      bounds: undefined,
+      url: undefined,
+    }, () => terrainController.createWorldProvider({
         requestVertexNormals: viewer.scene.globe.enableLighting,
         requestWaterMask: false,
-      });
-    }) : false,
+      }))) : false,
   }));
 }
 
 async function toggleWorldTerrain(enabled) {
   const checkbox = document.getElementById("terrain-toggle");
   const message = document.getElementById("terrain-online-message");
-  cancelPendingBrowserDemProcessing();
   try {
     if (enabled) {
       if (!CESIUM_ION_TOKEN) throw new Error("未配置 VITE_CESIUM_ION_TOKEN");
       const result = await sceneLayers.perform("terrain:world", "activate");
       if (result?.applied === false) throw result.error || new Error("世界地形加载失败");
-    } else if (terrainController.getState().type === "world"
-      || terrainController.getState().requestedType === "world") {
+    } else if (activeTerrainSourceId === "terrain:world"
+      || desiredBaseTerrain.id === "terrain:world") {
       await sceneLayers.perform("terrain:ellipsoid", "activate");
     }
   } catch (error) {
@@ -1161,16 +1280,6 @@ function ensureTerrainOption(terrain) {
   syncTerrainActions();
 }
 
-async function releaseBrowserDemSession(exceptSession) {
-  if (!browserDemSession || browserDemSession === exceptSession) return;
-  const session = browserDemSession;
-  browserDemSession = null;
-  for (const source of browserDemSources.values()) {
-    if (source.session === session) source.session = null;
-  }
-  await session.dispose();
-}
-
 function cancelPendingBrowserDemProcessing() {
   // 地形选择遵循“最后一次用户操作优先”。如果 GeoTIFF 仍在 Worker 中解析，继续
   // 执行可能会在目录地形、世界地形或椭球已经选中后把旧 DEM 再次应用到场景。
@@ -1189,7 +1298,6 @@ async function loadSelectedTerrain(selectedTerrain) {
   const url = selectedTerrain?.url || select.value;
   const message = document.getElementById("layer-message");
   if (!url) return setInlineMessage(message, "请先选择地形", "error");
-  cancelPendingBrowserDemProcessing();
   const terrain = selectedTerrain
     || terrainEntries.find((entry) => entry.url === url)
     || {
@@ -1246,7 +1354,6 @@ function bindLayerControls() {
     }
   });
   document.getElementById("disable-terrain").addEventListener("click", async () => {
-    cancelPendingBrowserDemProcessing();
     await sceneLayers.perform("terrain:ellipsoid", "activate");
   });
   document.getElementById("locate-terrain").addEventListener("click", () => {
@@ -1268,7 +1375,6 @@ function updateToolResult(id, title, detail, state = "") {
 }
 
 async function loadTerrainFolder(fileList) {
-  cancelPendingBrowserDemProcessing();
   updateToolResult("local-terrain-folder-result", "正在查询文件夹", "正在检查 layer.json 和地形瓦片", "processing");
   let session;
   try {
@@ -1314,24 +1420,54 @@ async function loadTerrainFolder(fileList) {
 
 function registerBrowserDemTerrainSource(source) {
   const metadata = source.metadata;
-  sceneLayers.upsert(terrainSourceDefinition({
+  sceneLayers.upsert(localDemLayerDefinition({
     id: source.id,
-    type: "browser-dem",
     name: metadata.name,
     source: "浏览器 GeoTIFF",
     detail: demSessionDetail(metadata),
     bounds: metadata.bounds,
-    localOnly: true,
-    removable: true,
-    active: source.id === activeTerrainSourceId,
-    activate: async () => {
-      if (!source.session) return loadBrowserDem(source.file, { sourceId: source.id });
-      return applyBrowserDemSession(source, source.session);
+    visible: source.enabled,
+    setVisible: async (_entry, visible) => {
+      if (visible && !source.session) {
+        const result = await loadBrowserDem(source.file, { sourceId: source.id, autoFly: false });
+        if (!result.applied) return result;
+        return { applied: true, patch: { detail: demSessionDetail(source.metadata) } };
+      }
+      const previousEnabled = source.enabled;
+      source.enabled = visible;
+      const applyPromise = applyTerrainStack();
+      const result = await settleTerrainStackApply(applyPromise, () => source.enabled === visible);
+      if (!result.applied) {
+        source.enabled = previousEnabled;
+        return result;
+      }
+      if (!visible && source.session) {
+        await source.session.dispose();
+        source.session = null;
+      }
+      return {
+        applied: true,
+        patch: {
+          status: visible ? "ready" : "idle",
+          detail: visible ? demSessionDetail(source.metadata) : "已关闭，Worker 与解码栅格已释放",
+        },
+      };
+    },
+    reorder: async (_entry, { orderedIds }) => {
+      const result = await applyTerrainStack({ orderedIds });
+      if (!result.applied) throw result.error || new Error("DEM 优先级调整失败");
     },
     locate: () => flyToBounds(metadata.bounds),
     remove: async () => {
-      if (activeTerrainSourceId === source.id) await sceneLayers.perform("terrain:ellipsoid", "activate");
-      if (browserDemSession === source.session) browserDemSession = null;
+      const wasEnabled = source.enabled;
+      source.enabled = false;
+      if (wasEnabled) {
+        const result = await applyTerrainStack();
+        if (!result.applied) {
+          source.enabled = true;
+          throw result.error || new Error("移除 DEM 前重建组合地形失败");
+        }
+      }
       await source.session?.dispose();
       source.session = null;
       browserDemSources.delete(source.id);
@@ -1339,25 +1475,49 @@ function registerBrowserDemTerrainSource(source) {
   }));
 }
 
-async function applyBrowserDemSession(source, session) {
-  const result = await runTerrainActivation(source.id, () => terrainController.loadProvider({
-    name: session.name,
-    bounds: session.bounds,
-  }, session.provider), { releaseBrowser: false });
-  if (!result.applied) return result;
-
-  // 浏览器 DEM 只保留当前活动源的解码栅格和 Worker。其他候选源保留 File 引用与
-  // 元数据，用户再次激活时重新解析，避免多个完整 DEM 长期占用访客内存。
-  const previousSession = browserDemSession;
-  browserDemSession = session;
+async function applyBrowserDemSession(source, session, signal) {
+  const previousEnabled = source.enabled;
+  const previousSession = source.session;
+  source.enabled = true;
   source.session = session;
-  if (previousSession && previousSession !== session) {
-    for (const candidate of browserDemSources.values()) {
-      if (candidate.session === previousSession) candidate.session = null;
-    }
-    await previousSession.dispose();
+  const applyPromise = applyTerrainStack();
+  const result = await settleTerrainStackApply(applyPromise, () => source.enabled && source.session === session);
+  if (!result.applied) {
+    source.enabled = previousEnabled;
+    source.session = previousSession;
+    return result;
   }
-  terrainController.flyToCurrentTerrain({ duration: 1.2 });
+
+  if (signal?.aborted) {
+    // 解析完成后的取消不能直接终止 Worker：先恢复旧栈并等待 Cesium 接管旧 Provider，
+    // catch/finally 路径随后才释放新会话，避免活动组合地形引用已销毁的 Worker。
+    source.enabled = previousEnabled;
+    source.session = previousSession;
+    const rollbackPromise = applyTerrainStack();
+    const rollbackResult = await settleTerrainStackApply(
+      rollbackPromise,
+      () => source.enabled === previousEnabled && source.session === previousSession,
+    );
+    if (!rollbackResult.applied) {
+      return {
+        applied: false,
+        reason: "error",
+        error: rollbackResult.error || new Error("取消 DEM 后恢复原地形失败"),
+      };
+    }
+    return {
+      applied: false,
+      reason: "cancelled",
+      error: signal.reason instanceof Error
+        ? signal.reason
+        : new DOMException("DEM 处理已取消", "AbortError"),
+    };
+  }
+
+  if (previousSession && previousSession !== session) await previousSession.dispose();
+  if (!previousEnabled && sceneLayers.has(source.id)) {
+    sceneLayers.update(source.id, { visible: true, status: "ready", detail: demSessionDetail(session) });
+  }
   return result;
 }
 
@@ -1420,20 +1580,17 @@ async function loadBrowserDem(file, options = {}) {
     };
     source.file = file;
     source.metadata = session;
-    source.session = session;
+    source.session = null;
+    source.enabled ??= false;
     browserDemSources.set(sourceId, source);
     registerBrowserDemTerrainSource(source);
-    const result = await applyBrowserDemSession(source, session);
-    throwIfDemProcessingCancelled(abortController.signal);
+    const result = await applyBrowserDemSession(source, session, abortController.signal);
     if (!result.applied) throw result.error || new Error("浏览器 DEM 地形加载请求已取消");
-    if (demProcessingAbortController !== abortController) {
-      throw new DOMException("DEM 处理已被后续任务取代", "AbortError");
-    }
 
-    // Provider 成功进入场景后，处理任务退出任务组，只保留可重新激活的地形源。
-    if (demProcessingAbortController === abortController) demProcessingAbortController = null;
-    sceneLayers.setExclusiveActive("terrain", sourceId);
+    // Provider 成功进入场景后，处理任务退出任务组；每份 DEM 都保留自己的会话，
+    // 从而能在不重解码的情况下与其他 DEM 同时参与地形组合。
     await sceneLayers.remove(taskId, { dispose: false });
+    if (options.autoFly !== false) flyToBounds(session.bounds);
     updateToolResult(
       "dem-result",
       "本地 DEM 已加载",
@@ -1442,8 +1599,7 @@ async function loadBrowserDem(file, options = {}) {
     );
     return result;
   } catch (error) {
-    if (session && session !== browserDemSession) await session.dispose();
-    if (source?.session === session && browserDemSession !== session) source.session = null;
+    if (session && source?.session !== session) await session.dispose();
     const cancelled = error?.name === "AbortError";
     if (sceneLayers.has(taskId) && demProcessingAbortController === abortController) {
       sceneLayers.update(taskId, {
@@ -1467,6 +1623,30 @@ async function loadBrowserDem(file, options = {}) {
       cancelButton.hidden = true;
     }
   }
+}
+
+async function loadBrowserDemFiles(files) {
+  const queue = Array.from(files || []);
+  let loaded = 0;
+  let failed = 0;
+  for (const file of queue) {
+    const result = await loadBrowserDem(file, { autoFly: queue.length === 1 });
+    if (result.applied) loaded += 1;
+    else if (result.error?.name === "AbortError") break;
+    else failed += 1;
+  }
+  if (queue.length > 1) {
+    const state = failed ? "error" : "success";
+    updateToolResult(
+      "dem-result",
+      failed ? "部分 DEM 加载失败" : "多个本地 DEM 已加载",
+      `成功 ${loaded} 个，失败 ${failed} 个；右侧“局部 DEM”可控制显隐与重叠优先级`,
+      state,
+    );
+    const enabled = enabledBrowserDemSources();
+    if (loaded && enabled.length) flyToBounds(unionTerrainBounds(undefined, enabled));
+  }
+  return { loaded, failed };
 }
 
 async function convertDemWithLocalService(file) {
@@ -1572,17 +1752,21 @@ function bindTools() {
     cancelDemButton.addEventListener("click", () => demProcessingAbortController?.abort());
   }
   demInput.addEventListener("change", async () => {
-    const file = demInput.files?.[0];
-    if (!file) return;
+    const files = Array.from(demInput.files || []);
+    if (!files.length) return;
     try {
-      if (/\.tiff?$/i.test(file.name) && browserDemSupported) await loadBrowserDem(file);
-      else if (LOCAL_TOOLS_ENABLED) await convertDemWithLocalService(file);
-      else updateToolResult(
-        "dem-result",
-        "浏览器模式不支持该格式",
-        "公开网站请使用 .tif 或 .tiff；IMG、ASC、DEM 需要开发者离线服务",
-        "error",
-      );
+      const browserFiles = files.filter((file) => /\.tiff?$/i.test(file.name));
+      const offlineFiles = files.filter((file) => !/\.tiff?$/i.test(file.name));
+      if (browserFiles.length && browserDemSupported) await loadBrowserDemFiles(browserFiles);
+      for (const file of offlineFiles) {
+        if (LOCAL_TOOLS_ENABLED) await convertDemWithLocalService(file);
+        else updateToolResult(
+          "dem-result",
+          "浏览器模式不支持该格式",
+          `${file.name}：公开网站请使用 .tif 或 .tiff；IMG、ASC、DEM 需要开发者离线服务`,
+          "error",
+        );
+      }
     } finally { demInput.value = ""; }
   });
   if (LOCAL_TOOLS_ENABLED) {
@@ -1623,13 +1807,19 @@ async function main() {
   bindLayerControls();
   bindTools();
   initializeIonAssetControls();
+  fireflow = new FireflowController({
+    root: document.getElementById("fireflow-panel"),
+    serviceStatusElement: document.getElementById("service-status"),
+  });
+  fireflow.initialize();
   createIcons({
     icons: {
-      Box, Building2, FileUp, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
+      Box, Building2, FileUp, Flame, FolderOpen, FolderCog, Globe2, Home, Image: ImageIcon,
       ArrowDown, ArrowUp, ChevronDown, ChevronsDown, ChevronsUp, Circle, CircleCheck, Eye, EyeOff,
       Crosshair, GripVertical, Landmark, Layers2, Layers3, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon, MapPin,
       MoreHorizontal, Mountain, MountainSnow, PanelLeftClose, PanelRightClose, RefreshCw,
-      RotateCcw, Route, Satellite, Server, Shapes, Trash2, TriangleAlert, Wind, Wrench, X, ZoomIn, ZoomOut,
+      RotateCcw, Route, Satellite, Send, Server, Shapes, Trash2, TriangleAlert, UserRoundCheck,
+      Wind, Wrench, X, ZoomIn, ZoomOut,
     },
   });
   try {
@@ -1644,9 +1834,10 @@ async function main() {
 window.addEventListener("beforeunload", () => {
   demProcessingAbortController?.abort();
   for (const session of localTerrainSources.values()) session.dispose();
-  browserDemSession?.dispose();
+  for (const source of browserDemSources.values()) source.session?.dispose();
   browserDemSources.clear();
   sceneTools?.destroy();
+  fireflow?.destroy();
   layerPanel.destroy();
   sceneLayers.clear({ dispose: false });
   basemaps.destroy();

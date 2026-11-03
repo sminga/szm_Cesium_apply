@@ -17,6 +17,7 @@ import {
   Map as MapIcon,
   MoreHorizontal,
   Mountain,
+  MountainSnow,
   RotateCcw,
   Shapes,
   Trash2,
@@ -30,7 +31,7 @@ import { LAYER_GROUP_ORDER, LAYER_GROUPS } from "./layerCapabilities.js";
 const ICONS = {
   ArrowDown, ArrowUp, Building2, ChevronDown, Circle, CircleCheck, Eye, EyeOff,
   ChevronsDown, ChevronsUp, GripVertical, Image, ListChecks, LoaderCircle, LocateFixed, Map: MapIcon, MoreHorizontal,
-  Mountain, RotateCcw, Shapes, Trash2, TriangleAlert, Wind, X,
+  Mountain, MountainSnow, RotateCcw, Shapes, Trash2, TriangleAlert, Wind, X,
 };
 
 function icon(name, className = "") {

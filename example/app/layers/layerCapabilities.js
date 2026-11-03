@@ -5,7 +5,8 @@ export const LAYER_GROUPS = Object.freeze({
   vector: Object.freeze({ label: "矢量数据", icon: "shapes", empty: "暂无矢量数据" }),
   wind: Object.freeze({ label: "风场", icon: "wind", empty: "尚未加载风场" }),
   tileset: Object.freeze({ label: "3D 内容", icon: "building-2", empty: "暂无 3D 内容" }),
-  terrain: Object.freeze({ label: "地形源", icon: "mountain", empty: "暂无地形源" }),
+  terrain: Object.freeze({ label: "基础地形", icon: "mountain", empty: "暂无基础地形" }),
+  terrainDem: Object.freeze({ label: "局部 DEM", icon: "mountain-snow", empty: "尚未加载局部 DEM" }),
 });
 
 export const LAYER_GROUP_ORDER = Object.freeze(Object.keys(LAYER_GROUPS));
@@ -36,7 +37,7 @@ export const ACTION_CAPABILITY = Object.freeze({
 
 /**
  * 把各适配器声明的能力压缩成固定布尔结构。右侧面板只根据能力显示操作，
- * 从而避免给 3D Tiles、风场或地形展示没有真实 Cesium 语义的“上下排序”。
+ * 从而避免给 3D Tiles、风场或基础地形展示没有真实 Cesium 语义的“上下排序”。
  */
 export function normalizeCapabilities(capabilities = {}) {
   return Object.fromEntries(LAYER_CAPABILITIES.map((name) => [name, capabilities[name] === true]));

@@ -50,7 +50,10 @@ class FakeWorker {
       queueMicrotask(() => this.emit("message", {
         type: "result",
         requestId: message.requestId,
-        value: new Float32Array(65 * 65).fill(150),
+        value: {
+          heights: new Float32Array(65 * 65).fill(150),
+          validMask: new Uint8Array(65 * 65).fill(1),
+        },
       }));
     }
   }
@@ -80,6 +83,9 @@ describe("browserDemTerrain", () => {
     });
     const terrainData = await session.provider.requestTileGeometry(52, 8, 5);
     expect(terrainData.childTileMask).toBeGreaterThan(0);
+    const samples = await session.provider.requestTileSamples(52, 8, 5);
+    expect(samples.heights[0]).toBe(150);
+    expect(samples.validMask[0]).toBe(1);
     session.dispose();
     expect(worker.terminated).toBe(true);
   });
@@ -102,11 +108,35 @@ describe("browserDemTerrain", () => {
     expect(worker.terminated).toBe(true);
   });
 
+  it("解析完成后由会话所有者决定释放时机，取消信号不提前终止 Worker", async () => {
+    const worker = new FakeWorker();
+    const abortController = new AbortController();
+    const session = await createBrowserDemTerrainSession(
+      new File([new Uint8Array([1])], metadata.fileName),
+      {
+        workerFactory: () => worker,
+        signal: abortController.signal,
+      },
+    );
+
+    abortController.abort();
+    expect(worker.terminated).toBe(false);
+
+    session.dispose();
+    expect(worker.terminated).toBe(true);
+  });
+
   it("Provider 在可用层级请求 Worker，并拒绝继续细分无数据区域", async () => {
-    const client = { request: vi.fn(async () => new Float32Array(65 * 65)) };
+    const client = { request: vi.fn(async () => ({
+      heights: new Float32Array(65 * 65),
+      validMask: new Uint8Array(65 * 65),
+    })) };
     const provider = new BrowserDemTerrainProvider(client, metadata);
 
     expect(provider.getTileDataAvailable(52, 8, 5)).toBe(true);
+    expect(provider.hasDataForTile(52, 8, 5)).toBe(true);
+    expect(provider.getTileDataAvailable(0, 0, 5)).toBe(true);
+    expect(provider.hasDataForTile(0, 0, 5)).toBe(false);
     expect(provider.getTileDataAvailable(0, 0, 11)).toBe(false);
     expect(provider.requestTileGeometry(0, 0, 11)).toBeUndefined();
     await provider.requestTileGeometry(52, 8, 5);

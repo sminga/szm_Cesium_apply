@@ -150,6 +150,7 @@ export interface TerrainEntry {
 }
 
 export interface TerrainProviderEntry {
+  type?: "ellipsoid" | "world" | "local" | "composite";
   name?: string;
   url?: string;
   bounds?: TerrainBounds | [number, number, number, number];
@@ -157,11 +158,11 @@ export interface TerrainProviderEntry {
 
 export interface TerrainControllerState {
   status: "loading" | "ready" | "error";
-  type: "ellipsoid" | "world" | "local";
+  type: "ellipsoid" | "world" | "local" | "composite";
   name: string;
   url?: string;
   bounds?: TerrainBounds;
-  requestedType?: "world" | "local";
+  requestedType?: "world" | "local" | "composite";
   requestedName?: string;
   pendingTiles: number;
   tileErrorCount: number;
@@ -185,6 +186,14 @@ export class TerrainController {
 
   getState(): TerrainControllerState;
   subscribe(listener: (state: TerrainControllerState) => void): () => void;
+  createWorldProvider(options?: {
+    requestVertexNormals?: boolean;
+    requestWaterMask?: boolean;
+  }): Promise<TerrainProvider>;
+  createLocalProvider(terrain: string | TerrainEntry, options?: {
+    requestVertexNormals?: boolean;
+    requestWaterMask?: boolean;
+  }): Promise<TerrainProvider>;
   loadWorld(options?: {
     name?: string;
     bounds?: TerrainBounds | [number, number, number, number];

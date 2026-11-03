@@ -7,7 +7,9 @@
 | 文件 | 作用 |
 | --- | --- |
 | `main.js` | 网站入口：创建 Viewer、初始化风场和地形管理器、绑定 DOM、加载示例数据、维护状态栏与图层列表。 |
+| `workspaceTabs.js` | 管理顶部工作区页签的选中状态、ARIA 关系和方向键、`Home`、`End` 键盘切换。 |
 | `basemaps/` | 多厂商底图目录、Cesium Provider 工厂、GCJ-02/BD-09 瓦片对齐和复合底图生命周期。 |
+| `FireflowController.js` | 管理火场分发侧栏的身份、目录、幂等申请、状态轮询、产品摘要和附件预览；不直接创建 Cesium 图层。 |
 | `ionAssetLayerManager.js` | 按需加载/释放 Cesium ion 影像与 3D Tiles，并用请求版本号避免异步加载完成后恢复已关闭图层。 |
 | `sceneToolsController.js` | 管理工具页点位、路线、GLB Entity、坐标拾取、浏览器文件关联、Viewer 时钟恢复和 Cesium/DOM 资源释放。 |
 | `layers/` | 统一场景资源注册、能力适配、地形切换竞态保护和右侧面板渲染，详见该目录 README。 |
@@ -19,10 +21,10 @@
 虽然当前入口仍集中在一个文件中，但逻辑按以下职责组织：
 
 1. 读取 `VITE_*` 公开配置并创建 Cesium Viewer。
-2. 创建 `WindLayerManager`、`TerrainController`、`BasemapManager` 和 `IonAssetLayerManager`。
+2. 创建 `WindLayerManager`、`TerrainController`、`BasemapManager`、`IonAssetLayerManager` 和 `FireflowController`。
 3. 渲染风场图层、高度控件、地形状态和场景摘要。
-4. 绑定顶部模式、左右面板、地图工具、状态栏和参数控件。
-5. 连接 `services/` 的公开目录、本地开发服务、浏览器 GeoTIFF 和浏览器文件夹地形能力。
+4. 通过 `workspaceTabs.js` 绑定顶部模式的鼠标与键盘切换，再绑定左右面板、地图工具、状态栏和参数控件。
+5. 连接 `services/` 的公开目录、Fireflow 同源 API、本地开发服务、浏览器 GeoTIFF 和浏览器文件夹地形能力。
 6. 加载示例风场并处理页面卸载时的资源释放。
 
 渲染参数控件遵循“单一参数状态、多个输入入口”：滑块和数值填写框都通过 `main.js` 中同一个提交函数更新 `sharedOptions`，再同步到所有已加载图层。填写框只在提交时校正，避免用户键入中间值时被滑块回写打断；“恢复默认”先同步六项页面状态，再一次性通知图层，减少连续资源更新。
@@ -35,13 +37,13 @@
 
 右侧 `SceneLayerRegistry` 只接收不含 Token 和授权 URL 的摘要。完整配置、依赖与扩展规则见 [`basemaps/README.md`](basemaps/README.md) 和 [`docs/多厂商底图与坐标系适配.md`](../../docs/多厂商底图与坐标系适配.md)。
 
-右侧图层面板仅负责呈现 `SceneLayerRegistry` 状态。适配器调用既有资源管理器，不另行拥有 Cesium 对象。只有影像叠加层声明实际排序能力；地形切换由 `terrainActivation.js` 保证失败/过期请求不会改变成功的活动源。具体阶段与能力矩阵见 `docs/统一场景图层管理方案.md`。
+右侧图层面板仅负责呈现 `SceneLayerRegistry` 状态。影像叠加层按真实 imagery stack 排序；“基础地形”保持单选；“局部 DEM”允许多选显隐和排序，顺序决定重叠区优先级。基础地形切换由 `terrainActivation.js` 保护，组合地形由 `MultiDemTerrainProvider` 生成。
 
 ## 浏览器 DEM 会话
 
-`main.js` 只负责编排 UI 和地形生命周期，不直接解析 GeoTIFF。用户选择文件后，入口创建 `AbortController` 和 `createBrowserDemTerrainSession()`，等待 Worker 元数据，再通过 `TerrainController.loadProvider()` 接入统一状态机并定位真实范围。
+`main.js` 只负责编排 UI 和地形生命周期，不直接解析 GeoTIFF。多选文件串行创建 `createBrowserDemTerrainSession()`；每份成功文件进入右侧“局部 DEM”，再与当前基础 Provider 组合后通过 `TerrainController.loadProvider()` 应用。
 
-以下操作会释放浏览器 DEM 会话：应用公开/本地目录地形、加载 quantized-mesh 文件夹、启用世界地形、恢复椭球、替换另一个 GeoTIFF和页面卸载。新的 DEM 请求会先取消仍在处理的旧请求，避免晚到结果覆盖用户后续选择。
+关闭或删除局部 DEM、页面卸载会释放对应 Worker；关闭后保留 `File` 引用，重新启用时再次解析。切换 World Terrain、椭球或 quantized-mesh 只替换基础地形，不释放已启用 DEM。所有 Provider 更新继续遵守最后请求优先和失败保留旧场景。
 
 ## ion 资产管理
 
@@ -70,6 +72,7 @@ manager.destroy();
 - `main.js` 随 Vite 构建到 `site-dist`，不能依赖开发者绝对路径。
 - Cesium ion 和各厂商 `VITE_*` Token/URL 会进入浏览器包，只能使用限制域名、服务范围和配额的公开配置。
 - `VITE_ENABLE_LOCAL_TOOLS` 和 `VITE_LOCAL_SERVICE_URL` 只用于开发者本地工具；公开构建默认不请求访客的 localhost。
+- Fireflow 默认关闭；只有 `VITE_FIREFLOW_ENABLED=true` 且存在经批准的同源 HTTPS 路由时才启用。公开 Vercel 页面不能直接请求实验室 `10.x` 私网地址。
 - GeoTIFF 浏览器会话不使用 `VITE_LOCAL_SERVICE_URL`，也不经过 Vercel Function；模块 Worker 由 Vite 与页面一起发布。
 - 所有网络或浏览器能力失败都应转化为可见提示。
 - Cesium credit 容器必须保持可见；新增数据提供者时同时检查署名、许可、带宽、缓存和 GPU 资源占用。
@@ -78,6 +81,8 @@ manager.destroy();
 
 - `tests/example/ionAssetLayerManager.test.js` 覆盖 ion 图层增删、异步取消和资源销毁。
 - `tests/example/basemapManager.test.js` 和 `basemapProviders.test.js` 覆盖复合底图、失败回退、坐标 Provider 参数、配置错误和生产 URL 边界。
-- `tests/example/browserDemTerrain.test.js` 和 `demRasterMath.test.js` 覆盖浏览器 DEM 会话、投影、瓦片编号、NoData 与资源释放。
+- `tests/example/browserDemTerrain.test.js`、`demRasterMath.test.js` 和 `multiDemTerrainProvider.test.js` 覆盖浏览器 DEM 会话、投影、有效掩码、多源优先级、基础回退与资源释放。
+- `tests/example/fireflowClient.test.js` 覆盖分发配置、会话、真实字段、资源分类、旧附件补齐、轮询和错误提示。
+- `tests/example/workspaceTabs.test.js` 覆盖页签状态同步、键盘循环和 HTML 中的 `tablist/tab/tabpanel` 关联。
 - 页面完整交互通过 `npm run build:vercel` 后的生产预览验证；本次还使用 `D:\下载\内蒙古自治区` 的 WGS84 Polygon Shapefile 文件组完成浏览器导入，页面显示 12 个要素并在右侧“矢量数据”组登记。
 - 建议先读 `example/index.html` 了解控件，再按 `main()` 调用顺序阅读 `main.js`，最后查看 `services/`。

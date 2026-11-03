@@ -131,11 +131,13 @@ export function isValidElevation(value, noData) {
 }
 
 /**
- * 对源栅格做双线性采样。NoData 邻点不参与权重；四个邻点都无效时返回 0，
- * 让本地 DEM 之外回到 Cesium 椭球面，而不是把 -32767 一类哨兵值渲染成深坑。
+ * 对源栅格做双线性采样并保留“是否有有效高程”的语义。组合地形必须区分真实
+ * 0 米与 NoData，否则上层 DEM 的空白区域会错误覆盖下层 DEM 或 World Terrain。
  */
-export function bilinearElevation(raster, width, height, pixelX, pixelY, noData) {
-  if (pixelX < -0.5 || pixelY < -0.5 || pixelX > width - 0.5 || pixelY > height - 0.5) return 0;
+export function bilinearElevationSample(raster, width, height, pixelX, pixelY, noData) {
+  if (pixelX < -0.5 || pixelY < -0.5 || pixelX > width - 0.5 || pixelY > height - 0.5) {
+    return { value: 0, valid: false };
+  }
   const clampedX = Math.max(0, Math.min(width - 1, pixelX));
   const clampedY = Math.max(0, Math.min(height - 1, pixelY));
   const x0 = Math.floor(clampedX);
@@ -157,5 +159,15 @@ export function bilinearElevation(raster, width, height, pixelX, pixelY, noData)
     value += sample * sampleWeight;
     weight += sampleWeight;
   }
-  return weight > 0 ? value / weight : 0;
+  return weight > 0
+    ? { value: value / weight, valid: true }
+    : { value: 0, valid: false };
+}
+
+/**
+ * 保留原有单 DEM API：没有有效邻点时返回 0 米。多 DEM 组合应改用
+ * bilinearElevationSample() 的 valid 标记决定是否覆盖下层地形。
+ */
+export function bilinearElevation(raster, width, height, pixelX, pixelY, noData) {
+  return bilinearElevationSample(raster, width, height, pixelX, pixelY, noData).value;
 }

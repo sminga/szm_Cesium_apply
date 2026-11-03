@@ -75,10 +75,15 @@ export class TerrainController {
       type: "world",
       name: options.name ?? "Cesium World Terrain",
       bounds: options.bounds,
-      createProvider: () => this.createWorldTerrain({
-        requestVertexNormals: options.requestVertexNormals ?? false,
-        requestWaterMask: options.requestWaterMask ?? false,
-      }),
+      createProvider: () => this.createWorldProvider(options),
+    });
+  }
+
+  createWorldProvider(options = {}) {
+    this.assertActive();
+    return this.createWorldTerrain({
+      requestVertexNormals: options.requestVertexNormals ?? false,
+      requestWaterMask: options.requestWaterMask ?? false,
     });
   }
 
@@ -90,8 +95,15 @@ export class TerrainController {
       name: entry.name ?? "本地地形",
       url: entry.url,
       bounds: entry.bounds,
-      createProvider: () => this.createLocalTerrain(entry.url, options),
+      createProvider: () => this.createLocalProvider(entry, options),
     });
+  }
+
+  createLocalProvider(terrain, options = {}) {
+    this.assertActive();
+    const entry = typeof terrain === "string" ? { url: terrain } : terrain;
+    if (!entry?.url) throw new Error("缺少本地地形 URL");
+    return this.createLocalTerrain(entry.url, options);
   }
 
   /**
@@ -102,7 +114,7 @@ export class TerrainController {
   async loadProvider(terrain, provider) {
     const entry = terrain ?? {};
     return this.loadTerrain({
-      type: "local",
+      type: entry.type ?? "local",
       name: entry.name ?? "自定义地形",
       url: entry.url,
       bounds: entry.bounds,

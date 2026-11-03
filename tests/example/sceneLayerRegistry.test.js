@@ -71,6 +71,25 @@ describe("SceneLayerRegistry", () => {
     expect(registry.list("terrain").filter((entry) => entry.active).map((entry) => entry.id)).toEqual(["world"]);
   });
 
+  it("局部 DEM 使用显隐与排序，不进入基础地形单选状态", async () => {
+    const registry = new SceneLayerRegistry();
+    for (const id of ["dem-a", "dem-b"]) {
+      registry.register({
+        id,
+        group: "terrainDem",
+        name: id,
+        capabilities: { visible: true, reorder: true },
+        actions: { setVisible: vi.fn(), reorder: vi.fn() },
+      });
+    }
+
+    await registry.perform("dem-a", "setVisible", false);
+    await registry.move("dem-b", 0);
+    expect(registry.get("dem-a").visible).toBe(false);
+    expect(registry.list("terrainDem").map((entry) => entry.id)).toEqual(["dem-b", "dem-a"]);
+    expect(registry.list("terrainDem").some((entry) => entry.active)).toBe(false);
+  });
+
   it("从场景移除时先调用资源适配器", async () => {
     const remove = vi.fn();
     const registry = new SceneLayerRegistry();

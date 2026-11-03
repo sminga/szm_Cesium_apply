@@ -151,6 +151,39 @@ export function terrainSourceDefinition(source) {
   };
 }
 
+/**
+ * 局部 DEM 不是互斥基础地形，而是组合 Provider 中可以同时启用的覆盖源。
+ * visible 控制是否参与组合，reorder 控制重叠区优先级；列表越靠上优先级越高。
+ */
+export function localDemLayerDefinition(source) {
+  return {
+    id: source.id,
+    group: "terrainDem",
+    type: "browser-dem",
+    name: source.name,
+    source: source.source ?? "浏览器 GeoTIFF",
+    detail: source.detail ?? "浏览器本地 DEM",
+    status: source.status ?? "ready",
+    visible: source.visible ?? true,
+    localOnly: true,
+    removable: true,
+    capabilities: {
+      visible: true,
+      reorder: true,
+      locate: Boolean(source.locate),
+      remove: Boolean(source.remove),
+    },
+    metadata: { ...(source.metadata ?? {}), bounds: source.bounds },
+    actions: {
+      setVisible: source.setVisible,
+      reorder: source.reorder,
+      locate: source.locate,
+      remove: source.remove,
+      dispose: source.dispose,
+    },
+  };
+}
+
 export function taskLayerDefinition(task) {
   return {
     id: task.id,

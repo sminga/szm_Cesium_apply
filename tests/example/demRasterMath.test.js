@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bilinearElevation,
+  bilinearElevationSample,
   childTileMask,
   deriveTerrainMaxLevel,
   geographicTileBounds,
@@ -81,5 +82,18 @@ describe("demRasterMath", () => {
     expect(bilinearElevation(raster, 2, 2, 0.5, 0.5, -32767)).toBeCloseTo(200, 5);
     expect(bilinearElevation(new Float32Array(4).fill(-32767), 2, 2, 0.5, 0.5, -32767)).toBe(0);
     expect(bilinearElevation(raster, 2, 2, -2, -2, -32767)).toBe(0);
+
+    expect(bilinearElevationSample(raster, 2, 2, 0.5, 0.5, -32767)).toMatchObject({
+      value: expect.closeTo(200, 5),
+      valid: true,
+    });
+    expect(bilinearElevationSample(
+      new Float32Array(4).fill(-32767),
+      2,
+      2,
+      0.5,
+      0.5,
+      -32767,
+    )).toEqual({ value: 0, valid: false });
   });
 });

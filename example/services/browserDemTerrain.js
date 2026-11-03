@@ -5,8 +5,10 @@ import {
   TerrainProvider,
 } from "cesium";
 import {
+  boundsIntersect,
   childTileMask,
   DEM_TILE_SIZE,
+  geographicTileBounds,
   OUTSIDE_DEM_MAX_LEVEL,
   tileAvailable,
 } from "./demRasterMath.js";
@@ -68,8 +70,8 @@ class DemWorkerClient {
 
 /**
  * 使用公开 Cesium TerrainProvider 接口，把本地 GeoTIFF 按请求实时采样为 heightmap。
- * 低层级的 DEM 外部区域返回 0 米椭球高度，高层级则通过 childTileMask 停止细分，
- * 既保持全球场景可见，也避免用户移到数据区外时无休止生成空瓦片。
+ * 单独使用时，低层级的 DEM 外部区域仍返回 0 米以兼容既有全球浏览行为；组合 Provider
+ * 则通过 hasDataForTile() 只请求真正与 DEM 相交的瓦片，避免把兼容性空瓦片当成覆盖数据。
  */
 export class BrowserDemTerrainProvider {
   constructor(client, metadata) {
@@ -104,30 +106,62 @@ export class BrowserDemTerrainProvider {
     );
   }
 
+  /**
+   * 判断瓦片是否真正包含本 DEM 的有效覆盖范围。它与 getTileDataAvailable() 的区别是：
+   * 后者为单 DEM 模式保留 0-10 级全球空瓦片，前者专供组合地形过滤数据来源。
+   */
+  hasDataForTile(x, y, level) {
+    return level <= this.metadata.maxLevel
+      && boundsIntersect(geographicTileBounds(x, y, level), this.metadata.bounds);
+  }
+
   loadTileDataAvailability() {
     return undefined;
   }
 
-  requestTileGeometry(x, y, level) {
+  getChildTileMask(x, y, level) {
+    return childTileMask(
+      x,
+      y,
+      level,
+      this.metadata.bounds,
+      this.metadata.maxLevel,
+      OUTSIDE_DEM_MAX_LEVEL,
+    );
+  }
+
+  /**
+   * 返回 heightmap 与逐像元有效掩码。组合 Provider 使用 validMask 决定是否覆盖
+   * 下层 DEM；直接作为单一地形使用时，无效像元仍保持 0 米以兼容原有行为。
+   */
+  requestTileSamples(x, y, level) {
     if (!this.getTileDataAvailable(x, y, level)) return undefined;
     return this.client.request("tile", { x, y, level })
-      .then((heights) => new HeightmapTerrainData({
-        buffer: heights,
-        width: DEM_TILE_SIZE,
-        height: DEM_TILE_SIZE,
-        childTileMask: childTileMask(
-          x,
-          y,
-          level,
-          this.metadata.bounds,
-          this.metadata.maxLevel,
-          OUTSIDE_DEM_MAX_LEVEL,
-        ),
-      }))
+      .then((samples) => {
+        if (ArrayBuffer.isView(samples)) {
+          return {
+            heights: samples,
+            validMask: new Uint8Array(samples.length).fill(1),
+          };
+        }
+        return samples;
+      })
       .catch((error) => {
         this.errorEvent.raiseEvent(error);
         throw error;
       });
+  }
+
+  requestTileGeometry(x, y, level) {
+    const samples = this.requestTileSamples(x, y, level);
+    if (!samples) return undefined;
+    return samples
+      .then(({ heights }) => new HeightmapTerrainData({
+        buffer: heights,
+        width: DEM_TILE_SIZE,
+        height: DEM_TILE_SIZE,
+        childTileMask: this.getChildTileMask(x, y, level),
+      }));
   }
 }
 
@@ -154,6 +188,9 @@ export async function createBrowserDemTerrainSession(file, options = {}) {
   try {
     const metadata = await client.request("load", { file });
     if (signal?.aborted) throw abortError();
+    // AbortSignal 只负责“创建会话”阶段。解析完成后由上层先把 Provider 从组合栈回滚，
+    // 再调用 session.dispose()；否则取消应用时可能短暂留下一个已终止 Worker 的活动 Provider。
+    signal?.removeEventListener("abort", abort);
     const provider = options.providerFactory?.(client, metadata)
       ?? new BrowserDemTerrainProvider(client, metadata);
     let disposed = false;
